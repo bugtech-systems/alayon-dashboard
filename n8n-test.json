@@ -1,0 +1,170 @@
+{
+  "name": "Orders Data Table API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "orders",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Orders Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "orders-datatable-api"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  id,\n  order_number,\n  order_type,\n  description,\n  batch_id,\n  branch_id,\n  peddler_id,\n  created_by,\n  bad_order_quantity,\n  new_can_quantity,\n  new_can_total_amount,\n  refill_quantity,\n  refill_total_amount,\n  other_brand_quantity,\n  total_amount,\n  is_paid,\n  is_deleted,\n  order_date,\n  created_at,\n  updated_at,\n  batches\nFROM orders\nWHERE is_deleted = false\n  AND ($1::timestamptz IS NULL OR order_date >= $1::timestamptz)\n  AND ($2::timestamptz IS NULL OR order_date <= ($2::timestamptz + interval '23 hours 59 minutes 59 seconds'))\n  AND ($3::text IS NULL OR $3::text = 'all' OR branch_id = $3)\n  AND ($4::text IS NULL OR $4::text = 'all' OR batch_id = $4)\n  AND ($5::text IS NULL OR $5::text = 'all' OR order_type = $5)\n  AND ($6::text IS NULL OR $6::text = 'all' OR peddler_id = $6)\nORDER BY {{$json.sortBy || 'order_date'}} {{$json.sortOrder || 'DESC'}}\nLIMIT $7 OFFSET $8;",
+        "additionalFields": {
+          "queryParams": [
+            "={{$json.query.from || null}}",
+            "={{$json.query.to || null}}",
+            "={{$json.query.branch_id || null}}",
+            "={{$json.query.batch_id || null}}",
+            "={{$json.query.type || null}}",
+            "={{$json.query.peddler_id || null}}",
+            "={{Math.min(parseInt($json.query.limit) || 10, 100)}}",
+            "={{((parseInt($json.query.page) || 1) - 1) * (Math.min(parseInt($json.query.limit) || 10, 100))}}"
+          ]
+        },
+        "postgres": {
+          "id": "{{$credentials.postgres}}"
+        }
+      },
+      "id": "fetch-orders",
+      "name": "Fetch Orders",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) as total\nFROM orders\nWHERE is_deleted = false\n  AND ($1::timestamptz IS NULL OR order_date >= $1::timestamptz)\n  AND ($2::timestamptz IS NULL OR order_date <= ($2::timestamptz + interval '23 hours 59 minutes 59 seconds'))\n  AND ($3::text IS NULL OR $3::text = 'all' OR branch_id = $3)\n  AND ($4::text IS NULL OR $4::text = 'all' OR batch_id = $4)\n  AND ($5::text IS NULL OR $5::text = 'all' OR order_type = $5)\n  AND ($6::text IS NULL OR $6::text = 'all' OR peddler_id = $6);",
+        "additionalFields": {
+          "queryParams": [
+            "={{$json.query.from || null}}",
+            "={{$json.query.to || null}}",
+            "={{$json.query.branch_id || null}}",
+            "={{$json.query.batch_id || null}}",
+            "={{$json.query.type || null}}",
+            "={{$json.query.peddler_id || null}}"
+          ]
+        },
+        "postgres": {
+          "id": "{{$credentials.postgres}}"
+        }
+      },
+      "id": "count-total",
+      "name": "Count Total",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.1,
+      "position": [500, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format response for Data Tables API\nconst orders = $items('Fetch Orders').map(item => {\n  const data = item.json;\n  \n  // Format currency fields with Peso sign\n  if (data.total_amount) {\n    data.total_amount_formatted = '₱' + parseFloat(data.total_amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\n  }\n  if (data.new_can_total_amount) {\n    data.new_can_total_amount_formatted = '₱' + parseFloat(data.new_can_total_amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\n  }\n  if (data.refill_total_amount) {\n    data.refill_total_amount_formatted = '₱' + parseFloat(data.refill_total_amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\n  }\n  \n  // Format date\n  if (data.order_date) {\n    data.order_date_formatted = new Date(data.order_date).toLocaleDateString('en-PH');\n  }\n  \n  return data;\n});\n\nconst total = $items('Count Total')[0]?.json?.total || 0;\nconst page = parseInt($json.query.page) || 1;\nconst limit = Math.min(parseInt($json.query.limit) || 10, 100);\n\nreturn {\n  data: orders,\n  recordsTotal: total,\n  recordsFiltered: total,\n  page: page,\n  limit: limit,\n  totalPages: Math.ceil(total / limit),\n  draw: parseInt($json.query.draw) || 1\n};"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 400]
+    },
+    {
+      "parameters": {
+        "responseBody": "={{$json}}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 400]
+    }
+  ],
+  "connections": {
+    "Orders Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch Orders",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Count Total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Orders": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Total": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetup": {
+      "all": {
+        "postgres": "Postgres"
+      }
+    },
+    "instanceId": "orders-datatable-api"
+  }
+}

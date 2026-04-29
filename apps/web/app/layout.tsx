@@ -2,7 +2,10 @@ import { Geist, Geist_Mono, Roboto, Public_Sans } from "next/font/google"
 
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Providers } from "@/providers/queryProvider"
 import { cn } from "@workspace/ui/lib/utils";
+import { TooltipProvider } from "@workspace/ui/components/tooltip"
+import { MedusaAuthProvider } from "@/providers/MedusaAuthProvider"
 
 const publicSansHeading = Public_Sans({subsets:['latin'],variable:'--font-heading'});
 
@@ -25,7 +28,13 @@ export default function RootLayout({
       className={cn("antialiased", fontMono.variable, "font-sans", roboto.variable, publicSansHeading.variable)}
     >
       <body>
+        <MedusaAuthProvider>
+        <Providers>
+        <TooltipProvider>
         <ThemeProvider>{children}</ThemeProvider>
+        </TooltipProvider>
+        </Providers>
+        </MedusaAuthProvider>
       </body>
     </html>
   )
