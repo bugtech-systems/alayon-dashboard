@@ -35,7 +35,7 @@ import {
 } from "@workspace/ui/components/toggle-group"
 import { useURLFilters } from "@/hooks/useUrlFilters"
 
-export function ChartAreaInteractive({ widget }) {
+export function ChartAreaInteractive({ widget }: any) {
   const isMobile = useIsMobile()
   const { filters, setFilters, clearFilters } = useURLFilters({
     defaultRange: "30d",
@@ -44,7 +44,7 @@ export function ChartAreaInteractive({ widget }) {
     defaultSegment: "all"
   })
   // ✅ Internal state instead of URL filters
-  const [range, setRange] = React.useState("30d")
+  const [range, setRange] = React.useState("30d") as any
 
 
   const handleDateChange = (rangeDate?: any) => {
@@ -74,9 +74,9 @@ export function ChartAreaInteractive({ widget }) {
       "7d": 7,
       "30d": 30,
       "90d": 90,
-    }
+    } as any
 
-    const days = map[range] || 7
+    const days = map[range] || 7 as any
 
     const fromDate = new Date(
       now.getTime() - days * 24 * 60 * 60 * 1000
@@ -130,7 +130,7 @@ export function ChartAreaInteractive({ widget }) {
 
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer className="h-[250px] w-full" config={widget.config}>
-          <AreaChart data={data}>
+          <AreaChart data={data as any}>
             <defs>
               <linearGradient id="fillNewCan" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="var(--color-new_can)" />

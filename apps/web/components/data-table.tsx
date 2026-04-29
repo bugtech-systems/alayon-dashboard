@@ -49,7 +49,6 @@ import {
   Download
 } from "lucide-react"
 
-import { useDashboardFilters } from "@/providers/DashboardFilterContext"
 import { useN8nQuery } from "@/hooks/useN8nQuery"
 import { useURLFilters } from "@/hooks/useUrlFilters"
 
@@ -80,8 +79,8 @@ const ordersWidget = {
 }
 
 export function DataTable() {
-  const { filters, setFilters } = useURLFilters()
-
+  const { filters, setFilters } = useURLFilters() as any
+ 
   const [activeTab, setActiveTab] = React.useState("sale")
 
   const [pagination, setPagination] = React.useState({
@@ -94,7 +93,7 @@ export function DataTable() {
     type: activeTab,
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
-  }})
+  }}) as any;
 
   const tableData: Order[] = (data && data[0]?.data) || []
   const total = (data && data[0]?.total) || 0
@@ -163,14 +162,14 @@ export function DataTable() {
   }, [pagination])
 
   // CSV EXPORT
-  function exportCSV(rows: Order[]) {
+  function exportCSV(rows: Order[] | any) {
     if (!rows.length) return
 
     const headers = Object.keys(rows[0])
 
     const csv = [
       headers.join(","),
-      ...rows.map((row) =>
+      ...rows.map((row: any) =>
         headers.map((h) => `"${(row as any)[h] ?? ""}"`).join(",")
       ),
     ].join("\n")

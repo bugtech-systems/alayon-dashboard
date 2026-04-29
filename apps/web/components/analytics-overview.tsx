@@ -110,7 +110,7 @@ export function AnalyticsOverview() {
     <BranchSelect
       branches={branches}
       value={filters.branch || "all"}
-      onChange={(val) => {
+      onChange={(val: any) => {
         setFilters({
           branch: val,
           batch: "", // 🔥 reset batch when branch changes
@@ -123,7 +123,7 @@ export function AnalyticsOverview() {
       batches={batches}
       value={filters.batch}
       disabled={!filters.branch || filters.branch === "all"}
-      onChange={(val) => setFilters({ batch: val })}
+      onChange={(val: any) => setFilters({ batch: val })}
     />
 
   </div>
@@ -147,7 +147,7 @@ export function AnalyticsOverview() {
   )
 }
 
-function BranchSelect({ branches, value, onChange }) {
+function BranchSelect({ branches, value, onChange }: any) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -156,7 +156,7 @@ function BranchSelect({ branches, value, onChange }) {
         <Button variant="outline" className="w-[200px] justify-between">
           {value === "all"
             ? "All Branches"
-            : branches.find((b) => b.id === value)?.name}
+            : branches.find((b: any) => b.id === value)?.name}
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -177,7 +177,7 @@ function BranchSelect({ branches, value, onChange }) {
                 <Check className={cn("ml-auto", value === "all" ? "opacity-100" : "opacity-0")} />
               </CommandItem>
 
-              {branches.map((b) => (
+              {branches.map((b: any) => (
                 <CommandItem
                   key={b.id}
                   value={b.id}
@@ -199,7 +199,7 @@ function BranchSelect({ branches, value, onChange }) {
   )
 }
 
-function BatchSelect({ batches, value, onChange, disabled }) {
+function BatchSelect({ batches, value, onChange, disabled }: any) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -213,7 +213,7 @@ function BatchSelect({ batches, value, onChange, disabled }) {
           {disabled
             ? "Select branch first"
             : value
-            ? batches.find((b) => b.id === value)?.name
+            ? batches.find((b: any) => b.id === value)?.name
             : "All Batches"}
           <ChevronsUpDown className="opacity-50" />
         </Button>
@@ -235,7 +235,7 @@ function BatchSelect({ batches, value, onChange, disabled }) {
                 <Check className={cn("ml-auto", value === "all" ? "opacity-100" : "opacity-0")} />
               </CommandItem>
 
-              {batches.map((b) => (
+              {batches.map((b: any) => (
                 <CommandItem
                   key={b.id}
                   value={b.id}

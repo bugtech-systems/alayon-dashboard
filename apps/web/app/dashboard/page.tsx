@@ -5,10 +5,8 @@ import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
 
-import data from "./data.json"
-import { DashboardFilterProvider } from "@/providers/DashboardFilterContext"
-import { DashboardFiltersBar } from "@/components/dashboard-filterbar"
 import { AnalyticsOverview } from "@/components/analytics-overview"
+import { Suspense } from "react"
 
 
 const dashboardCardsWidget = {
@@ -67,7 +65,7 @@ export default function Page() {
 
 
   return (
-    <DashboardFilterProvider>
+      <Suspense>
     <SidebarProvider
       style={
         {
@@ -92,13 +90,13 @@ export default function Page() {
               <div className="px-4 lg:px-6">
                 <ChartAreaInteractive widget={chartWidget}/>
               </div>
-              <DataTable data={data} />
+              <DataTable />
             </div>
           </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
-    </DashboardFilterProvider>
+    </Suspense>
   )
 }
 

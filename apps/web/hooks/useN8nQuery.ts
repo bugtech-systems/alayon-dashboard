@@ -81,15 +81,15 @@ export function useN8nQuery<T = any>(options: QueryOptions) {
 
   // 🔁 backward compatibility layer
   let finalEndpoint = endpoint
-  let finalParams = params
+  let finalParams = params as any 
 
   if (widget) {
-    finalEndpoint = widget.webhook.url
+    finalEndpoint = widget.webhook.url as any
 
-    finalParams = {}
+    finalParams = {} 
 
     Object.entries(widget.webhook.queryMap || {}).forEach(
-      ([filterKey, queryKey]) => {
+      ([filterKey, queryKey]: any) => {
         const value = filters?.[filterKey]
         if (value != null) {
           finalParams[queryKey] = value
@@ -114,7 +114,6 @@ export function useN8nQuery<T = any>(options: QueryOptions) {
 
     refetchInterval,
 
-    staleTime: 60 * 1000,
-    keepPreviousData: true,
+    staleTime: 60 * 1000
   })
 }
