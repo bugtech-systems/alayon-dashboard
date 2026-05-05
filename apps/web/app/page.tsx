@@ -1,5 +1,5 @@
-"use client"
 
+"use client"
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useMedusaAuth } from "@/providers/MedusaAuthProvider"
@@ -12,11 +12,11 @@ export default function HomePage() {
     if (loading) return
       router.replace("/dashboard")
 
-    // if (user) {
-    //   router.replace("/dashboard")
-    // } else {
-    //   router.replace("/login")
-    // }
+    if (user) {
+      router.replace("/dashboard")
+    } else {
+      router.replace("/login")
+    }
   }, [user, loading])
 
   return null

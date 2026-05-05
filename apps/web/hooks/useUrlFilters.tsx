@@ -1,251 +1,116 @@
-"use client"
+// hooks/useURLFilters.ts
 
-import { useSearchParams, useRouter, usePathname } from "next/navigation"
-import { useMemo, useCallback } from "react"
-import { resolveRange } from "@/lib/utils/resolveRange"
-import { format, parse, isValid } from "date-fns"
+"use client";
 
-export type FilterKey =
-  | "range"
-  | "segment"
-  | "branch"
-  | "batch"
-  | "from"
-  | "to"
-  | "type"
-  | "page"
-  | "limit"
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useMemo, useCallback, useRef, useEffect } from "react";
+import { resolveRange } from "@/lib/utils/resolveRange";
+import { format, parse, isValid } from "date-fns";
 
 export interface Filters {
-  range: string
-  segment: string
-  branch: string
-  batch: string
-  from: string
-  to: string
-  type: string
-  page: number
-  limit: number
+  [key: string]: any;
+  page: number;
+  limit: number;
 }
 
 export interface UseURLFiltersOptions {
-  defaultRange?: string
-  defaultBranch?: string
-  defaultBatch?: string
-  defaultSegment?: string
-  defaultType?: string
-  defaultPage?: number
-  defaultLimit?: number
+  defaultPage?: number;
+  defaultLimit?: number;
 }
 
-
-// Helper function to format date as YYYY-MM-DD using date-fns
-function formatDateToYYYYMMDD(date: Date): string {
-  return format(date, "yyyy-MM-dd")
-}
-
-// Helper function to validate and format date string to YYYY-MM-DD
 function formatDateString(dateString: string): string {
-  if (!dateString) return ""
-  
-  // Try to parse the date
-  const date = parse(dateString, "yyyy-MM-dd", new Date())
-  
-  // Check if date is valid
-  if (!isValid(date)) {
-    // Try alternative parsing
-    const altDate = new Date(dateString)
-    if (isNaN(altDate.getTime())) {
-      return ""
-    }
-    return formatDateToYYYYMMDD(altDate)
-  }
-  
-  return formatDateToYYYYMMDD(date)
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return "";
+  return format(date, "yyyy-MM-dd");
 }
-
-
 
 export function useURLFilters(options: UseURLFiltersOptions = {}) {
-  const {
-    defaultRange = "30d",
-    defaultBranch = "all",
-    defaultBatch = "all",
-    defaultSegment = "all",
-    defaultType = "sale",
-    defaultPage = 1,
-    defaultLimit = 10,
-  } = options
+  const { defaultPage = 1, defaultLimit = 10 } = options;
 
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  // Track the last update to prevent loops
+  const lastUpdateRef = useRef<string>("");
+  const timeoutRef = useRef<NodeJS.Timeout>();
 
-  // =========================
-  // BUILD FILTERS FROM URL
-  // =========================
-  const filters = useMemo((): Filters => {
-    const range = searchParams.get("range") || defaultRange
-    const segment = searchParams.get("segment") || defaultSegment
-    const branch = searchParams.get("branch") || defaultBranch
-    const batch = searchParams.get("batch") || defaultBatch
-    const type = searchParams.get("type") || defaultType
+  // Get current filters as a stable object
+  const filters = useMemo(() => {
+    const result: Filters = {
+      page: Number(searchParams.get("page") || defaultPage),
+      limit: Number(searchParams.get("limit") || defaultLimit),
+    };
+    
+    // Copy all other params
+    searchParams.forEach((value, key) => {
+      if (key !== "page" && key !== "limit") {
+        result[key] = value;
+      }
+    });
+    
+    return result;
+  }, [searchParams, defaultPage, defaultLimit]);
 
-    const page = Number(searchParams.get("page") || defaultPage)
-    const limit = Number(searchParams.get("limit") || defaultLimit)
-
-    const fromParam = searchParams.get("from")
-    const toParam = searchParams.get("to")
-
-    let from: string
-    let to: string
-
-    if (fromParam && toParam) {
-      // Format existing date params to YYYY-MM-DD
-      from = formatDateString(fromParam)
-      to = formatDateString(toParam)
-    } else {
-      const resolved = resolveRange(range)
-      // Ensure resolved dates are in YYYY-MM-DD format
-      from = formatDateString(resolved.from)
-      to = formatDateString(resolved.to)
-    }
-
-    return {
-      range,
-      segment,
-      branch,
-      batch,
-      from,
-      to,
-      type,
-      page,
-      limit,
-    }
-  }, [searchParams, defaultRange, defaultSegment, defaultBranch, defaultBatch, defaultType, defaultPage, defaultLimit])
-
-  // =========================
-  // UPDATE FILTERS
-  // =========================
+  // Set filters with loop protection
   const setFilters = useCallback(
     (updates: Partial<Filters>) => {
-      const params = new URLSearchParams(searchParams.toString())
-
-      Object.entries(updates).forEach(([key, value]) => {
-        const typedKey = key as FilterKey
-
-        // REMOVE EMPTY / DEFAULT VALUES
-        if (
-          value === undefined ||
-          value === null ||
-          value === "" ||
-          value === "all"
-        ) {
-          params.delete(typedKey)
-          return
-        }
-
-        // SPECIAL: pagination reset when filters change
-        if (
-          ["branch", "batch", "type", "segment", "range"].includes(typedKey)
-        ) {
-          params.set("page", "1")
-        }
-
-        // HANDLE RANGE
-        if (typedKey === "range") {
-          params.set("range", String(value))
-
-          const resolved = resolveRange(String(value))
-          // Format dates to YYYY-MM-DD
-          params.set("from", formatDateString(resolved.from))
-          params.set("to", formatDateString(resolved.to))
-          return
-        }
-
-        // HANDLE CUSTOM DATE - Format to YYYY-MM-DD
-        if (typedKey === "from" || typedKey === "to") {
-          const formattedDate = formatDateString(String(value))
-          if (formattedDate) {
-            params.set(typedKey, formattedDate)
-          }
-          params.delete("range") // remove preset
-          return
-        }
-
-        // HANDLE NUMBERS
-        if (typedKey === "page" || typedKey === "limit") {
-          params.set(typedKey, String(value))
-          return
-        }
-
-        // DEFAULT
-        params.set(typedKey, String(value))
-      })
-
-      // ENSURE VALID DATE RANGE
-      if (!params.get("from") || !params.get("to")) {
-        const range = params.get("range") || defaultRange
-        const resolved = resolveRange(range)
-        params.set("from", formatDateString(resolved.from))
-        params.set("to", formatDateString(resolved.to))
+      // Clear any pending timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
 
-      const url = `${pathname}?${params.toString()}`
-      router.replace(url, { scroll: false })
-    },
-    [searchParams, router, pathname, defaultRange]
-  )
+      const currentParams = new URLSearchParams(searchParams.toString());
+      
+      // Apply updates
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === "") {
+          currentParams.delete(key);
+        } else {
+          currentParams.set(key, String(value));
+        }
+      });
 
-  // =========================
-  // CLEAR ALL FILTERS
-  // =========================
-  const clearFilters = useCallback(() => {
-    router.replace(pathname, { scroll: false })
-  }, [router, pathname])
+      // Handle special case: when page changes, keep it
+      // When other filters change, reset to page 1
+      const hasPageUpdate = updates.page !== undefined;
+      const hasOtherUpdates = Object.keys(updates).some(k => k !== "page" && k !== "limit");
+      
+      if (hasOtherUpdates && !hasPageUpdate && updates.page !== 1) {
+        currentParams.set("page", "1");
+      }
 
-  // =========================
-  // CLEAR SINGLE FILTER
-  // =========================
-  const clearFilter = useCallback(
-    (key: FilterKey) => {
-      const params = new URLSearchParams(searchParams.toString())
-      params.delete(key)
-
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+      const newUrl = `${pathname}?${currentParams.toString()}`;
+      const currentUrl = `${pathname}?${searchParams.toString()}`;
+      
+      // Only update if URL actually changed
+      if (newUrl !== currentUrl) {
+        // Debounce the update
+        timeoutRef.current = setTimeout(() => {
+          router.replace(newUrl, { scroll: false });
+        }, 50);
+      }
     },
     [searchParams, router, pathname]
-  )
+  );
 
-  // =========================
-  // META
-  // =========================
-  const hasActiveFilters = useMemo(() => {
-    return (
-      filters.branch !== defaultBranch ||
-      filters.batch !== defaultBatch ||
-      filters.segment !== defaultSegment ||
-      filters.range !== defaultRange ||
-      filters.type !== defaultType
-    )
-  }, [filters, defaultBranch, defaultBatch, defaultSegment, defaultRange, defaultType])
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
-  const activeFilterCount = useMemo(() => {
-    let count = 0
-    if (filters.branch !== defaultBranch) count++
-    if (filters.batch !== defaultBatch) count++
-    if (filters.segment !== defaultSegment) count++
-    if (filters.range !== defaultRange) count++
-    if (filters.type !== defaultType) count++
-    return count
-  }, [filters, defaultBranch, defaultBatch, defaultSegment, defaultRange, defaultType])
+  const clearFilters = useCallback(() => {
+    router.replace(pathname, { scroll: false });
+  }, [router, pathname]);
 
   return {
     filters,
     setFilters,
     clearFilters,
-    clearFilter,
-    hasActiveFilters,
-    activeFilterCount,
-  }
+  };
 }

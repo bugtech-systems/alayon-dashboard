@@ -8,7 +8,7 @@ const BASE_URL =
 
 type QueryOptions = {
   endpoint?: string
-  method?: "GET" | "POST"
+  method?: "GET" | "POST" | "PUT"
   params?: Record<string, any>
   body?: Record<string, any>
   headers?: Record<string, string>
@@ -31,11 +31,10 @@ function buildURL(endpoint: string, params?: Record<string, any>) {
       }
     })
   }
-  console.log(url.toString(), 'URL STR')
   return url.toString()
 }
 
-async function fetcher({
+export async function n8nFetcher({
   endpoint,
   method = "GET",
   params,
@@ -43,6 +42,7 @@ async function fetcher({
   headers,
 }: QueryOptions) {
   if (!endpoint) throw new Error("Missing endpoint")
+    let session_id = localStorage.getItem('session_id');
 
   const url =
     method === "GET"
@@ -54,16 +54,21 @@ async function fetcher({
     headers: {
       "Content-Type": "application/json",
       ...headers,
+      ...(session_id ? { session_id: session_id} : {})
     },
-    body: method === "POST" ? JSON.stringify(body || params) : undefined,
+    body: (method === "POST" || method === "PUT") ? JSON.stringify(body) : undefined,
   })
+
+
+  const json = await res.json()
+
 
   if (!res.ok) {
     throw new Error(`n8n error: ${res.status}`)
   }
 
-  const json = await res.json()
-  return json?.data ?? json
+
+  return Array.isArray(json) ? json : json?.data;
 }
 
 export function useN8nQuery<T = any>(options: QueryOptions) {
@@ -100,9 +105,8 @@ export function useN8nQuery<T = any>(options: QueryOptions) {
 
   return useQuery<T>({
     queryKey: [finalEndpoint, finalParams],
-
     queryFn: () =>
-      fetcher({
+      n8nFetcher({
         endpoint: finalEndpoint,
         method,
         params: finalParams,

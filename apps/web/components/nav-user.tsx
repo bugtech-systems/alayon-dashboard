@@ -37,12 +37,10 @@ export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, logout } = useMedusaAuth()
 
-  if (!user) return null
 
-console.log(user, "USERR")
-
+    if(!user) return null;
   const initials =
-    user.email?.slice(0, 2).toUpperCase() || "U"
+    user?.email?.slice(0, 2).toUpperCase() || "U"
 
   return (
     <SidebarMenu>
@@ -55,8 +53,8 @@ console.log(user, "USERR")
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
-                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
-                  alt={user.email}
+                  src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.email}`}
+                  alt={user?.email}
                 />
                 <AvatarFallback className="rounded-lg">
                   {initials}
@@ -65,10 +63,10 @@ console.log(user, "USERR")
 
               <div className="grid flex-1 text-start text-sm leading-tight">
                 <span className="truncate font-medium">
-                  {user.email.split("@")[0]}
+                  {user?.email.split("@")[0]}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {user.email}
+                  {user?.email}
                 </span>
               </div>
 
@@ -86,7 +84,7 @@ console.log(user, "USERR")
               <div className="flex items-center gap-2 px-1 py-1.5">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
-                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
+                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${user?.email}`}
                   />
                   <AvatarFallback className="rounded-lg">
                     {initials}
@@ -95,10 +93,10 @@ console.log(user, "USERR")
 
                 <div className="grid flex-1 text-sm leading-tight">
                   <span className="font-medium truncate">
-                    {user.email.split("@")[0]}
+                    {user?.email.split("@")[0]}
                   </span>
                   <span className="text-xs text-muted-foreground truncate">
-                    {user.email}
+                    {user?.email}
                   </span>
                 </div>
               </div>

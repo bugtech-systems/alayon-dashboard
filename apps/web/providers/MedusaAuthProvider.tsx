@@ -8,6 +8,7 @@ import {
 } from "react"
 import { useRouter } from "next/navigation"
 import { apiFetch } from "@/lib/apiClient"
+import { n8nFetcher } from "@/hooks/useN8nQuery"
 
 type User = {
   id: string
@@ -16,15 +17,18 @@ type User = {
 
 type AuthContextType = {
   user: User | null
+  session?: any
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  session_id?: any
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function MedusaAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   const router = useRouter()
@@ -32,7 +36,7 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
   // ----------------------------
   // SESSION CHECK
   // ----------------------------
-  const fetchSession = async () => {
+  const fetchAuthSession = async () => {
     try {
       const res = await apiFetch("/auth/session", {
         method: "POST",
@@ -49,9 +53,9 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
           method: "GET",
         })
 
-        const userData = await resUser.json()
-
+        const userData = await resUser.json() as any;
         setUser(userData.user ?? null)
+        fetchSession(userData?.user?.id)
       } else {
         setUser(null)
       }
@@ -62,8 +66,30 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
     }
   }
 
+  const fetchSession = async (id?: any) => {
+    try {
+      let session_id = localStorage.getItem('session_id');
+      const res = await n8nFetcher({
+        endpoint: "/webhook/session",
+        method: "POST",
+        body: {...(session_id ? {id: session_id} : {}), auth_id: id }
+      })
+
+      if (!res.ok) throw new Error("No session")
+
+      const data = await res.json()
+      console.log(data, 'SESSS')
+  
+    } catch {
+      setSession(null)
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+
   useEffect(() => {
-    fetchSession()
+    fetchAuthSession()
   }, [])
 
   // ----------------------------
@@ -77,8 +103,11 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
 
     if (!res.ok) throw new Error("Login failed")
 
-    await res.json()
-
+    let data = await res.json()
+  console.log(data, 'DATA')
+  if(data?.token){
+  localStorage.setItem('token', data?.token)
+  }
     // Re-fetch session (sets user state)
     await fetchSession()
 
@@ -95,7 +124,8 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
     })
 
     setUser(null)
-
+    localStorage.removeItem('session_id')
+    localStorage.removeItem('token')
     router.push("/login")
   }
 
