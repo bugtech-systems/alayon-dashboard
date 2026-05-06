@@ -111,9 +111,6 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
   // LOGOUT
   // ----------------------------
   const logout = async () => {
-    await apiFetch("/auth/session", {
-      method: "DELETE",
-    })
 
     setUser(null)
     localStorage.removeItem('session_id')
