@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils"
 const branchesWidget = {
   id: "branches",
   webhook: {
-    url: "/webhook/get-tellers",
+    url: "/webhook/get-branches",
     queryMap: {},
   },
 }
@@ -47,7 +47,7 @@ export function AnalyticsOverview() {
 
 
   const { data: branches = [] } = useN8nQuery({widget: branchesWidget, filters: filters})
-    // const { data: batches = [], isLoading: batchesLoading } = useN8nQuery({widget: batchesWidget, filters })
+    const { data: batches = [], isLoading: batchesLoading } = useN8nQuery({widget: batchesWidget, filters })
 
 
 
@@ -99,21 +99,6 @@ export function AnalyticsOverview() {
     a.click()
   }
 
-  const batches = [
-    {
-      id: "2pm",
-      name: "2PM"
-    },
-        {
-      id: "5pm",
-      name: "5PM"
-    },
-        {
-      id: "9pm",
-      name: "9PM"
-    }
-  ]
-
   return (
        <div className="grid gap-4 px-4 lg:px-6">
 
@@ -133,7 +118,13 @@ export function AnalyticsOverview() {
       }}
     />
 
- 
+    {/* BATCH */}
+    <BatchSelect
+      batches={batches}
+      value={filters.batch}
+      disabled={!filters.branch || filters.branch === "all"}
+      onChange={(val: any) => setFilters({ batch: val })}
+    />
 
   </div>
 
@@ -164,8 +155,8 @@ function BranchSelect({ branches, value, onChange }: any) {
       <PopoverTrigger asChild>
         <Button variant="outline" className="w-[200px] justify-between">
           {value === "all"
-            ? "All Tellers"
-            : branches.find((b: any) => b.id === value)?.first_name}
+            ? "All Branches"
+            : branches.find((b: any) => b.id === value)?.name}
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -182,7 +173,7 @@ function BranchSelect({ branches, value, onChange }: any) {
                   setOpen(false)
                 }}
               >
-                All Tellers
+                All Branches
                 <Check className={cn("ml-auto", value === "all" ? "opacity-100" : "opacity-0")} />
               </CommandItem>
 
@@ -195,7 +186,7 @@ function BranchSelect({ branches, value, onChange }: any) {
                     setOpen(false)
                   }}
                 >
-                  {b.first_name} {b.last_name}
+                  {b.name}
                   <Check className={cn("ml-auto", value === b.id ? "opacity-100" : "opacity-0")} />
                 </CommandItem>
               ))}
@@ -208,3 +199,60 @@ function BranchSelect({ branches, value, onChange }: any) {
   )
 }
 
+function BatchSelect({ batches, value, onChange, disabled }: any) {
+  const [open, setOpen] = React.useState(false)
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-[200px] justify-between"
+          disabled={disabled}
+        >
+          {disabled
+            ? "Select branch first"
+            : value
+            ? batches.find((b: any) => b.id === value)?.name
+            : "All Batches"}
+          <ChevronsUpDown className="opacity-50" />
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent className="w-[200px] p-0">
+        <Command>
+          <CommandList>
+            <CommandGroup>
+
+              <CommandItem
+                value="all"
+                onSelect={() => {
+                  onChange("all")
+                  setOpen(false)
+                }}
+              >
+                All Batches
+                <Check className={cn("ml-auto", value === "all" ? "opacity-100" : "opacity-0")} />
+              </CommandItem>
+
+              {batches.map((b: any) => (
+                <CommandItem
+                  key={b.id}
+                  value={b.id}
+                  onSelect={() => {
+                    onChange(b.id)
+                    setOpen(false)
+                  }}
+                >
+                  {b.name}
+                  <Check className={cn("ml-auto", value === b.id ? "opacity-100" : "opacity-0")} />
+                </CommandItem>
+              ))}
+
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}

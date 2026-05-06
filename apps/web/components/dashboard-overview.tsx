@@ -128,7 +128,7 @@ export function DashboardOverview() {
       onChange={(val: any) => {
         setFilters({
           branch: val,
-          batch: "all", // 🔥 reset batch when branch changes
+          batch: "", // 🔥 reset batch when branch changes
         })
       }}
     />
@@ -137,7 +137,7 @@ export function DashboardOverview() {
     <BatchSelect
       batches={batches}
       value={filters.batch}
-      // disabled={!filters.branch || filters.branch === "all"}
+      disabled={!filters.branch || filters.branch === "all"}
       onChange={(val: any) => setFilters({ batch: val })}
     />
 
@@ -223,13 +223,13 @@ function BatchSelect({ batches, value, onChange, disabled }: any) {
         <Button
           variant="outline"
           className="w-[200px] justify-between"
-          // disabled={disabled}
+          disabled={disabled}
         >
           {disabled
-            ? "Select Game Time"
+            ? "Select branch first"
             : value
             ? batches.find((b: any) => b.id === value)?.name
-            : "All Game Time"}
+            : "All Batches"}
           <ChevronsUpDown className="opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -246,7 +246,7 @@ function BatchSelect({ batches, value, onChange, disabled }: any) {
                   setOpen(false)
                 }}
               >
-                All Game Time
+                All Batches
                 <Check className={cn("ml-auto", value === "all" ? "opacity-100" : "opacity-0")} />
               </CommandItem>
 

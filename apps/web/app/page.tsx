@@ -8,9 +8,9 @@ export default function HomePage() {
   const { user, loading } = useMedusaAuth()
   const router = useRouter()
 
+
   useEffect(() => {
     if (loading) return
-      router.replace("/dashboard")
 
     if (user) {
       router.replace("/dashboard")

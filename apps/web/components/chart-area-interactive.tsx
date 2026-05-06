@@ -74,8 +74,6 @@ export function ChartAreaInteractive({ widget }: any) {
       "7d": 7,
       "30d": 30,
       "90d": 90,
-      "180d": 180,
-      "365d": 365
     } as any
 
     const days = map[range] || 7 as any
@@ -90,11 +88,11 @@ export function ChartAreaInteractive({ widget }: any) {
     }
   }, [range])
 
- // ✅ Pass computed params directly
-  const { data = [], isLoading } = useN8nQuery({widget, filters: { ...filters, range, from, to }})
-  if (isLoading) return <div className="p-4">Loading chart...</div>
 
- 
+  // ✅ Pass computed params directly
+  const { data = [] } = useN8nQuery({widget, filters: { ...filters, range, from, to }})
+
+  // if (isLoading) return <div className="p-4">Loading chart...</div>
 
   return (
     <Card className="@container/card">
@@ -112,8 +110,6 @@ export function ChartAreaInteractive({ widget }: any) {
             variant="outline"
             className="hidden @[767px]/card:flex"
           >
-            <ToggleGroupItem value="365d">Last year</ToggleGroupItem>
-            <ToggleGroupItem value="180d">Last 6 months</ToggleGroupItem>
             <ToggleGroupItem value="90d">Last 3 months</ToggleGroupItem>
             <ToggleGroupItem value="30d">Last 30 days</ToggleGroupItem>
             <ToggleGroupItem value="7d">Last 7 days</ToggleGroupItem>
@@ -124,8 +120,6 @@ export function ChartAreaInteractive({ widget }: any) {
               <SelectValue placeholder="Select range" />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value="365d">Last year</SelectItem>
-              <SelectItem value="180d">Last 6 months</SelectItem>
               <SelectItem value="90d">Last 3 months</SelectItem>
               <SelectItem value="30d">Last 30 days</SelectItem>
               <SelectItem value="7d">Last 7 days</SelectItem>
@@ -172,7 +166,7 @@ export function ChartAreaInteractive({ widget }: any) {
             />
 
             <Area
-              dataKey="net"
+              dataKey="new_can"
               type="natural"
               fill="url(#fillNewCan)"
               stroke="var(--color-new_can)"
@@ -180,10 +174,10 @@ export function ChartAreaInteractive({ widget }: any) {
             />
 
             <Area
-              dataKey="hits"
+              dataKey="refill"
               type="natural"
               fill="url(#fillRefill)"
-              stroke="var(--color-hits)"
+              stroke="var(--color-refill)"
               stackId="a"
             />
           </AreaChart>
