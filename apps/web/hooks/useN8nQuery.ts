@@ -68,7 +68,7 @@ export async function n8nFetcher({
   }
 
 
-  return Array.isArray(json) ? json : json?.data;
+  return Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : json.data ?? json;
 }
 
 export function useN8nQuery<T = any>(options: QueryOptions) {

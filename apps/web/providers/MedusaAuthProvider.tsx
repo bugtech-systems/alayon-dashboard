@@ -38,19 +38,28 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
   // ----------------------------
   const fetchAuthSession = async () => {
     try {
-      const res = await apiFetch("/auth/session", {
+       let token = localStorage.getItem('token');
+
+   
+
+      if(!token) return  router.push("/login")
+
+      const res = await n8nFetcher({"endpoint": "/webhook/auth/session", 
         method: "POST",
-      })
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }})
 
-      if (!res.ok) throw new Error("No session")
 
-      const data = await res.json()
 
-      const actorId = data?.user?.actor_id
+      const actorId = res?.user?.actor_id
 
       if (actorId) {
         const resUser = await apiFetch(`/admin/users/${actorId}`, {
           method: "GET",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
         })
 
         const userData = await resUser.json() as any;
@@ -75,10 +84,8 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
         body: {...(session_id ? {id: session_id} : {}), auth_id: id }
       })
 
-      if (!res.ok) throw new Error("No session")
 
-      const data = await res.json()
-      console.log(data, 'SESSS')
+      console.log(res, 'SESSS')
   
     } catch {
       setSession(null)
@@ -96,19 +103,18 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
   // LOGIN
   // ----------------------------
   const login = async (email: string, password: string) => {
-    const res = await apiFetch("/auth/user/emailpass", {
+    const res = await n8nFetcher({endpoint: "/webhook/auth", 
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: { email, password },
     })
 
-    if (!res.ok) throw new Error("Login failed")
 
-    let data = await res.json()
-  console.log(data, 'DATA')
-  if(data?.token){
-  localStorage.setItem('token', data?.token)
+  console.log(res, 'DATA')
+  if(res?.token){
+  localStorage.setItem('token', res?.token)
   }
     // Re-fetch session (sets user state)
+    await fetchAuthSession()
     await fetchSession()
 
     // ✅ redirect after login success
