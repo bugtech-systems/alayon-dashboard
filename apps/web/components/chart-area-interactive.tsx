@@ -40,8 +40,7 @@ export function ChartAreaInteractive({ widget }: any) {
   const { filters, setFilters, clearFilters } = useURLFilters({
     defaultRange: "30d",
     defaultBranch: "all",
-    defaultBatch: "all",
-    defaultSegment: "all"
+    defaultBatch: "all"
   })
   // ✅ Internal state instead of URL filters
   const [range, setRange] = React.useState("30d") as any

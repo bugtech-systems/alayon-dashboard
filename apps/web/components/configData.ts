@@ -2,7 +2,104 @@
 
 import { DataTableConfig } from "@/types/dynamic-datatable-types";
 
-
+export const transactionsTableConfig: DataTableConfig = {
+  id: "transactions-table",
+  title: "Transactions Management",
+  defaultPageSize: 10,
+  pageSizeOptions: [10, 20, 50, 100],
+  exportable: true,
+  searchable: true,
+  
+  columns: [
+    {
+      id: "order_number",
+      accessorKey: "order_number",
+      header: "Transaction ID",
+      type: "text",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "order_type",
+      accessorKey: "order_type",
+      header: "Transaction Type",
+      type: "badge",
+      sortable: true,
+      filterable: true,
+      badgeStyles: {
+        income: "success",
+        expense: "destructive",
+        refund: "warning",
+        transfer: "info",
+        payment: "default",
+        withdrawal: "secondary",
+        deposit: "success",
+        fee: "destructive",
+        tax: "warning",
+      },
+    },
+    {
+      id: "description",
+      accessorKey: "description",
+      header: "Description",
+      type: "text",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "total_amount",
+      accessorKey: "total_amount",
+      header: "Amount",
+      type: "number",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "order_date",
+      accessorKey: "order_date",
+      header: "Transaction Date",
+      type: "date",
+      sortable: true,
+      filterable: true,
+      dateFormat: "MM/DD/YYYY HH:mm",
+    },  {
+      id: "branch_id",
+      accessorKey: "branch_id",
+      header: "Branch",
+      type: "text",
+      sortable: true,
+      filterable: true,
+    }, {
+      id: "batch_id",
+      accessorKey: "batch_id",
+      header: "Batch",
+      type: "text",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "status",
+      accessorKey: "status",
+      header: "Status",
+      type: "badge",
+      sortable: true,
+      filterable: true,
+      badgeStyles: {
+        completed: "secondary",
+        unpaid: "destructive",
+        paid: "default"
+      },
+    },
+  ],
+  
+  // Custom filters configuration
+  filters: [ ],
+  
+  defaultSort: {
+    field: "date",
+    direction: "desc",
+  },
+};
 
 export const usersTableConfig: DataTableConfig = {
   id: "users-table",

@@ -1,3 +1,5 @@
+'use client'
+
 import { AppSidebar } from "@/components/app-sidebar"
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { DataTable } from "@/components/data-table"
@@ -6,7 +8,12 @@ import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
 
 import { AnalyticsOverview } from "@/components/analytics-overview"
-import { Suspense } from "react"
+import { Suspense, useMemo } from "react"
+import { ProposalSectionsTable } from "@/components/dashboard/proposal-sections-table/table"
+import data from "@/components/dashboard/proposal-sections-table/data.json"
+import { useURLFilters } from "@/hooks/useUrlFilters"
+import { transactionsTableConfig } from "@/components/configData"
+
 
 
 const dashboardCardsWidget = {
@@ -27,11 +34,6 @@ const dashboardCardsWidget = {
   },
 }
 
-const filters = {
-  from: "2026-01-01",
-  to: "2026-01-31",
-  segment: "all",
-}
 
 const chartWidget = {
   id: "sales-chart",
@@ -60,8 +62,60 @@ const chartWidget = {
   }
 }
 
+const transactionWidget = {
+  id: "transaction-table",
+  webhook: {
+    url: "/webhook/get-tansactions",
+    method: "GET",
+    queryMap: {
+      page: "page",
+      limit: "limit",
+      sort_by: "sort_by",
+      sort_order: "sort_order",
+      from: "from",
+      batch: "batch",
+      branch: "branch",
+      type: "type",
+      status: "status",
+      to: "to"
+    },
+  },
+};
+
+// Tab configurations
+const TAB_CONFIGS = {
+  bettings: {
+    id: "transactions",
+    label: "Transactions",
+    value: "transactions",
+    config: transactionsTableConfig,
+    widget: transactionWidget,
+  },
+ 
+};
 
 export default function Page() {
+ const { filters, setFilters } = useURLFilters({ defaultPage: 1, defaultLimit: 10 });
+  
+  // Get current tab from URL
+  const currentTab = filters.tab || "bettings";
+  
+  // Get current configuration based on selected tab
+  const currentConfig = TAB_CONFIGS[currentTab as keyof typeof TAB_CONFIGS] || TAB_CONFIGS.bettings;
+
+
+  const handleRowClick = (row: any) => {
+    console.log("Row clicked:", row);
+    // You can add navigation or modal logic here
+    // Example: router.push(`/draws/${row.id}`)
+  };
+
+  // Tab configuration for the DynamicDataTable
+  const tabsConfig = [
+    { id: "sales", label: "Sales", value: "sales" },
+    { id: "collection", label: "Cashflows", value: "cashflows" },
+    { id: "expenses", label: "Expenses", value: "expenses" },
+  ];
 
 
   return (
@@ -90,7 +144,17 @@ export default function Page() {
               <div className="px-4 lg:px-6">
                 <ChartAreaInteractive widget={chartWidget}/>
               </div>
-              <DataTable />
+                            <div className="px-4 lg:px-6">
+              {/* <DataTable /> */}
+                    <ProposalSectionsTable 
+                     key={currentTab} // Force re-render when tab changes
+                               config={currentConfig.config}
+                               widgetConfig={currentConfig.widget}
+                               tabsConfig={tabsConfig}
+                               onRowClick={handleRowClick}
+                    />
+                                  </div>
+
             </div>
           </div>
         </div>

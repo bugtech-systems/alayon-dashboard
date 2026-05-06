@@ -156,15 +156,6 @@ export default function Page() {
   // Get current configuration based on selected tab
   const currentConfig = TAB_CONFIGS[currentTab as keyof typeof TAB_CONFIGS] || TAB_CONFIGS.bettings;
 
-  // Memoize dashboard filters
-  const dashboardFilters = useMemo(() => ({
-    from: filters.from,
-    to: filters.to,
-    branch: filters.branch,
-    batch: filters.batch,
-    segment: filters.segment || "all",
-  }), [filters.from, filters.to, filters.branch, filters.batch, filters.segment]);
-
   const handleRowClick = (row: any) => {
     console.log("Row clicked:", row);
     // You can add navigation or modal logic here

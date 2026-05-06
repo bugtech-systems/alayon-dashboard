@@ -24,23 +24,13 @@ const branchesWidget = {
   },
 }
 
-const batchesWidget = {
-  id: "batches",
-  webhook: {
-    url: "/webhook/get-batches",
-    queryMap: {
-      branch: "branch"
-   }
-  },
-  
-}
+
 
 export function DashboardOverview() {
   const { filters, setFilters, clearFilters } = useURLFilters({
     defaultRange: "30d",
     defaultBranch: "all",
-    defaultBatch: "all",
-    defaultSegment: "all"
+    defaultBatch: "all"
   })
 
 
@@ -48,8 +38,6 @@ export function DashboardOverview() {
 
   const { data: branches = [] } = useN8nQuery({widget: branchesWidget, filters: filters})
     // const { data: batches = [], isLoading: batchesLoading } = useN8nQuery({widget: batchesWidget, filters })
-
-
 
   // Date range handling
   const dateRange: DateRange = {
@@ -63,56 +51,11 @@ export function DashboardOverview() {
     setFilters({
       from: format(range.from, "yyyy-MM-dd"),
       to: format(range.to, "yyyy-MM-dd"),
-      range: "", // Clear range preset when using custom dates
+      // range: "", // Clear range preset when using custom dates
     })
   }
 
-  // Branch handling
-  const handleBranchChange = (branchId: string) => {
-    setFilters({ branch: branchId })
-  }
-
-  // Batch handling
-  const handleBatchChange = (batchId: string) => {
-    setFilters({ batch: batchId })
-  }
-
-  // Clear all filters
-  const handleClearAll = () => {
-    clearFilters()
-  }
-
-    const handleExport = async () => {
-    const params = new URLSearchParams({
-      from: filters.from,
-      to: filters.to,
-      branch: filters.branch || "all",
-    })
-
-    const res = await fetch(`/webhook/export-orders?${params.toString()}`)
-    const blob = await res.blob()
-
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `orders-${format(new Date(), "yyyy-MM-dd")}.csv`
-    a.click()
-  }
-
-  const batches = [
-    {
-      id: "2pm",
-      name: "2PM"
-    },
-        {
-      id: "5pm",
-      name: "5PM"
-    },
-        {
-      id: "9pm",
-      name: "9PM"
-    }
-  ]
+ 
 
   return (
        <div className="grid gap-4 px-4 lg:px-6">

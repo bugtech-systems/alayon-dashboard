@@ -49,8 +49,8 @@ const data = {
       ),
     },
     {
-      title: "Chat",
-      url: "/chat",
+      title: "Customers",
+      url: "/customers",
       icon: (
         <UsersIcon
         />

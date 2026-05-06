@@ -1,5 +1,4 @@
 // components/DynamicDataTable.tsx
-
 "use client";
 
 import * as React from "react";
@@ -10,31 +9,40 @@ import {
   SortingState,
   useReactTable,
   flexRender,
-  getPaginationRowModel,
 } from "@tanstack/react-table";
-import { 
-  ArrowUpDown, 
-  Download, 
-  ChevronLeftIcon, 
-  ChevronRightIcon, 
-  ChevronsLeftIcon, 
-  ChevronsRightIcon, 
+import {
+  ArrowUpDown,
+  Download,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronsLeftIcon,
+  ChevronsRightIcon,
   Loader2,
   Search,
-  X
+  X,
+  Settings2,
+  ChevronDownIcon,
 } from "lucide-react";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@workspace/ui/components/table";
-import { Button } from "@workspace/ui/components/button";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@workspace/ui/components/select";
-import { Badge } from "@workspace/ui/components/badge";
-import { Input } from "@workspace/ui/components/input";
-import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useN8nQuery } from "@/hooks/useN8nQuery";
 import { useURLFilters } from "@/hooks/useUrlFilters";
-import { DynamicFilters } from "./DynamicFilters";
+import { DynamicFilters } from "@/components/DynamicFilters";
 import { DataTableConfig, ColumnConfig } from "@/types/dynamic-datatable-types";
-import { cn } from "@workspace/ui/lib/utils";
+import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   Sheet,
@@ -42,38 +50,28 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose,
-} from "@workspace/ui/components/sheet";
+} from "@/components/ui/sheet";
 
 interface DynamicDataTableProps {
   config: DataTableConfig;
   widgetConfig: any;
-  tabsConfig?: {
-    id: string;
-    label: string;
-    value: string;
-  }[];
   onRowClick?: (row: any) => void;
 }
 
-export function DynamicDataTable({
+export function ProposalSectionsTable({
   config,
   widgetConfig,
-  tabsConfig,
   onRowClick,
 }: DynamicDataTableProps) {
   const { filters, setFilters } = useURLFilters({ defaultPage: 1, defaultLimit: config.defaultPageSize || 10 });
   const isMobile = useMediaQuery("(max-width: 768px)");
   const isTablet = useMediaQuery("(min-width: 769px) and (max-width: 1024px)");
   
-  // Use ref to track initial load
   const isInitialMount = React.useRef(true);
   
-  // Local pagination (synced with URL)
   const page = filters.page || 1;
   const limit = filters.limit || config.defaultPageSize || 10;
   
-  // Sorting state
   const [sorting, setSorting] = React.useState<SortingState>(() => {
     if (filters.sort_by) {
       return [{ id: filters.sort_by, desc: filters.sort_order === "desc" }];
@@ -81,32 +79,27 @@ export function DynamicDataTable({
     return [];
   });
 
-  // Mobile filter sheet state
   const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
   const [tempSearch, setTempSearch] = React.useState(filters.search || "");
+  const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>({});
 
-  // Build query filters for API
   const queryFilters = React.useMemo(() => {
-    const baseFilters: any = {
-      page: page,
-      limit: limit,
-    };
-
+    const baseFilters: any = { page, limit };
+    
     Object.keys(filters).forEach(key => {
       if (key !== "page" && key !== "limit" && filters[key] !== undefined && filters[key] !== "") {
         baseFilters[key] = filters[key];
       }
     });
-
+    
     if (sorting.length > 0) {
       baseFilters.sort_by = sorting[0].id;
       baseFilters.sort_order = sorting[0].desc ? "desc" : "asc";
     }
-
+    
     return baseFilters;
   }, [filters, page, limit, sorting]);
 
-  // Use n8n query
   const { data, isLoading, isFetching } = useN8nQuery({
     widget: widgetConfig,
     filters: queryFilters,
@@ -119,18 +112,15 @@ export function DynamicDataTable({
   const total = (data && data[0]?.total) || 0;
   const totalPages = Math.ceil(total / limit) || 1;
 
-  // Handle page change
   const handlePageChange = React.useCallback((newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;
     setFilters({ page: newPage });
   }, [setFilters, totalPages]);
 
-  // Handle limit change
   const handleLimitChange = React.useCallback((newLimit: number) => {
     setFilters({ limit: newLimit, page: 1 });
   }, [setFilters]);
 
-  // Handle sorting change
   const handleSortingChange = React.useCallback((updater: any) => {
     setSorting((prev) => {
       const newSorting = typeof updater === "function" ? updater(prev) : updater;
@@ -143,20 +133,16 @@ export function DynamicDataTable({
     });
   }, [setFilters]);
 
-  // Handle search
   const handleSearch = React.useCallback((term: string) => {
     setFilters({ search: term || undefined, page: 1 });
     setMobileSearchOpen(false);
   }, [setFilters]);
 
-  // Handle tab change
-  const handleTabChange = React.useCallback((value: string) => {
-    setFilters({  tab: value, dataTab: value, type: value, page: 1 });
-  }, [setFilters]);
-
-  // Dynamically build columns
   const columns: ColumnDef<any>[] = React.useMemo(() => {
-    return config.columns.map((col: ColumnConfig) => ({
+    // Filter visible columns based on columnVisibility state
+    const visibleColumns = config.columns.filter(col => columnVisibility[col.id] !== false);
+    
+    return visibleColumns.map((col: ColumnConfig) => ({
       id: col.id,
       accessorKey: col.accessorKey,
       header: ({ column }) => {
@@ -165,34 +151,36 @@ export function DynamicDataTable({
             <Button
               variant="ghost"
               onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-              className="p-0 hover:bg-transparent h-8"
+              className="p-0 hover:bg-transparent h-8 font-medium"
             >
               {col.header}
               <ArrowUpDown className="ml-1 h-3 w-3" />
             </Button>
           );
         }
-        return <span className="text-sm">{col.header}</span>;
+        return <span className="text-sm font-medium">{col.header}</span>;
       },
-      cell: ({ row, getValue }) => {
+      cell: ({ getValue, row }) => {
         const value = getValue();
         const originalRow = row.original;
-
+        
         if (col.cellRenderer) {
           return col.cellRenderer(value, originalRow);
         }
 
+        
         switch (col.type) {
           case "currency":
             return (
-              <span className="font-medium text-sm">
+              <span className="font-medium">
                 {col.currency || "₱"}
                 {(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             );
-          case "badge":
+          case "badge": {
             const badgeStyle = col.badgeStyles?.[value] || "default";
             return <Badge variant={badgeStyle as any} className="text-xs">{value || "N/A"}</Badge>;
+          }
           case "boolean":
             return value ? "✅" : "❌";
           case "date":
@@ -206,7 +194,7 @@ export function DynamicDataTable({
         }
       },
     }));
-  }, [config.columns, isMobile]);
+  }, [config.columns, isMobile, columnVisibility]);
 
   const table = useReactTable({
     data: tableData,
@@ -219,33 +207,15 @@ export function DynamicDataTable({
     manualSorting: true,
   });
 
-  // Pagination controls
-  const paginationControls = React.useMemo(() => {
-    const maxVisible = isMobile ? 3 : 5;
-    let startPage = Math.max(1, page - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-    
-    if (endPage - startPage + 1 < maxVisible) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-    
-    const pages = [];
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-    
-    return { pages, startPage, endPage };
-  }, [page, totalPages, isMobile]);
-
-  // Export CSV
   const exportCSV = React.useCallback(() => {
     if (!tableData.length) return;
-
-    const headers = config.columns.map((col) => col.header);
+    
+    const visibleColumns = config.columns.filter(col => columnVisibility[col.id] !== false);
+    const headers = visibleColumns.map((col) => col.header);
     const csv = [
       headers.join(","),
       ...tableData.map((row: any) =>
-        config.columns
+        visibleColumns
           .map((col) => {
             let value = row[col.accessorKey];
             if (col.type === "currency") value = `${col.currency || "₱"}${(value || 0).toLocaleString()}`;
@@ -255,7 +225,7 @@ export function DynamicDataTable({
           .join(",")
       ),
     ].join("\n");
-
+    
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -263,7 +233,7 @@ export function DynamicDataTable({
     a.download = `${config.id}_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [tableData, config.columns, config.id]);
+  }, [tableData, config.columns, config.id, columnVisibility]);
 
   React.useEffect(() => {
     isInitialMount.current = false;
@@ -273,11 +243,10 @@ export function DynamicDataTable({
   const startItem = total > 0 ? (page - 1) * limit + 1 : 0;
   const endItem = Math.min(page * limit, total);
 
-  // Mobile Action Bar Component
+  // Mobile Action Bar
   const MobileActionBar = () => (
     <div className="flex items-center justify-between gap-2">
       <div className="flex items-center gap-2">
-        {/* Mobile Search Button */}
         <Sheet open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
           <SheetTrigger asChild>
             <Button variant="outline" size="icon" className="h-9 w-9">
@@ -300,64 +269,61 @@ export function DynamicDataTable({
                 />
               </div>
               <div className="flex gap-2 mt-4">
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => {
-                    setTempSearch("");
-                    handleSearch("");
-                  }}
-                >
+                <Button variant="outline" className="flex-1" onClick={() => { setTempSearch(""); handleSearch(""); }}>
                   Clear
                 </Button>
-                <Button 
-                  className="flex-1"
-                  onClick={() => handleSearch(tempSearch)}
-                >
-                  Apply
-                </Button>
+                <Button className="flex-1" onClick={() => handleSearch(tempSearch)}>Apply</Button>
               </div>
             </div>
           </SheetContent>
         </Sheet>
-
-        {/* Mobile Filters Button */}
+        
         {config.filters && config.filters.length > 0 && (
           <DynamicFilters
             tableConfig={config}
             initialFilters={filters}
-            onFilterChange={(newFilters) => {
-              setFilters({ ...newFilters, page: 1 });
-            }}
+            onFilterChange={(newFilters) => setFilters({ ...newFilters, page: 1 })}
             debounceDelay={500}
           />
         )}
       </div>
-
       <div className="flex items-center gap-2">
-        {/* Mobile Page Size Selector */}
+           <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm">
+            <Settings2 className="mr-2 h-4 w-4" />
+            View
+            <ChevronDownIcon className="ml-2 h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-35">
+          <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {config.columns.map((column) => (
+            <DropdownMenuCheckboxItem
+              key={column.id}
+              className="capitalize"
+              checked={columnVisibility[column.id] !== false}
+              onCheckedChange={(value) => setColumnVisibility(prev => ({ ...prev, [column.id]: value }))}
+            >
+              {column.header}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
         <Select value={String(limit)} onValueChange={(val) => handleLimitChange(Number(val))}>
           <SelectTrigger className="w-20 h-9">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {(config.pageSizeOptions || [10, 20, 50, 100]).map((size) => (
-              <SelectItem key={size} value={String(size)}>
-                {size}
-              </SelectItem>
+              <SelectItem key={size} value={String(size)}>{size}</SelectItem>
             ))}
           </SelectContent>
         </Select>
-
-        {/* Mobile Export Button */}
+        
         {config.exportable !== false && (
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-9 w-9"
-            onClick={exportCSV} 
-            disabled={!tableData.length}
-          >
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={exportCSV} disabled={!tableData.length}>
             <Download className="h-4 w-4" />
           </Button>
         )}
@@ -365,58 +331,72 @@ export function DynamicDataTable({
     </div>
   );
 
-  // Desktop Action Bar Component
+  // Desktop Action Bar
   const DesktopActionBar = () => (
-    <div className="flex items-center gap-2">
+    <div className="items-center gap-2  hidden md:flex">
       {config.searchable && (
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search..."
-            className={cn(
-              "pl-9",
-              isTablet ? "w-[150px]" : "w-[200px]"
-            )}
+            className={cn("pl-9", isTablet ? "w-[150px]" : "w-[200px]")}
             value={filters.search || ""}
             onChange={(e) => handleSearch(e.target.value)}
           />
           {filters.search && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1 h-7 w-7"
-              onClick={() => handleSearch("")}
-            >
+            <Button variant="ghost" size="icon" className="absolute right-1 top-1 h-7 w-7" onClick={() => handleSearch("")}>
               <X className="h-3 w-3" />
             </Button>
           )}
         </div>
       )}
-
+      
       {config.filters && config.filters.length > 0 && (
         <DynamicFilters
           tableConfig={config}
           initialFilters={filters}
-          onFilterChange={(newFilters) => {
-            setFilters({ ...newFilters, page: 1 });
-          }}
+          onFilterChange={(newFilters) => setFilters({ ...newFilters, page: 1 })}
           debounceDelay={500}
         />
       )}
-
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm">
+            <Settings2 className="mr-2 h-4 w-4" />
+            View
+            <ChevronDownIcon className="ml-2 h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-35">
+          <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {config.columns.map((column) => (
+            <DropdownMenuCheckboxItem
+              key={column.id}
+              className="capitalize"
+              checked={columnVisibility[column.id] !== false}
+              onCheckedChange={(value) => setColumnVisibility(prev => ({ ...prev, [column.id]: value }))}
+            >
+              {column.header}
+            </DropdownMenuCheckboxItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
       <Select value={String(limit)} onValueChange={(val) => handleLimitChange(Number(val))}>
         <SelectTrigger className="w-24">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {(config.pageSizeOptions || [10, 20, 50, 100]).map((size) => (
-            <SelectItem key={size} value={String(size)}>
-              {size} / page
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            {(config.pageSizeOptions || [10, 20, 50, 100]).map((size) => (
+              <SelectItem key={size} value={String(size)}>{size} / page</SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
-
+      
       {config.exportable !== false && (
         <Button variant="outline" onClick={exportCSV} disabled={!tableData.length}>
           <Download className="mr-2 h-4 w-4" />
@@ -425,48 +405,18 @@ export function DynamicDataTable({
       )}
     </div>
   );
-console.log(filters, 'FILYTT')
-  return (
-    <div className="w-full space-y-3 md:space-y-4">
-      {/* Header with Tabs and Actions - Desktop/Tablet Layout */}
-      <div className="hidden md:block">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          {/* Tabs - Left side */}
-          {tabsConfig && tabsConfig.length > 0 && (
-            <Tabs value={filters.type || tabsConfig[0]?.value} onValueChange={handleTabChange}>
-              <TabsList>
-                {tabsConfig.map((tab) => (
-                  <TabsTrigger key={tab.id} value={tab.value}>
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          )}
+console.log(filters, 'FILYsTT')
 
-          {/* Actions - Right side */}
-          <DesktopActionBar />
-        </div>
+  return (
+    <div className="w-full space-y-4">
+      {/* Header with Actions */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex-1" /> {/* Spacer */}
+        <DesktopActionBar />
       </div>
 
-      {/* Mobile Layout - Tabs full width, Actions below */}
+      {/* Mobile Action Bar */}
       <div className="block md:hidden">
-        {/* Tabs - Full width on mobile */}
-        {tabsConfig && tabsConfig.length > 0 && (
-          <div className="mb-3">
-            <Tabs value={filters.type || tabsConfig[0]?.value} onValueChange={handleTabChange}>
-              <TabsList className="w-full">
-                {tabsConfig.map((tab) => (
-                  <TabsTrigger key={tab.id} value={tab.value} className="flex-1">
-                    {tab.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
-        )}
-
-        {/* Actions Bar - Below tabs on mobile */}
         <MobileActionBar />
       </div>
 
@@ -481,24 +431,23 @@ console.log(filters, 'FILYTT')
       )}
 
       {/* Table */}
-      <div className="rounded-lg border overflow-x-auto">
+      <div className="overflow-hidden rounded-lg border">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 z-10 bg-muted">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className="whitespace-nowrap text-xs md:text-sm">
+                  <TableHead key={header.id} className="whitespace-nowrap">
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
-
           <TableBody>
             {showLoading ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="text-center py-8">
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   <Loader2 className="h-6 w-6 md:h-8 md:w-8 animate-spin mx-auto text-muted-foreground" />
                 </TableCell>
               </TableRow>
@@ -506,14 +455,11 @@ console.log(filters, 'FILYTT')
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  className={cn(
-                    onRowClick && "cursor-pointer hover:bg-muted/50",
-                    "text-sm md:text-base"
-                  )}
+                  className={cn(onRowClick && "cursor-pointer hover:bg-muted/50")}
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="whitespace-nowrap py-2 md:py-3">
+                    <TableCell key={cell.id} className="py-2 md:py-3">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -521,7 +467,7 @@ console.log(filters, 'FILYTT')
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                   No results found
                 </TableCell>
               </TableRow>
@@ -532,74 +478,72 @@ console.log(filters, 'FILYTT')
 
       {/* Pagination */}
       {total > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-xs md:text-sm text-muted-foreground order-2 sm:order-1">
+        <div className="flex items-center justify-between px-4">
+          <div className="hidden flex-1 text-muted-foreground text-sm lg:flex">
             Showing {startItem} - {endItem} of {total} results
           </div>
-
-          <div className="flex items-center gap-1 md:gap-2 order-1 sm:order-2">
-            {/* First Page */}
-            <Button
-              size={isMobile ? "sm" : "icon"}
-              variant="outline"
-              onClick={() => handlePageChange(1)}
-              disabled={page === 1 || isLoading}
-              className={isMobile ? "h-8 w-8" : "h-9 w-9"}
-            >
-              <ChevronsLeftIcon className="h-3 w-3 md:h-4 md:w-4" />
-            </Button>
-
-            {/* Previous Page */}
-            <Button
-              size={isMobile ? "sm" : "icon"}
-              variant="outline"
-              onClick={() => handlePageChange(page - 1)}
-              disabled={page === 1 || isLoading}
-              className={isMobile ? "h-8 w-8" : "h-9 w-9"}
-            >
-              <ChevronLeftIcon className="h-3 w-3 md:h-4 md:w-4" />
-            </Button>
-
-            {/* Page Numbers */}
-            <div className="flex items-center gap-1">
-              {paginationControls.pages.map((p) => (
-                <Button
-                  key={p}
-                  variant={p === page ? "default" : "outline"}
-                  size="sm"
-                  className={cn(
-                    "h-7 w-7 md:h-8 md:w-8 text-xs",
-                    p === page && "pointer-events-none"
-                  )}
-                  onClick={() => handlePageChange(p)}
-                  disabled={isLoading}
-                >
-                  {p}
-                </Button>
-              ))}
+          <div className="flex w-full items-center gap-8 lg:w-fit">
+            <div className="hidden items-center gap-2 lg:flex">
+              <Label htmlFor="rows-per-page" className="font-medium text-sm">
+                Rows per page
+              </Label>
+              <Select value={String(limit)} onValueChange={(val) => handleLimitChange(Number(val))}>
+                <SelectTrigger size="sm" className="w-20" id="rows-per-page">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent side="top">
+                  <SelectGroup>
+                    {(config.pageSizeOptions || [10, 20, 50, 100]).map((size) => (
+                      <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
-
-            {/* Next Page */}
-            <Button
-              size={isMobile ? "sm" : "icon"}
-              variant="outline"
-              onClick={() => handlePageChange(page + 1)}
-              disabled={page >= totalPages || isLoading}
-              className={isMobile ? "h-8 w-8" : "h-9 w-9"}
-            >
-              <ChevronRightIcon className="h-3 w-3 md:h-4 md:w-4" />
-            </Button>
-
-            {/* Last Page */}
-            <Button
-              size={isMobile ? "sm" : "icon"}
-              variant="outline"
-              onClick={() => handlePageChange(totalPages)}
-              disabled={page >= totalPages || isLoading}
-              className={isMobile ? "h-8 w-8" : "h-9 w-9"}
-            >
-              <ChevronsRightIcon className="h-3 w-3 md:h-4 md:w-4" />
-            </Button>
+            <div className="flex w-fit items-center justify-center font-medium text-sm">
+              Page {page} of {totalPages}
+            </div>
+            <div className="ml-auto flex items-center gap-2 lg:ml-0">
+              <Button
+                variant="outline"
+                className="hidden h-8 w-8 p-0 lg:flex"
+                onClick={() => handlePageChange(1)}
+                disabled={page === 1 || isLoading}
+              >
+                <span className="sr-only">Go to first page</span>
+                <ChevronsLeftIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="size-8"
+                size="icon"
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page === 1 || isLoading}
+              >
+                <span className="sr-only">Go to previous page</span>
+                <ChevronLeftIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="size-8"
+                size="icon"
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page >= totalPages || isLoading}
+              >
+                <span className="sr-only">Go to next page</span>
+                <ChevronRightIcon className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="hidden size-8 lg:flex"
+                size="icon"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={page >= totalPages || isLoading}
+              >
+                <span className="sr-only">Go to last page</span>
+                <ChevronsRightIcon className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       )}
