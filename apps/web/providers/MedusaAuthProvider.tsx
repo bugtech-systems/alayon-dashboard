@@ -50,24 +50,10 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
             "Authorization": `Bearer ${token}`
           }})
 
-
-
-      const actorId = res?.user?.actor_id
-
-      if (actorId) {
-        const resUser = await apiFetch(`/admin/users/${actorId}`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        })
-
-        const userData = await resUser.json() as any;
-        setUser(userData.user ?? null)
-        fetchSession(userData?.user?.id)
-      } else {
-        setUser(null)
-      }
+      //   const userData = await resUser.json() as any;
+        setUser(res?.user ?? null)
+        fetchSession(res?.user?.id)
+      
     } catch {
       setUser(null)
     } finally {
