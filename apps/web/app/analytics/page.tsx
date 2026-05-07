@@ -15,7 +15,7 @@ import {
   drawsTableConfig 
 } from "@/components/configData";
 import { useURLFilters } from "@/hooks/useUrlFilters";
-import { AnalyticsOverview } from "@/components/analytics/analytics-overview";
+import { AnalyticsOverview } from "@/components/analytics-overview";
 import { CashFlowOverview } from "@/components/analytics/cash-flow-overview";
 import { BalanceDistributionCard } from "@/components/finance/balance-distribution-card";
 

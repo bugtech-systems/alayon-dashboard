@@ -115,6 +115,8 @@ export function DynamicDataTable({
     keepPreviousData: true,
   });
 
+
+  console.log(data, "DATAAA")
   const tableData = (data && data[0]?.data) || [];
   const total = (data && data[0]?.total) || 0;
   const totalPages = Math.ceil(total / limit) || 1;
@@ -181,7 +183,7 @@ export function DynamicDataTable({
         if (col.cellRenderer) {
           return col.cellRenderer(value, originalRow);
         }
-
+console.log(value, col.badgeStyles, 'coool')
         switch (col.type) {
           case "currency":
             return (
@@ -192,7 +194,7 @@ export function DynamicDataTable({
             );
           case "badge":
             const badgeStyle = col.badgeStyles?.[value] || "default";
-            return <Badge variant={badgeStyle as any} className="text-xs">{value || "N/A"}</Badge>;
+            return <Badge variant={badgeStyle as any} className="text-xs">{(value != false ? value : "false") || "N/A"}</Badge>;
           case "boolean":
             return value ? "✅" : "❌";
           case "date":

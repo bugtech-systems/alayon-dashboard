@@ -6,12 +6,12 @@ import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
 import { AnalyticsOverview } from "@/components/analytics-overview"
 import { Suspense } from "react"
 import { DynamicDataTable } from "@/components/DynamicDataTable";
-import { bettingsTableConfig, usersTableConfig } from "@/components/configData";
+import { usersTableConfig } from "@/components/configData";
 
-const usersWidget = {
+const teamWidget = {
   id: "users-table",
   webhook: {
-    url: "/webhook/users-datatable",
+    url: "/webhook/get-users",
     method: "GET",
     queryMap: {
       page: "page",
@@ -51,7 +51,7 @@ export default function Page() {
               <div className="px-4 lg:px-6">
                       <DynamicDataTable
                         config={usersTableConfig}
-                        widgetConfig={usersWidget}
+                        widgetConfig={teamWidget}
                         onRowClick={handleRowClick}
                       />
               </div>

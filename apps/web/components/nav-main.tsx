@@ -57,11 +57,11 @@ export function NavMain({
                   <DropdownMenuItem onSelect={() => setIsTransactionDialogOpen(true)}>
                     Create Transaction
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => setIsBettingsDialogOpen(true)}>
-                    Create Bettings
-                  </DropdownMenuItem>
                   <DropdownMenuItem onSelect={() => setIsUserDialogOpen(true)}>
-                    Create User
+                    Create Member
+                  </DropdownMenuItem>
+                 <DropdownMenuItem onSelect={() => setIsUserDialogOpen(true)}>
+                    Create Customer
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

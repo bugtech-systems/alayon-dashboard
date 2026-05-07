@@ -7,7 +7,7 @@ import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
 
-import { AnalyticsOverview } from "@/components/analytics-overview"
+import { AnalyticsOverview } from "@/components/dashboard-overview"
 import { Suspense, useMemo } from "react"
 import { ProposalSectionsTable } from "@/components/dashboard/proposal-sections-table/table"
 import data from "@/components/dashboard/proposal-sections-table/data.json"
@@ -29,7 +29,8 @@ const dashboardCardsWidget = {
       from: "from",
       to: "to",
       branch: "branch",
-      batch: "batch"
+      batch: "batch",
+      peddler: "peddler"
     },
   },
 }
@@ -44,7 +45,8 @@ const chartWidget = {
   queryMap: {
     from: "from",
     to: "to",
-    segment: "segment",
+    peddler: "peddler",
+    branch: "branch"
   },
 },
   config: {
@@ -77,14 +79,15 @@ const transactionWidget = {
       branch: "branch",
       type: "type",
       status: "status",
-      to: "to"
+      to: "to",
+      peddler: "peddler"
     },
   },
 };
 
 // Tab configurations
 const TAB_CONFIGS = {
-  bettings: {
+  transactions: {
     id: "transactions",
     label: "Transactions",
     value: "transactions",
@@ -98,10 +101,10 @@ export default function Page() {
  const { filters, setFilters } = useURLFilters({ defaultPage: 1, defaultLimit: 10 });
   
   // Get current tab from URL
-  const currentTab = filters.tab || "bettings";
+  const currentTab = filters.tab || "transactions";
   
   // Get current configuration based on selected tab
-  const currentConfig = TAB_CONFIGS[currentTab as keyof typeof TAB_CONFIGS] || TAB_CONFIGS.bettings;
+  const currentConfig = TAB_CONFIGS[currentTab as keyof typeof TAB_CONFIGS] || TAB_CONFIGS.transactions;
 
 
   const handleRowClick = (row: any) => {
@@ -112,9 +115,7 @@ export default function Page() {
 
   // Tab configuration for the DynamicDataTable
   const tabsConfig = [
-    { id: "sales", label: "Sales", value: "sales" },
-    { id: "collection", label: "Cashflows", value: "cashflows" },
-    { id: "expenses", label: "Expenses", value: "expenses" },
+    { id: "transactions", label: "Sales", value: "transactions" }
   ];
 
 

@@ -6,12 +6,12 @@ import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
 import { AnalyticsOverview } from "@/components/analytics-overview"
 import { Suspense } from "react"
 import { DynamicDataTable } from "@/components/DynamicDataTable";
-import { bettingsTableConfig, usersTableConfig } from "@/components/configData";
+import { bettingsTableConfig, customerTableConfig, usersTableConfig } from "@/components/configData";
 
-const usersWidget = {
-  id: "users-table",
+const customers = {
+  id: "customers-table",
   webhook: {
-    url: "/webhook/users-datatable",
+    url: "/webhook/get-customers",
     method: "GET",
     queryMap: {
       page: "page",
@@ -41,7 +41,7 @@ export default function Page() {
       <SidebarInset>
       <Suspense>
         <SiteHeader 
-            pageTitle="Team"
+            pageTitle="Customers"
         />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
@@ -50,8 +50,8 @@ export default function Page() {
                     {/* <DashboardFiltersBar /> */}
               <div className="px-4 lg:px-6">
                       <DynamicDataTable
-                        config={usersTableConfig}
-                        widgetConfig={usersWidget}
+                        config={customerTableConfig}
+                        widgetConfig={customers}
                         onRowClick={handleRowClick}
                       />
               </div>

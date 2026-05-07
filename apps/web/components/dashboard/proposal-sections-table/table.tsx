@@ -51,17 +51,20 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { TabsList, Tabs, TabsTrigger } from "@workspace/ui/components/tabs";
 
 interface DynamicDataTableProps {
   config: DataTableConfig;
   widgetConfig: any;
   onRowClick?: (row: any) => void;
+  tabsConfig?: any;
 }
 
 export function ProposalSectionsTable({
   config,
   widgetConfig,
   onRowClick,
+  tabsConfig
 }: DynamicDataTableProps) {
   const { filters, setFilters } = useURLFilters({ defaultPage: 1, defaultLimit: config.defaultPageSize || 10 });
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -84,7 +87,7 @@ export function ProposalSectionsTable({
   const [columnVisibility, setColumnVisibility] = React.useState<Record<string, boolean>>({});
 
   const queryFilters = React.useMemo(() => {
-    const baseFilters: any = { page, limit };
+    const baseFilters: any = { page, limit, tab: 'transactions' };
     
     Object.keys(filters).forEach(key => {
       if (key !== "page" && key !== "limit" && filters[key] !== undefined && filters[key] !== "") {
@@ -111,6 +114,12 @@ export function ProposalSectionsTable({
   const tableData = (data && data[0]?.data) || [];
   const total = (data && data[0]?.total) || 0;
   const totalPages = Math.ceil(total / limit) || 1;
+
+  // Handle tab change
+  const handleTabChange = React.useCallback((value: string) => {
+    setFilters({  tab: value, dataTab: value, type: value, page: 1 });
+  }, [setFilters]);
+
 
   const handlePageChange = React.useCallback((newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;
@@ -410,13 +419,38 @@ console.log(filters, 'FILYsTT')
   return (
     <div className="w-full space-y-4">
       {/* Header with Actions */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="items-center justify-between gap-4 flex-wrap hidden md:flex">
+          {/* Tabs - Left side */}
+          {tabsConfig && tabsConfig.length > 0 && (
+            <Tabs value={filters.type || tabsConfig[0]?.value} onValueChange={handleTabChange}>
+              <TabsList>
+                {tabsConfig.map((tab) => (
+                  <TabsTrigger key={tab.id} value={tab.value}>
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          )}
         <div className="flex-1" /> {/* Spacer */}
         <DesktopActionBar />
       </div>
 
       {/* Mobile Action Bar */}
       <div className="block md:hidden">
+                {tabsConfig && tabsConfig.length > 0 && (
+                  <div className="mb-3">
+                    <Tabs value={filters.type || tabsConfig[0]?.value} onValueChange={handleTabChange}>
+                      <TabsList className="w-full">
+                        {tabsConfig.map((tab) => (
+                          <TabsTrigger key={tab.id} value={tab.value} className="flex-1">
+                            {tab.label}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                )}
         <MobileActionBar />
       </div>
 
