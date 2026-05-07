@@ -117,7 +117,7 @@ export function ProposalSectionsTable({
 
   // Handle tab change
   const handleTabChange = React.useCallback((value: string) => {
-    setFilters({  tab: value, dataTab: value, type: value, page: 1 });
+    setFilters({  tab: value, page: 1 });
   }, [setFilters]);
 
 
@@ -414,7 +414,7 @@ export function ProposalSectionsTable({
       )}
     </div>
   );
-console.log(filters, 'FILYsTT')
+console.log(filters, tabsConfig, 'FILYsTT')
 
   return (
     <div className="w-full space-y-4">
@@ -422,7 +422,7 @@ console.log(filters, 'FILYsTT')
       <div className="items-center justify-between gap-4 flex-wrap hidden md:flex">
           {/* Tabs - Left side */}
           {tabsConfig && tabsConfig.length > 0 && (
-            <Tabs value={filters.type || tabsConfig[0]?.value} onValueChange={handleTabChange}>
+            <Tabs value={filters.tab || tabsConfig[0]?.value} onValueChange={handleTabChange}>
               <TabsList>
                 {tabsConfig.map((tab) => (
                   <TabsTrigger key={tab.id} value={tab.value}>
@@ -440,7 +440,7 @@ console.log(filters, 'FILYsTT')
       <div className="block md:hidden">
                 {tabsConfig && tabsConfig.length > 0 && (
                   <div className="mb-3">
-                    <Tabs value={filters.type || tabsConfig[0]?.value} onValueChange={handleTabChange}>
+                    <Tabs value={filters.tab || tabsConfig[0]?.value} onValueChange={handleTabChange}>
                       <TabsList className="w-full">
                         {tabsConfig.map((tab) => (
                           <TabsTrigger key={tab.id} value={tab.value} className="flex-1">

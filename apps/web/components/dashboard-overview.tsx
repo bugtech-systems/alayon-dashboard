@@ -202,7 +202,7 @@ export function AnalyticsOverview() {
           />
 
           {/* BATCH */}
-          <BatchSelect
+          {/* <BatchSelect
             batches={batches}
             value={filters.batch || "all"}
             disabled={!filters.branch || filters.branch === "all"}
@@ -214,7 +214,7 @@ export function AnalyticsOverview() {
               })
               setSelectedFilters([]) // Clear selected peddlers
             }}
-          />
+          /> */}
           
           {/* PEDDLERS FILTER */}
           <FiltersPopover 

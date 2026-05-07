@@ -153,7 +153,7 @@ export function DynamicDataTable({
 
   // Handle tab change
   const handleTabChange = React.useCallback((value: string) => {
-    setFilters({  tab: value, dataTab: value, type: value, page: 1 });
+    setFilters({  tab: value,  page: 1 });
   }, [setFilters]);
 
   // Dynamically build columns
@@ -183,7 +183,6 @@ export function DynamicDataTable({
         if (col.cellRenderer) {
           return col.cellRenderer(value, originalRow);
         }
-console.log(value, col.badgeStyles, 'coool')
         switch (col.type) {
           case "currency":
             return (
@@ -274,7 +273,7 @@ console.log(value, col.badgeStyles, 'coool')
   const showLoading = isLoading && (isInitialMount.current || !tableData.length);
   const startItem = total > 0 ? (page - 1) * limit + 1 : 0;
   const endItem = Math.min(page * limit, total);
-
+console.log(tabsConfig, filters, 'DFFF')
   // Mobile Action Bar Component
   const MobileActionBar = () => (
     <div className="flex items-center justify-between gap-2">
@@ -427,7 +426,6 @@ console.log(value, col.badgeStyles, 'coool')
       )}
     </div>
   );
-console.log(filters, 'FILYTT')
   return (
     <div className="w-full space-y-3 md:space-y-4">
       {/* Header with Tabs and Actions - Desktop/Tablet Layout */}
@@ -435,7 +433,7 @@ console.log(filters, 'FILYTT')
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* Tabs - Left side */}
           {tabsConfig && tabsConfig.length > 0 && (
-            <Tabs value={filters.type || tabsConfig[0]?.value} onValueChange={handleTabChange}>
+            <Tabs value={filters.tab || tabsConfig[0]?.value} onValueChange={handleTabChange}>
               <TabsList>
                 {tabsConfig.map((tab) => (
                   <TabsTrigger key={tab.id} value={tab.value}>
@@ -456,7 +454,7 @@ console.log(filters, 'FILYTT')
         {/* Tabs - Full width on mobile */}
         {tabsConfig && tabsConfig.length > 0 && (
           <div className="mb-3">
-            <Tabs value={filters.type || tabsConfig[0]?.value} onValueChange={handleTabChange}>
+            <Tabs value={filters.tab || tabsConfig[0]?.value} onValueChange={handleTabChange}>
               <TabsList className="w-full">
                 {tabsConfig.map((tab) => (
                   <TabsTrigger key={tab.id} value={tab.value} className="flex-1">

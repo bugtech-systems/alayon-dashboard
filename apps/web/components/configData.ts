@@ -973,3 +973,110 @@ export const drawsTableConfig: DataTableConfig = {
   },
 };
 
+export const batchTableConfig: DataTableConfig = {
+  id: "batches-table",
+  title: "Batches Management",
+  defaultPageSize: 10,
+  pageSizeOptions: [10, 20, 50, 100],
+  exportable: true,
+  searchable: true,
+  
+  columns: [
+    {
+      id: "batch_number",
+      accessorKey: "batch_number",
+      header: "Batch Number",
+      type: "text",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "branch_name",
+      accessorKey: "branch_name",
+      header: "Branch",
+      type: "text",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "status",
+      accessorKey: "status",
+      header: "Status",
+      type: "badge",
+      sortable: true,
+      filterable: true,
+      badgeStyles: {
+        active: "success",
+        completed: "info",
+        cancelled: "destructive",
+        pending: "warning",
+        archived: "secondary",
+      },
+    },
+    {
+      id: "amount",
+      accessorKey: "amount",
+      header: "Amount",
+      type: "currency",
+      sortable: true,
+      filterable: true,
+      currency: "₱",
+    },
+    {
+      id: "total_cans",
+      accessorKey: "total_cans",
+      header: "Total Cans",
+      type: "number",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "sold_cans",
+      accessorKey: "sold_cans",
+      header: "Sold Cans",
+      type: "number",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "bad_order_cans",
+      accessorKey: "bad_order_cans",
+      header: "Bad Order Cans",
+      type: "number",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "remaining_cans",
+      accessorKey: "remaining_cans",
+      header: "Remaining Cans",
+      type: "number",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "description",
+      accessorKey: "description",
+      header: "Description",
+      type: "text",
+      sortable: true,
+      filterable: true,
+    },
+    {
+      id: "purchase_date",
+      accessorKey: "purchase_date",
+      header: "Purchase Date",
+      type: "date",
+      sortable: true,
+      filterable: true,
+      dateFormat: "MM/DD/YYYY",
+    }
+  ],
+  
+  filters: [ ],
+  
+  defaultSort: {
+    field: "purchase_date",
+    direction: "desc",
+  },
+};

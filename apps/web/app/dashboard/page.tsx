@@ -12,7 +12,7 @@ import { Suspense, useMemo } from "react"
 import { ProposalSectionsTable } from "@/components/dashboard/proposal-sections-table/table"
 import data from "@/components/dashboard/proposal-sections-table/data.json"
 import { useURLFilters } from "@/hooks/useUrlFilters"
-import { transactionsTableConfig } from "@/components/configData"
+import { batchTableConfig, transactionsTableConfig } from "@/components/configData"
 
 
 
@@ -85,6 +85,27 @@ const transactionWidget = {
   },
 };
 
+const batchesWidget = {
+  id: "batches-table",
+  webhook: {
+    url: "/webhook/get-batches-datatable",
+    method: "GET",
+    queryMap: {
+      page: "page",
+      limit: "limit",
+      sort_by: "sort_by",
+      sort_order: "sort_order",
+      from: "from",
+      batch: "batch",
+      branch: "branch",
+      type: "type",
+      status: "status",
+      to: "to",
+      peddler: "peddler"
+    },
+  },
+};
+
 // Tab configurations
 const TAB_CONFIGS = {
   transactions: {
@@ -94,7 +115,13 @@ const TAB_CONFIGS = {
     config: transactionsTableConfig,
     widget: transactionWidget,
   },
- 
+   batches: {
+    id: "batches",
+    label: "Batches",
+    value: "batches",
+    config: batchTableConfig,
+    widget: batchesWidget,
+  },
 };
 
 export default function Page() {
@@ -115,7 +142,8 @@ export default function Page() {
 
   // Tab configuration for the DynamicDataTable
   const tabsConfig = [
-    { id: "transactions", label: "Sales", value: "transactions" }
+    { id: "transactions", label: "Sales", value: "transactions" },
+    { id: "batches", label: "Purchases", value: "batches" }
   ];
 
 
