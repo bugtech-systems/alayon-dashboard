@@ -10,7 +10,6 @@ import {
   SortingState,
   useReactTable,
   flexRender,
-  getPaginationRowModel,
 } from "@tanstack/react-table";
 import { 
   ArrowUpDown, 
@@ -116,7 +115,6 @@ export function DynamicDataTable({
   });
 
 
-  console.log(data, "DATAAA")
   const tableData = (data && data[0]?.data) || [];
   const total = (data && data[0]?.total) || 0;
   const totalPages = Math.ceil(total / limit) || 1;
@@ -273,7 +271,6 @@ export function DynamicDataTable({
   const showLoading = isLoading && (isInitialMount.current || !tableData.length);
   const startItem = total > 0 ? (page - 1) * limit + 1 : 0;
   const endItem = Math.min(page * limit, total);
-console.log(tabsConfig, filters, 'DFFF')
   // Mobile Action Bar Component
   const MobileActionBar = () => (
     <div className="flex items-center justify-between gap-2">

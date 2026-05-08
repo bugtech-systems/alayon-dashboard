@@ -1,113 +1,63 @@
 {
-  "name": "Users DataTable API",
+  "name": "Inventory Summary Workflow",
   "nodes": [
     {
-      "parameters": {
-        "path": "users-datatable",
-        "responseMode": "lastNode",
-        "responseData": "allEntries",
-        "options": {}
-      },
-      "id": "users-webhook",
-      "name": "Users Webhook",
+      "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1.1,
-      "position": [0, 0],
-      "webhookId": "users-datatable-webhook"
-    },
-    {
+      "position": [250, 300],
       "parameters": {
-        "jsCode": "const query = $input.first().json.query || {};\n\n// Pagination\nconst page = Math.max(1, parseInt(query.page) || 1);\nconst limit = Math.min(parseInt(query.limit) || 10, 100);\nconst offset = (page - 1) * limit;\n\n// Sorting\nconst sortBy = ['first_name', 'last_name', 'commission', 'last_summary', 'created_at'].includes(query.sort_by) \n  ? query.sort_by \n  : 'created_at';\nconst sortOrder = query.sort_order === 'asc' ? 'ASC' : 'DESC';\n\n// Filters\nconst search = query.search || null;\nconst isAdmin = query.is_admin === 'true' ? true : query.is_admin === 'false' ? false : null;\nconst isDeleted = query.is_deleted === 'true' ? true : query.is_deleted === 'false' ? false : null;\nconst role = query.role || null;\nconst branch = query.branch || null;\n\n// Commission range\nconst commissionMin = query.commission_min ? parseFloat(query.commission_min) : null;\nconst commissionMax = query.commission_max ? parseFloat(query.commission_max) : null;\n\n// Date ranges\nconst from = query.from || null;\nconst to = query.to || null;\nconst lastSummaryFrom = query.last_summary_from || null;\nconst lastSummaryTo = query.last_summary_to || null;\n\nreturn [{\n  json: {\n    page, limit, offset, sortBy, sortOrder,\n    search, isAdmin, isDeleted, role, branch,\n    commissionMin, commissionMax,\n    from, to, lastSummaryFrom, lastSummaryTo\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [250, 0],
-      "id": "parse-params",
-      "name": "Parse Parameters"
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT \n  id,\n  first_name,\n  last_name,\n  email,\n  is_admin,\n  is_deleted,\n  commission,\n  last_summary,\n  role,\n  phone,\n  branch,\n  created_at,\n  updated_at\nFROM users\nWHERE \n  1=1\n  {{ $json.search ? \"AND (first_name ILIKE '%\" + $json.search + \"%' OR last_name ILIKE '%\" + $json.search + \"%' OR email ILIKE '%\" + $json.search + \"%' OR phone ILIKE '%\" + $json.search + \"%')\" : \"\" }}\n  {{ $json.isAdmin !== null ? \"AND is_admin = \" + $json.isAdmin : \"\" }}\n  {{ $json.isDeleted !== null ? \"AND is_deleted = \" + $json.isDeleted : \"\" }}\n  {{ $json.role ? \"AND role = '\" + $json.role + \"'\" : \"\" }}\n  {{ $json.branch ? \"AND branch = '\" + $json.branch + \"'\" : \"\" }}\n  {{ $json.commissionMin !== null ? \"AND commission >= \" + $json.commissionMin : \"\" }}\n  {{ $json.commissionMax !== null ? \"AND commission <= \" + $json.commissionMax : \"\" }}\n  {{ $json.from ? \"AND DATE(created_at) >= '\" + $json.from + \"'\" : \"\" }}\n  {{ $json.to ? \"AND DATE(created_at) <= '\" + $json.to + \"'\" : \"\" }}\n  {{ $json.lastSummaryFrom ? \"AND DATE(last_summary) >= '\" + $json.lastSummaryFrom + \"'\" : \"\" }}\n  {{ $json.lastSummaryTo ? \"AND DATE(last_summary) <= '\" + $json.lastSummaryTo + \"'\" : \"\" }}\nORDER BY {{ $json.sortBy }} {{ $json.sortOrder }}\nLIMIT {{ $json.limit }} OFFSET {{ $json.offset }};",
+        "path": "/get-inventory-summary",
+        "responseMode": "responseNode",
         "options": {}
       },
-      "id": "fetch-users",
-      "name": "Fetch Users",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.1,
-      "position": [550, 0],
-      "credentials": {
-        "postgres": {
-          "id": "your-postgres-credentials-id",
-          "name": "Your Database"
-        }
+      "id": "inventory-webhook",
+      "typeVersion": 1
+    },
+    {
+      "name": "Parse Query Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "id": "inventory-parse-query",
+      "parameters": {
+        "jsCode": "const query = $input.first().json.query || {}\n\n// =========================\n// DEFAULTS\n// =========================\nconst now = new Date()\nconst defaultTo = now\nconst defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)\n\n// =========================\n// SAFE DATE FORMATTER\n// =========================\nfunction formatDate(date) {\n  return date.toISOString().split(\"T\")[0]\n}\n\n// =========================\n// PARSE INPUT DATES\n// =========================\nfunction parseDate(input, fallback) {\n  if (!input) return fallback\n  const d = new Date(input)\n  if (isNaN(d.getTime())) return fallback\n  return d\n}\n\nconst fromDate = parseDate(query.from, defaultFrom)\nconst toDate = parseDate(query.to, defaultTo)\n\n// =========================\n// NORMALIZED OUTPUT\n// =========================\nconst from = formatDate(fromDate)\nconst to = formatDate(toDate)\n\n// =========================\n// OTHER FILTERS\n// =========================\nconst branch = query.branch && query.branch !== \"all\" ? query.branch : null\nconst batch = query.batch && query.batch !== \"all\" ? query.batch : null\nconst category = query.category || null\nconst lowStockOnly = query.lowStockOnly === \"true\"\n\n// Pagination\nconst page = parseInt(query.page || \"1\", 10)\nconst limit = parseInt(query.limit || \"20\", 10)\nconst offset = (page - 1) * limit\n\nreturn [{\n  json: {\n    from,\n    to,\n    fromDate: fromDate.toISOString(),\n    toDate: toDate.toISOString(),\n    branch,\n    batch,\n    category,\n    lowStockOnly,\n    page,\n    limit,\n    offset\n  }\n}]"
       }
     },
     {
+      "name": "Fetch Inventory Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300],
+      "id": "fetch-inventory-data",
       "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT COUNT(*) as total\nFROM users\nWHERE \n  1=1\n  {{ $json.search ? \"AND (first_name ILIKE '%\" + $json.search + \"%' OR last_name ILIKE '%\" + $json.search + \"%' OR email ILIKE '%\" + $json.search + \"%' OR phone ILIKE '%\" + $json.search + \"%')\" : \"\" }}\n  {{ $json.isAdmin !== null ? \"AND is_admin = \" + $json.isAdmin : \"\" }}\n  {{ $json.isDeleted !== null ? \"AND is_deleted = \" + $json.isDeleted : \"\" }}\n  {{ $json.role ? \"AND role = '\" + $json.role + \"'\" : \"\" }}\n  {{ $json.branch ? \"AND branch = '\" + $json.branch + \"'\" : \"\" }}\n  {{ $json.commissionMin !== null ? \"AND commission >= \" + $json.commissionMin : \"\" }}\n  {{ $json.commissionMax !== null ? \"AND commission <= \" + $json.commissionMax : \"\" }}\n  {{ $json.from ? \"AND DATE(created_at) >= '\" + $json.from + \"'\" : \"\" }}\n  {{ $json.to ? \"AND DATE(created_at) <= '\" + $json.to + \"'\" : \"\" }}\n  {{ $json.lastSummaryFrom ? \"AND DATE(last_summary) >= '\" + $json.lastSummaryFrom + \"'\" : \"\" }}\n  {{ $json.lastSummaryTo ? \"AND DATE(last_summary) <= '\" + $json.lastSummaryTo + \"'\" : \"\" }};",
-        "options": {}
-      },
-      "id": "count-users",
-      "name": "Count Users",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.1,
-      "position": [550, 200],
-      "credentials": {
-        "postgres": {
-          "id": "your-postgres-credentials-id",
-          "name": "Your Database"
-        }
+        "jsCode": "const params = $input.first().json\n\n// Mock inventory data - Replace with actual database query\n// In production, you would query your inventory database here\n\nconst allProducts = [\n  { id: 'P001', name: 'Premium Coffee Beans', category: 'Beverages', quantity: 234, minStock: 100, maxStock: 500, costPrice: 50, sellingPrice: 75 },\n  { id: 'P002', name: 'Organic Green Tea', category: 'Beverages', quantity: 189, minStock: 80, maxStock: 400, costPrice: 45, sellingPrice: 68 },\n  { id: 'P003', name: 'Espresso Machine', category: 'Equipment', quantity: 45, minStock: 20, maxStock: 100, costPrice: 300, sellingPrice: 499 },\n  { id: 'P004', name: 'Coffee Filters', category: 'Accessories', quantity: 567, minStock: 200, maxStock: 1000, costPrice: 5, sellingPrice: 12 },\n  { id: 'P005', name: 'Milk Frother', category: 'Equipment', quantity: 78, minStock: 30, maxStock: 150, costPrice: 45, sellingPrice: 89 },\n  { id: 'P006', name: 'Coffee Mugs', category: 'Accessories', quantity: 345, minStock: 150, maxStock: 600, costPrice: 8, sellingPrice: 19 },\n  { id: 'P007', name: 'Syrup Variety Pack', category: 'Beverages', quantity: 123, minStock: 50, maxStock: 300, costPrice: 25, sellingPrice: 45 },\n  { id: 'P008', name: 'Coffee Grinder', category: 'Equipment', quantity: 23, minStock: 15, maxStock: 80, costPrice: 120, sellingPrice: 199 },\n  { id: 'P009', name: 'Travel Tumbler', category: 'Accessories', quantity: 456, minStock: 100, maxStock: 800, costPrice: 12, sellingPrice: 29 },\n  { id: 'P010', name: 'Cold Brew Kit', category: 'Equipment', quantity: 12, minStock: 10, maxStock: 50, costPrice: 35, sellingPrice: 59 }\n]\n\n// Apply filters\nlet filteredProducts = [...allProducts]\n\nif (params.branch) {\n  // Different branches have different inventory levels\n  const branchMultiplier = {\n    'branch_1': 1.2,\n    'branch_2': 0.8,\n    'branch_3': 1.0\n  }\n  const multiplier = branchMultiplier[params.branch] || 1\n  filteredProducts = filteredProducts.map(p => ({\n    ...p,\n    quantity: Math.floor(p.quantity * multiplier),\n    minStock: Math.floor(p.minStock * multiplier),\n    maxStock: Math.floor(p.maxStock * multiplier)\n  }))\n}\n\nif (params.category) {\n  filteredProducts = filteredProducts.filter(p => p.category === params.category)\n}\n\nif (params.lowStockOnly) {\n  filteredProducts = filteredProducts.filter(p => p.quantity <= p.minStock)\n}\n\n// Calculate low stock and out of stock\nconst lowStockItems = filteredProducts.filter(p => p.quantity > 0 && p.quantity <= p.minStock).length\nconst outOfStockItems = filteredProducts.filter(p => p.quantity === 0).length\nconst reorderNeeded = filteredProducts.filter(p => p.quantity < p.minStock * 0.7).length\n\n// Calculate total inventory value (using selling price)\nconst totalValue = filteredProducts.reduce((sum, p) => sum + (p.quantity * p.sellingPrice), 0)\n\n// Get top products by value\nconst topProducts = filteredProducts\n  .map(p => ({\n    id: p.id,\n    name: p.name,\n    quantity: p.quantity,\n    value: p.quantity * p.sellingPrice,\n    unitPrice: p.sellingPrice\n  }))\n  .sort((a, b) => b.value - a.value)\n  .slice(0, 10)\n\n// Get categories summary\nconst categoriesMap = filteredProducts.reduce((acc, p) => {\n  if (!acc[p.category]) {\n    acc[p.category] = { count: 0, value: 0, items: [] }\n  }\n  acc[p.category].count += p.quantity\n  acc[p.category].value += p.quantity * p.sellingPrice\n  acc[p.category].items.push(p.name)\n  return acc\n}, {})\n\nconst categories = Object.keys(categoriesMap).map(name => ({\n  name,\n  count: categoriesMap[name].count,\n  value: categoriesMap[name].value,\n  percentageOfTotal: (categoriesMap[name].value / totalValue) * 100\n}))\n\n// Pagination\nconst paginatedProducts = topProducts.slice(params.offset, params.offset + params.limit)\n\nreturn [{\n  json: {\n    totalProducts: filteredProducts.length,\n    lowStockItems,\n    outOfStockItems,\n    totalValue,\n    reorderNeeded,\n    topProducts: paginatedProducts,\n    categories,\n    allProducts: filteredProducts,\n    filters: params\n  }\n}]"
       }
     },
     {
+      "name": "Return Inventory Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "id": "inventory-respond",
       "parameters": {
-        "mode": "combine",
-        "combinationMode": "multiplex",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3.2,
-      "position": [850, 100],
-      "id": "merge-results",
-      "name": "Merge Results"
-    },
-    {
-      "parameters": {
-        "jsCode": "const users = $('Fetch Users').all().map(item => item.json);\nconst total = $('Count Users').all()[0]?.json?.total || 0;\nconst page = $('Parse Parameters').first().json.page;\nconst limit = $('Parse Parameters').first().json.limit;\n\n// Format the data\nconst formattedUsers = users.map(user => ({\n  ...user,\n  full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),\n  commission_formatted: `${user.commission || 0}%`,\n  status: user.is_deleted ? 'Deleted' : 'Active',\n  admin_status: user.is_admin ? 'Yes' : 'No'\n}));\n\nreturn [{\n  json: {\n    data: formattedUsers,\n    recordsTotal: total,\n    recordsFiltered: total,\n    page: page,\n    limit: limit,\n    totalPages: Math.ceil(total / limit)\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1150, 100],
-      "id": "format-response",
-      "name": "Format Response"
+        "responseBody": "={\n  \"success\": true,\n  \"data\": {\n    \"summary\": {\n      \"totalProducts\": {{$json.totalProducts}},\n      \"lowStockItems\": {{$json.lowStockItems}},\n      \"outOfStockItems\": {{$json.outOfStockItems}},\n      \"totalValue\": {{$json.totalValue}},\n      \"reorderNeeded\": {{$json.reorderNeeded}}\n    },\n    \"topProducts\": {{$json.topProducts}},\n    \"categories\": {{$json.categories}},\n    \"filters\": {{$json.filters}},\n    \"metadata\": {\n      \"timestamp\": \"{{new Date().toISOString()}}\",\n      \"page\": {{$json.filters.page}},\n      \"limit\": {{$json.filters.limit}}\n    }\n  }\n}",
+        "responseHeaders": {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        },
+        "responseStatusCode": 200
+      }
     }
   ],
   "connections": {
-    "Users Webhook": {
-      "main": [[{"node": "Parse Parameters", "type": "main", "index": 0}]]
+    "Webhook": {
+      "main": [[{ "node": "Parse Query Parameters", "type": "main", "index": 0 }]]
     },
-    "Parse Parameters": {
-      "main": [
-        [{"node": "Fetch Users", "type": "main", "index": 0}],
-        [{"node": "Count Users", "type": "main", "index": 0}]
-      ]
+    "Parse Query Parameters": {
+      "main": [[{ "node": "Fetch Inventory Data", "type": "main", "index": 0 }]]
     },
-    "Fetch Users": {
-      "main": [[{"node": "Merge Results", "type": "main", "index": 0}]]
-    },
-    "Count Users": {
-      "main": [[{"node": "Merge Results", "type": "main", "index": 1}]]
-    },
-    "Merge Results": {
-      "main": [[{"node": "Format Response", "type": "main", "index": 0}]]
+    "Fetch Inventory Data": {
+      "main": [[{ "node": "Return Inventory Response", "type": "main", "index": 0 }]]
     }
-  },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
-  },
-  "tags": ["users", "datatable", "pagination"]
+  }
 }

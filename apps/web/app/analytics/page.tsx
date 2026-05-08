@@ -12,7 +12,9 @@ import { DynamicDataTable } from "@/components/DynamicDataTable";
 import { 
   bettingsTableConfig, 
   soldoutTableConfig,
-  drawsTableConfig 
+  drawsTableConfig, 
+  transactionsTableConfig,
+  batchTableConfig
 } from "@/components/configData";
 import { useURLFilters } from "@/hooks/useUrlFilters";
 import { AnalyticsOverview } from "@/components/analytics-overview";
@@ -62,52 +64,34 @@ const chartWidget = {
   }
 };
 
-const bettingsWidget = {
-  id: "bettings-table",
+const transactionWidget = {
+  id: "transaction-table",
   webhook: {
-    url: "/webhook/bettings-datatable",
+    url: "/webhook/get-tansactions",
     method: "GET",
     queryMap: {
       page: "page",
       limit: "limit",
       sort_by: "sort_by",
       sort_order: "sort_order",
-      search: "search",
+      from: "from",
+      batch: "batch",
       branch: "branch",
-      batch: "batch",
-      from: "from",
+      type: "type",
+      status: "status",
       to: "to",
-      input_type: "input_type",
-      is_complete: "is_complete",
-      game_time: "game_time",
-      collector: "collector",
-      owner_id: "owner_id",
+      peddler: "peddler"
     },
   },
 };
 
-const soldoutWidget = {
-  id: "soldout-table",
-  webhook: {
-    url: "/webhook/soldout-datatable",
-    method: "GET",
-    queryMap: {
-      page: "page",
-      limit: "limit",
-      sort_by: "sort_by",
-      sort_order: "sort_order",
-      search: "search",
-      from: "from",
-      to: "to",
-      batch: "batch"
-    },
-  },
-};
 
-const drawsWidget = {
-  id: "draws-table",
+
+
+const batchesWidget = {
+  id: "batches-table",
   webhook: {
-    url: "/webhook/draws-datatable",
+    url: "/webhook/get-batches-datatable",
     method: "GET",
     queryMap: {
       page: "page",
@@ -116,34 +100,32 @@ const drawsWidget = {
       sort_order: "sort_order",
       from: "from",
       batch: "batch",
-      to: "to"
+      branch: "branch",
+      type: "type",
+      status: "status",
+      to: "to",
+      peddler: "peddler"
     },
   },
 };
+
 
 // Tab configurations
 const TAB_CONFIGS = {
-  bettings: {
-    id: "bettings",
-    label: "Bettings",
-    value: "bettings",
-    config: bettingsTableConfig,
-    widget: bettingsWidget,
+  transactions: {
+    id: "transactions",
+    label: "Transactions",
+    value: "transactions",
+    config: transactionsTableConfig,
+    widget: transactionWidget,
   },
-  soldout: {
-    id: "soldout",
-    label: "Sold Outs",
-    value: "soldout",
-    config: soldoutTableConfig,
-    widget: soldoutWidget,
-  },
-  draws: {
-    id: "draws",
-    label: "Draws",
-    value: "draws",
-    config: drawsTableConfig,
-    widget: drawsWidget,
-  },
+  batches: {
+    id: "batches",
+    label: "Batches",
+    value: "batches",
+    config: batchTableConfig,
+    widget: batchesWidget,
+  }
 };
 
 
@@ -151,10 +133,10 @@ export default function Page() {
  const { filters, setFilters } = useURLFilters({ defaultPage: 1, defaultLimit: 10 });
   
   // Get current tab from URL
-  const currentTab = filters.tab || "bettings";
+  const currentTab = filters.tab || "transactions";
   
   // Get current configuration based on selected tab
-  const currentConfig = TAB_CONFIGS[currentTab as keyof typeof TAB_CONFIGS] || TAB_CONFIGS.bettings;
+  const currentConfig = TAB_CONFIGS[currentTab as keyof typeof TAB_CONFIGS] || TAB_CONFIGS.transactions;
 
   const handleRowClick = (row: any) => {
     console.log("Row clicked:", row);
@@ -164,9 +146,8 @@ export default function Page() {
 
   // Tab configuration for the DynamicDataTable
   const tabsConfig = [
-    { id: "sales", label: "Sales", value: "sales" },
-    { id: "collection", label: "Cashflows", value: "cashflows" },
-    { id: "expenses", label: "Expenses", value: "expenses" },
+    { id: "transactions", label: "Transactions", value: "transactions" },
+    { id: "batches", label: "Batches", value: "batches" }
   ];
 
 

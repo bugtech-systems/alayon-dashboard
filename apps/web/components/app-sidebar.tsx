@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@workspace/ui/components/sidebar"
-import { LayoutDashboardIcon,  ChartBarIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon, MessageCircle } from "lucide-react"
+import { LayoutDashboardIcon,  ChartBarIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon, MapIcon } from "lucide-react"
 
 const data = {
   user: {
@@ -53,6 +53,14 @@ const data = {
       url: "/customers",
       icon: (
         <UsersIcon
+        />
+      ),
+    },
+    {
+      title: "Map",
+      url: "/map",
+      icon: (
+        <MapIcon
         />
       ),
     }

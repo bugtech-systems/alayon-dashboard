@@ -1,9 +1,9 @@
 "use client"
 
 import * as React from "react"
-import { Download, ChevronsUpDown, Check } from "lucide-react"
+import { Download, ChevronsUpDown, Check, TrendingUp, TrendingDown, Package, DollarSign, ShoppingCart, Users, Beer, Calendar } from "lucide-react"
 import { DateRange } from "react-day-picker"
-import { format, subDays, subMonths } from "date-fns"
+import { format, subDays, eachDayOfInterval, isBefore } from "date-fns"
 
 import { DateRangePicker } from "@/components/date-range-picker"
 import { Button } from "@workspace/ui/components/button"
@@ -19,8 +19,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "./ui/chart"
-import { Area, ComposedChart, XAxis, YAxis } from "recharts"
+import { Area, ComposedChart, XAxis, YAxis, Bar, Line } from "recharts"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { findObjectsByIds, sortByDateOldestFirst } from "../lib/utils/helpers"
 
+// Widget configurations
 const branchesWidget = {
   id: "branches",
   webhook: {
@@ -39,15 +43,78 @@ const batchesWidget = {
   },
 }
 
-const pedlersWidget = {
-  id: "peddlers",
+const analyticsOverviewWidget = {
+  id: "analytics",
   webhook: {
-    url: "/webhook/get-peddlers",
+    url: "/webhook/get-analytics-overview",
     queryMap: {
       branch: "branch",
-      batch: "batch"
+      batch: "batch",
+      page: "page",
+      limit: "limit",
+      sort_by: "sort_by",
+      sort_order: "sort_order",
+      from: "from",
+      to: "to",
+      range: "range"
    }
   },
+}
+
+const inventoryWidget = {
+  id: "inventory",
+  webhook: {
+    url: "/webhook/get-inventory-summary",
+    queryMap: {
+      branch: "branch",
+      batch: "batch",
+      from: "from",
+      to: "to"
+    }
+  },
+}
+
+// Types
+interface RevenueData {
+  day: string;
+  revenue: number;
+  orders: number;
+  averageOrderValue: number;
+}
+
+interface RevenueSummary {
+  totalRevenue: number;
+  previousPeriodRevenue: number;
+  percentageChange: number;
+  absoluteChange: number;
+  trend: "up" | "down";
+}
+
+interface InventorySummary {
+  totalProducts: number;
+  lowStockItems: number;
+  outOfStockItems: number;
+  totalValue: number;
+  reorderNeeded: number;
+  topProducts: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    value: number;
+  }>;
+  categories: Array<{
+    name: string;
+    count: number;
+    value: number;
+  }>;
+}
+
+interface RiskMetric {
+  label: string;
+  value: string;
+  comparatorLabel: string;
+  trend: "up" | "down";
+  trendValue: string;
 }
 
 // Default date range: last 30 days
@@ -67,20 +134,16 @@ export function AnalyticsOverview() {
   })
   const [selectedBranch, setSelectedBranch] = React.useState({id: filters.branch});
   const [selectedFilters, setSelectedFilters] = React.useState<string[]>(() => {
-    // Initialize from URL params if present
     if (filters.peddler && filters.peddler !== 'all') {
       return filters.peddler.split(',')
     }
     return []
   })
 
-  // Fetch data with current filters
-  const { data: branches = [] } = useN8nQuery({
+  // Fetch data
+  const { data: branches = [], isLoading: branchesLoading } = useN8nQuery({
     widget: branchesWidget, 
-    filters: {
-      branch: filters.branch,
-      batch: filters.batch
-    }
+    filters: { branch: filters.branch }
   })
   
   const { data: batches = [], isLoading: batchesLoading } = useN8nQuery({
@@ -88,143 +151,222 @@ export function AnalyticsOverview() {
     filters: { branch: filters.branch }
   })
   
-  const { data: peddlers = [] } = useN8nQuery({
-    widget: pedlersWidget, 
-    filters: {
-      branch: filters.branch,
-      batch: filters.batch
-    }
-  })
-
-  const { data: revenueSeries = [], isLoading: revenueLoading } = useN8nQuery({
-    widget: batchesWidget, 
-    filters: { branch: filters.branch }
+  const { data: analyticsData, isLoading: revenueLoading } = useN8nQuery({
+    widget: analyticsOverviewWidget, 
+    filters: filters
   })
 
 
-  // Date range handling with defaults from URL
+  
+  const { revenueSeries: revenueData, inventoryMetrics, inventorySummary } = analyticsData || {inventorySummary: {}};
+
+  console.log(inventoryMetrics, revenueData, analyticsData, 'rwrwwrw')
+
+
+  // Date range handling
   const dateRange: DateRange = {
     from: filters.from ? new Date(filters.from) : getDefaultDateRange().from,
     to: filters.to ? new Date(filters.to) : getDefaultDateRange().to,
   }
 
-
-  
   const handleDateChange = (range?: DateRange) => {
     if (!range?.from || !range?.to) return
     
     setFilters({
       from: format(range.from, "yyyy-MM-dd"),
       to: format(range.to, "yyyy-MM-dd"),
-      page: 1, // Reset to first page when date changes
+      page: 1,
     })
   }
 
-  // Handle filter toggle
   const handleFilterToggle = (key: string, checked: boolean) => {
     setSelectedFilters((prev) => {
       const newFilters = checked 
         ? [...prev, key]
         : prev.filter((item) => item !== key)
-      
-      // Update URL with comma-separated peddler IDs
+
+      let newBatches = findObjectsByIds(newFilters, batches, 'id');
+      let older = sortByDateOldestFirst(newBatches, 'purchase_date')[0];
+      let startDate = older ? String(older.purchase_date).split('T')[0] : undefined;
+
       setFilters({
-        peddler: newFilters.length > 0 ? newFilters.join(",") : undefined,
-        page: 1, // Reset to first page when filters change
+        batch: newFilters.length > 0 ? newFilters.join(",") : undefined,
+        lastDate: newFilters.length > 0 ? startDate : undefined,
+        from: startDate || filters.from,
       })
       
       return newFilters
     })
   }
 
-    // Handle filter toggle
   const clearFilterToggle = () => {
     setSelectedFilters([])
-      
-      // Update URL with comma-separated peddler IDs
-      setFilters({
-        peddler: "",
-        page: 1, // Reset to first page when filters change
-      })
+    setFilters({
+      batch: "",
+      lastDate: undefined,
+      page: 1,
+    })
   }
 
-  const handleBranch = (value) => {
+  const handleBranch = (value: string) => {
     let newBranch = branches.find(a => a?.id == value)
     setSelectedBranch(newBranch)
-     setFilters({
-                branch: value,
-                batch: "all", // Reset batch when branch changes
-                peddler: undefined, // Reset peddler when branch changes
-                page: 1, // Reset to first page
-              })
-
+    clearFilterToggle()
+    setFilters({
+      branch: value,
+      batch: "all",
+      peddler: undefined,
+      page: 1,
+      lastDate: undefined,
+    })
   }
 
-  // Initialize default URL parameters on first load
+  // Calculate revenue summary from API data
+  const revenueSummary = React.useMemo(() => {
+    if (!revenueData || revenueData.length === 0) {
+      return {
+        totalRevenue: 0,
+        previousPeriodRevenue: 0,
+        percentageChange: 0,
+        absoluteChange: 0,
+        trend: "up" as const
+      }
+    }
+
+    const totalRevenue = revenueData.reduce((sum: number, item: any) => sum + (item.revenue || 0), 0)
+    const previousPeriodRevenue = totalRevenue * 0.91 // Example calculation - replace with actual previous period data
+    const absoluteChange = totalRevenue - previousPeriodRevenue
+    const percentageChange = (absoluteChange / previousPeriodRevenue) * 100
+
+    return {
+      totalRevenue,
+      previousPeriodRevenue,
+      percentageChange: Math.abs(percentageChange),
+      absoluteChange,
+      trend: percentageChange >= 0 ? "up" as const : "down" as const
+    }
+  }, [revenueData])
+
+  // Calculate risk metrics
+// Calculate inventory metrics from API data
+const invMetrics = React.useMemo(() => {
+  if (inventoryMetrics && (!inventorySummary && inventoryMetrics.length === 0)) {
+    return [
+      { 
+        label: "Batches Cans", 
+        value: "0", 
+        footer: "Total Crates: 0",
+        icon: <Beer className="h-4 w-4" />,
+        trend: "up" as const, 
+        trendValue: "0"
+      },
+      { 
+        label: "Cans Sold", 
+        value: "0", 
+        footer: "Refill: 0 | New: 0",
+        icon: <ShoppingCart className="h-4 w-4" />,
+        trend: "up" as const, 
+        trendValue: "0"
+      },
+      { 
+        label: "Remaining Cans", 
+        value: "0", 
+        footer: "Bad orders: 0",
+        icon: <Package className="h-4 w-4" />,
+        trend: "down" as const, 
+        trendValue: "0"
+      },
+      { 
+        label: "Batch Sales Cycle", 
+        value: "0 days", 
+        footer: "Utilization: 0% | Waste: 0%",
+        icon: <Calendar className="h-4 w-4" />,
+        trend: "down" as const, 
+        trendValue: "0 days"
+      }
+    ]
+  }
+console.log(inventorySummary, 'INV SUMM')
+  // Extract metrics from inventory data
+  const totalCans = inventorySummary.totalCans || 0
+  const totalCrates = inventorySummary.totalCrates || 0
+  const cansSoldRefill = inventorySummary.cansSoldRefill || 0
+  const cansSoldNew = inventorySummary.cansSoldNew || 0
+  const remainingCans = inventorySummary.remainingCans || 0
+  const badOrderCans = inventorySummary.badOrderCans || 0
+  const averageDaysPerBatch = inventorySummary.averageDaysPerBatch || 0
+  const averageDaysDifference = inventorySummary.averageDaysDifference || 0
+  const utilizationRate = inventorySummary.utilizationRate || 
+    (totalCans > 0 ? ((cansSoldRefill + cansSoldNew) / totalCans * 100).toFixed(1) : 0)
+  const wasteRate = inventorySummary.wasteRate ||
+    (totalCans > 0 ? (badOrderCans / totalCans * 100).toFixed(1) : 0)
+
+  // Calculate trends based on previous period data
+  const previousTotalCans = inventorySummary.previousTotalCans || totalCans * 0.95
+  const cansTrend = totalCans > previousTotalCans ? 'up' : 'down'
+  const cansChange = Math.abs(totalCans - previousTotalCans)
+  const cansTrendValue = `${cansTrend === 'up' ? '+' : '-'}${cansChange.toLocaleString()}`
+
+  const previousCansSold = inventorySummary.previousCansSold || (cansSoldRefill + cansSoldNew) * 0.92
+  const totalCansSold = cansSoldRefill + cansSoldNew
+  const soldTrend = totalCansSold > previousCansSold ? 'up' : 'down'
+  const soldChange = Math.abs(totalCansSold - previousCansSold)
+  const soldTrendValue = `${soldTrend === 'up' ? '+' : '-'}${soldChange.toLocaleString()}`
+
+  const previousRemaining = inventorySummary.previousRemainingCans || remainingCans * 1.08
+  const remainingTrend = remainingCans < previousRemaining ? 'down' : 'up'
+  const remainingChange = Math.abs(remainingCans - previousRemaining)
+  const remainingTrendValue = `${remainingTrend === 'down' ? '-' : '+'}${remainingChange.toLocaleString()}`
+
+  const cycleTrend = averageDaysDifference > 0 ? 'up' : 'down'
+  const cycleTrendValue = `${cycleTrend === 'up' ? '+' : ''}${Math.abs(averageDaysDifference).toFixed(1)} days`
+  console.log(inventoryMetrics, 'INVDD')
+  return inventoryMetrics
+}, [inventoryMetrics, inventorySummary])
+
+  // Initialize default URL parameters
   React.useEffect(() => {
     const defaults: any = {}
     let needsUpdate = false
     
-    // Set default branch if not set
     if (!filters.branch && branches.length > 0) {
       defaults.branch = "all"
       needsUpdate = true
     }
     
-    // Set default batch if not set
     if (!filters.batch) {
       defaults.batch = "all"
+      defaults.lastDate = undefined;
       needsUpdate = true
     }
     
-    // Set default peddler if not set
-    if (!filters.peddler) {
-      defaults.peddler = undefined
-      needsUpdate = true
-    }
-    
-    // Set default date range if not set
     if (!filters.from || !filters.to) {
       const { from, to } = getDefaultDateRange()
       defaults.from = format(from, "yyyy-MM-dd")
       defaults.to = format(to, "yyyy-MM-dd")
       needsUpdate = true
     }
+
     
     if (needsUpdate) {
       setFilters(defaults)
     }
-  }, [branches.length, filters.branch, filters.batch, filters.peddler, filters.from, filters.to, setFilters])
+  }, [branches.length, filters.branch, filters.batch, filters.from, filters.to, setFilters])
+
 
   return (
     <div className="grid gap-4 px-4 lg:px-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          {/* BRANCH */}
           <BranchSelect
             branches={branches}
             value={filters.branch || "all"}
             onChange={handleBranch}
           />
 
-          {/* BATCH */}
-          <BatchSelect
-            batches={batches}
-            value={filters.batch || "all"}
-            disabled={!filters.branch || filters.branch === "all"}
-            onChange={(val: any) => {
-              setFilters({ 
-                batch: val,
-                peddler: undefined, // Reset peddler when batch changes
-                page: 1, // Reset to first page
-              })
-              setSelectedFilters([]) // Clear selected peddlers
-            }}
-          />
-          
-          {/* PEDDLERS FILTER */}
           <FiltersPopover 
-            options={peddlers}  
+            options={batches}  
+            disabled={!filters.branch || filters.branch === "all"}
             selectedFilters={selectedFilters} 
             onToggle={handleFilterToggle} 
             clearFilter={clearFilterToggle}
@@ -235,161 +377,200 @@ export function AnalyticsOverview() {
           <DateRangePicker 
             value={dateRange} 
             onChange={handleDateChange} 
+            disabled={{
+              before: filters.lastDate,
+            }}
           />
-          {/* <Button variant="secondary" onClick={handleExport}>
-            <Download />
-            Export
-          </Button> */}
         </div>
       </div>
-       <SummaryRow 
-        revenueSeries={revenueSeries} 
+
+      {/* Revenue Summary */}
+      <RevenueSummaryRow 
+        revenueData={revenueData || []}
+        revenueSummary={revenueSummary}
         dateRange={dateRange}
+        invMetrics={invMetrics || []}
       />
+
     </div>
   )
 }
 
-function buildRevenueChartData(from: Date, to: Date) {
-  const days = eachDayOfInterval({ start: from, end: to });
-  const minRevenue = 22_000;
-  const maxRevenue = 32_000;
-  let currentRevenue = 27_500;
-
-  return days.map((day) => {
-    const nextRevenue = currentRevenue + Math.round((Math.random() - 0.45) * 4_000);
-    currentRevenue = Math.max(minRevenue, Math.min(maxRevenue, nextRevenue));
-
-    return {
-      day: format(day, "MMM d"),
-      revenue: currentRevenue,
-    };
-  });
-}
-
-function SummaryRow({ 
-  revenueSeries, 
-  dateRange, 
+// Revenue Summary Component
+function RevenueSummaryRow({ 
+  revenueData, 
+  revenueSummary, 
+  dateRange,
+  invMetrics
+}: { 
+  revenueData: any[];
+  revenueSummary: RevenueSummary;
+  dateRange: DateRange;
+  invMetrics: any;
 }) {
   const revenueChartConfig = {
     revenue: {
       label: "Revenue",
       color: "var(--chart-1)",
     },
-  } satisfies ChartConfig;
+    orders: {
+      label: "Orders",
+      color: "var(--chart-2)",
+    },
+  }
 
-  const revenueValues = revenueSeries.map((point) => point.revenue);
-  const minRevenue = Math.min(...revenueValues);
-  const maxRevenue = Math.max(...revenueValues);
-  const midpoint = (minRevenue + maxRevenue) / 2;
-  const halfRange = Math.max((maxRevenue - minRevenue) * 1.6, 4_500);
+  const revenueValues = revenueData.map((point: any) => point.revenue || 0)
+  const minRevenue = revenueValues.length > 0 ? Math.min(...revenueValues) : 0
+  const maxRevenue = revenueValues.length > 0 ? Math.max(...revenueValues) : 0
+  const midpoint = (minRevenue + maxRevenue) / 2
+  const halfRange = Math.max((maxRevenue - minRevenue) * 1.6, 4500)
 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'Php',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value)
+  }
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-      <div className="min-w-0 space-y-2">
-        <div>
-          <div className="font-medium text-muted-foreground text-sm">Revenue</div>
-          <div className="font-semibold text-3xl tabular-nums tracking-tight sm:text-4xl">$1,248,000</div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">+9.4%</Badge>
-          <Badge variant="secondary">+$107,000</Badge>
-        </div>
-
-
-        <div>
-          <ChartContainer config={revenueChartConfig} className="h-10 w-full rounded-md border">
-            <ComposedChart data={revenueSeries} margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
-              <XAxis dataKey="day" hide />
-              <YAxis hide domain={[midpoint - halfRange, midpoint + halfRange]} />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-              <Area
-                dataKey="revenue"
-                type="natural"
-                fill="var(--color-revenue)"
-                fillOpacity={0.14}
-                stroke="var(--color-revenue)"
-              />
-            </ComposedChart>
-          </ChartContainer>
-          <span className="text-muted-foreground text-xs">
-            {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d")}
-          </span>
-        </div>
-      </div>
-
-      <Card className="min-w-0 py-4 shadow-xs xl:col-span-2">
-        <CardHeader className="px-4">
-          <CardTitle>Risk summary</CardTitle>
-          <CardDescription>Core risk signals vs previous period</CardDescription>
+      {/* Revenue Card */}
+      <Card className="min-w-0">
+        <CardHeader className="px-4 pt-4 pb-2">
+          <CardTitle className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">Revenue</span>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardTitle>
+          <div className="font-semibold text-3xl tabular-nums tracking-tight sm:text-4xl">
+            {formatCurrency(revenueSummary.totalRevenue)}
+          </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-0 xl:divide-x xl:[&>div:first-child]:pl-0 xl:[&>div:last-child]:pr-0 xl:[&>div]:px-5">
-          <RiskSummaryCard
-            label="Stalled Deals"
-            value="8"
-            comparatorLabel="vs previous period"
-            trend="up"
-            trendValue="+2"
-          />
-          <RiskSummaryCard
-            label="Revenue at Risk"
-            value="$1,151,000"
-            comparatorLabel="vs previous period"
-            trend="up"
-            trendValue="+$151,000"
-          />
-          <RiskSummaryCard
-            label="Win Rate Trend"
-            value="+8.3pp"
-            comparatorLabel="vs previous period"
-            trend="up"
-            trendValue="+2.1pp"
-          />
-          <RiskSummaryCard
-            label="Sales Cycle Drift"
-            value="+2.3 days"
-            comparatorLabel="vs previous period"
-            trend="down"
-            trendValue="+0.5 days"
-          />
+        <CardContent className="px-4 pb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <Badge variant={revenueSummary.trend === "up" ? "default" : "destructive"}>
+              {revenueSummary.trend === "up" ? "↑" : "↓"} {revenueSummary.percentageChange.toFixed(1)}%
+            </Badge>
+            <Badge variant="secondary">
+              {revenueSummary.trend === "up" ? "+" : "-"}{formatCurrency(Math.abs(revenueSummary.absoluteChange))}
+            </Badge>
+          </div>
+
+          {revenueData.length > 0 && (
+            <div>
+              <ChartContainer config={revenueChartConfig} className="h-10 w-full rounded-md">
+                <ComposedChart data={revenueData} margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
+                  <XAxis dataKey="day" />
+                  <YAxis hide domain={[midpoint - halfRange, midpoint + halfRange]} />
+                  <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                  <Area
+                    dataKey="revenue"
+                    type="natural"
+                    fill="var(--color-revenue)"
+                    fillOpacity={0.14}
+                    stroke="var(--color-revenue)"
+                    strokeWidth={1.5}
+                  />
+                </ComposedChart>
+              </ChartContainer>
+              <span className="text-muted-foreground text-xs">
+                {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d")}
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Risk Summary Card */}
+      <Card className="min-w-0 py-4 shadow-xs xl:col-span-2">
+        <CardHeader className="px-4 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Inventory summary</CardTitle>
+          <CardDescription className="text-xs">Inventory Details Per Batch/s</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-0">
+          { invMetrics.map((metric, index) => (
+            <InventoryMetricCard
+              key={index}
+              label={metric.label}
+              value={metric.value}
+              footer={metric.footer}
+              trend={metric.trend}
+              trendValue={metric.trendValue}
+            />
+          ))}
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
 
+
+// Risk Summary Card Component
 function RiskSummaryCard({ 
   label, 
   value, 
   comparatorLabel, 
   trend, 
   trendValue 
-}: { 
-  label: string; 
-  value: string; 
-  comparatorLabel: string; 
-  trend: "up" | "down";
-  trendValue: string;
-}) {
+}: RiskMetric) {
   return (
     <div className="min-w-0 space-y-1">
       <div className="text-muted-foreground text-sm">{label}</div>
       <div className="font-semibold text-2xl tabular-nums leading-tight">{value}</div>
       <div className="flex items-center gap-1">
         <Badge variant={trend === "up" ? "destructive" : "default"} className="text-xs">
-          {trendValue}
+          {trend === "up" ? "↑" : "↓"} {trendValue}
         </Badge>
         <span className="text-muted-foreground text-xs">{comparatorLabel}</span>
       </div>
     </div>
-  );
+  )
 }
 
+// Inventory Metric Card Component
+function InventoryMetricCard({ 
+  label, 
+  value, 
+  footer, 
+  icon,
+  trend,
+  trendValue
+}: { 
+  label: string;
+  value: string;
+  footer: string;
+  icon?: React.ReactNode;
+  trend?: "up" | "down";
+  trendValue?: string;
+}) {
+  return (
+    <div className="min-w-0 space-y-1">
+      <div className="flex items-center gap-2 text-muted-foreground text-sm">
+        {icon && <span className="text-muted-foreground">{icon}</span>}
+        <span>{label}</span>
+      </div>
+      <div className="font-semibold text-2xl tabular-nums leading-tight">{value}</div>
+      <div className="flex items-center gap-1">
+        {trend && trendValue && (
+          <Badge variant={trend === "up" ? "destructive" : "default"} className="text-xs">
+            {trend === "up" ? "↑" : "↓"} {trendValue}
+          </Badge>
+        )}
+        <span className="text-muted-foreground text-xs flex items-center gap-1">
+          {footer}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+
+
+// Branch Select Component
 function BranchSelect({ branches, value, onChange }: any) {
   const [open, setOpen] = React.useState(false)
 
-  // Find selected branch name
   const selectedBranch = value === "all" 
     ? "All Branches" 
     : branches.find((b: any) => b.id === value)?.name || "All Branches"
@@ -439,73 +620,19 @@ function BranchSelect({ branches, value, onChange }: any) {
   )
 }
 
-function BatchSelect({ batches, value, onChange, disabled }: any) {
-  const [open, setOpen] = React.useState(false)
-
-  // Find selected batch name
-  const selectedBatch = !value || value === "all" || disabled
-    ? "All Batches"
-    : batches.find((b: any) => b.id === value)?.name || "All Batches"
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className="w-[200px] justify-between"
-          disabled={disabled}
-        >
-          {disabled ? "Select branch first" : selectedBatch}
-          <ChevronsUpDown className="opacity-50" />
-        </Button>
-      </PopoverTrigger>
-
-      <PopoverContent className="w-[200px] p-0">
-        <Command>
-          <CommandList>
-            <CommandGroup>
-              <CommandItem
-                value="all"
-                onSelect={() => {
-                  onChange("all")
-                  setOpen(false)
-                }}
-              >
-                All Batches
-                <Check className={cn("ml-auto", value === "all" ? "opacity-100" : "opacity-0")} />
-              </CommandItem>
-
-              {batches.map((b: any) => (
-                <CommandItem
-                  key={b.id}
-                  value={b.id}
-                  onSelect={() => {
-                    onChange(b.id)
-                    setOpen(false)
-                  }}
-                >
-                  {b.name}
-                  <Check className={cn("ml-auto", value === b.id ? "opacity-100" : "opacity-0")} />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  )
-}
-
+// Filters Popover Component
 function FiltersPopover({
   selectedFilters,
   onToggle,
   options = [],
-  clearFilter
+  clearFilter,
+  disabled
 }: {
   selectedFilters: string[]
   onToggle: (id: string, checked: boolean) => void
   options: any[]
   clearFilter?: any
+  disabled?: any
 }) {
   const [open, setOpen] = React.useState(false)
   const activeCount = selectedFilters.length
@@ -514,7 +641,7 @@ function FiltersPopover({
     <div className="flex items-center gap-2">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" aria-expanded={open}>
+          <Button variant="outline" aria-expanded={open} disabled={disabled}>
             Filters
             {activeCount > 0 && (
               <Badge className="tabular-nums ml-1" variant="secondary">
@@ -526,8 +653,12 @@ function FiltersPopover({
         <PopoverContent align="start" className="w-72">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Filter by Peddler</h3>
-              {activeCount > 0 && <Badge variant="link" onClick={clearFilter}>Clear</Badge>}
+              <h3 className="font-semibold text-sm">Filter by Batches</h3>
+              {activeCount > 0 && (
+                <Badge variant="link" className="cursor-pointer" onClick={clearFilter}>
+                  Clear
+                </Badge>
+              )}
               <Badge variant="outline" className="font-medium text-xs tabular-nums">
                 Active: {activeCount}
               </Badge>
@@ -537,26 +668,20 @@ function FiltersPopover({
                 <FilterToggle
                   key={item.id}
                   id={item.id}
-                  label={item.name}
+                  label={`Batch #${item.batch_number}`}
                   checked={selectedFilters.includes(item.id)}
                   onCheckedChange={(checked) => onToggle(item.id, checked)}
                 />
               ))}
               {options.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  No peddlers available
+                  No batches available
                 </p>
               )}
             </div>
           </div>
         </PopoverContent>
       </Popover>
-
-      {activeCount > 0 && (
-        <span className="text-muted-foreground text-sm hidden md:inline">
-          Showing: <span className="font-medium">{summarizeFilterState(options, selectedFilters)}</span>
-        </span>
-      )}
     </div>
   )
 }
@@ -580,18 +705,4 @@ function FilterToggle({
       </Label>
     </div>
   )
-}
-
-function summarizeFilterState(options: any[], selectedFilters: string[]) {
-  if (selectedFilters.length === 0) {
-    return "All peddlers"
-  }
-  
-  const selectedNames = options
-    .filter((item) => selectedFilters.includes(item.id))
-    .map((item) => item.name)
-  
-  if (selectedNames.length === 0) return "All peddlers"
-  if (selectedNames.length <= 2) return selectedNames.join(" · ")
-  return `${selectedNames.slice(0, 2).join(" · ")} +${selectedNames.length - 2} more`
 }

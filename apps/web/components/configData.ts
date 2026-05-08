@@ -1030,6 +1030,14 @@ export const batchTableConfig: DataTableConfig = {
       sortable: true,
       filterable: true,
     },
+     {
+      id: "total_crates",
+      accessorKey: "total_crates",
+      header: "Total Crates",
+      type: "number",
+      sortable: true,
+      filterable: true,
+    },
     {
       id: "sold_cans",
       accessorKey: "sold_cans",

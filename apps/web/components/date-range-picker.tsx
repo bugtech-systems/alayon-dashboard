@@ -12,9 +12,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@workspace/ui/component
 interface DateRangePickerProps {
   value?: DateRange;
   onChange?: (value: DateRange | undefined) => void;
+  disabled?: any
 }
 
-export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
+export function DateRangePicker({ value, onChange, disabled }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false);
   const [internalDateRange, setInternalDateRange] = React.useState<DateRange | undefined>(() => {
     const to = new Date();
@@ -44,6 +45,7 @@ export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
       <PopoverContent className="w-auto overflow-hidden p-0" align="end">
         <Calendar
           mode="range"
+          disabled={disabled}
           defaultMonth={dateRange?.from}
           selected={dateRange}
           onSelect={handleDateChange}
