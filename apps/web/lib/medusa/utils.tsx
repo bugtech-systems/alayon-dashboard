@@ -95,6 +95,7 @@ export function getLowestPrice(product) {
     }
   }
 
+
   return {
     lowestPrice,
     originalPrice,

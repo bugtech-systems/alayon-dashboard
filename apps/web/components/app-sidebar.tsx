@@ -124,24 +124,24 @@ const data = {
   ],
   navSecondary: [
     {
-      title: "Settings",
-      url: "#",
+      title: "Company",
+      url: "/company",
       icon: (
         <Settings2Icon
         />
       ),
     },
     {
-      title: "Get Help",
-      url: "#",
+      title: "Rider",
+      url: "/rider",
       icon: (
         <CircleHelpIcon
         />
       ),
     },
     {
-      title: "Search",
-      url: "#",
+      title: "Store",
+      url: "/store",
       icon: (
         <SearchIcon
         />
@@ -198,7 +198,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
         {/* <NavDocuments items={data.documents} /> */}
-       {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+       <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser  />

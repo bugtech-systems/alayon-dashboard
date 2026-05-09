@@ -24,6 +24,8 @@ type AuthContextType = {
   session_id?: any
 }
 
+
+const PUB_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function MedusaAuthProvider({ children }: { children: React.ReactNode }) {
@@ -47,8 +49,9 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
       const res = await n8nFetcher({"endpoint": "/webhook/auth/session", 
         method: "POST",
           headers: {
-            "Authorization": `Bearer ${token}`
-          }})
+            "Authorization": `Bearer ${token}`,
+            "x-publishable-api-key": PUB_KEY
+          } as any})
 
       //   const userData = await resUser.json() as any;
         setUser(res?.user ?? null)
@@ -87,10 +90,10 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
   // ----------------------------
   // LOGIN
   // ----------------------------
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, actorType: string) => {
     const res = await n8nFetcher({endpoint: "/webhook/auth", 
       method: "POST",
-      body: { email, password },
+      body: { email, password, actorType },
     })
 
 

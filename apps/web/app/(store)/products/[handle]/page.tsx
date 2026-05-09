@@ -5,6 +5,7 @@ import { ProductGallery } from '@/components/product/product-gallery'
 import { ProductInfo } from '@/components/product/product-info'
 import { ProductCard } from '@/components/product/product-card'
 import Link from 'next/link'
+import { getRegion } from '@/lib/medusa/data/regions'
 
 export async function generateMetadata({ params }) {
   const { handle } = await params
@@ -38,16 +39,17 @@ export async function generateMetadata({ params }) {
 
 export default async function ProductPage({ params }) {
   const { handle } = await params
-  const product = await getProductByHandle(handle)
 
+
+
+  const product = await getProductByHandle(handle)
+  console.log(!product, 'prrod')
   if (!product) {
     notFound()
   }
 
-
   // Get related products (same collection or category)
   const { products: allProducts } = await getProducts({ limit: 20 })
-  
   // Filter related products: same collection or category, excluding current product
   const relatedProducts = allProducts
     .filter(p => {

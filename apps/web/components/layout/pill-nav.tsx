@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { gsap } from 'gsap'
 import { ShoppingBag } from 'lucide-react'
 import { useCart } from '@/lib/context/cart-context'
+import Image from 'next/image'
 
 interface NavItem {
   label: string
@@ -27,13 +28,13 @@ interface PillNavProps {
 }
 
 export function PillNav({
-  logo = '/logo.png',
+  logo = 'https://maretext.sharewin.pro/uploads/alayon.png',
   logoAlt = 'Logo',
   items,
   className = '',
   ease = 'power3.out',
   baseColor = '#1A1A1A',
-  pillColor = '#C8FF00',
+  pillColor = '#24b5f8',
   hoveredPillTextColor = '#0A0A0A',
   pillTextColor = '#0A0A0A',
   initialLoadAnimation = true,
@@ -256,7 +257,7 @@ export function PillNav({
           onMouseEnter={handleLogoEnter}
           ref={logoRef}
         >
-          {/* <Image
+          <Image
             src={logo}
             alt={logoAlt}
             width={36}
@@ -264,7 +265,7 @@ export function PillNav({
             ref={logoImgRef}
             className="w-full h-full object-cover block opacity-100"
             priority
-          /> */}
+          /> 
         </Link>
 
         {/* Desktop Nav Items */}

@@ -10,30 +10,30 @@
   --card-foreground: #F5F5F5;
   --popover: #111111;
   --popover-foreground: #F5F5F5;
-  --primary: #C8FF00;
+  /* --primary: #C8FF00; */
   --primary-foreground: #0A0A0A;
   --secondary: #1A1A1A;
   --secondary-foreground: #F5F5F5;
   --muted: #1A1A1A;
   --muted-foreground: #888888;
-  --accent: #C8FF00;
+  /* --accent: #C8FF00; */
   --accent-foreground: #0A0A0A;
   --destructive: #FF4444;
   --destructive-foreground: #F5F5F5;
   --border: #222222;
   --input: #1A1A1A;
-  --ring: #C8FF00;
+  /* --ring: #C8FF00; */
   --radius: 0.5rem;
   
   /* Sidebar tokens */
   --sidebar-background: #0A0A0A;
   --sidebar-foreground: #F5F5F5;
-  --sidebar-primary: #C8FF00;
+  /* --sidebar-primary: #C8FF00; */
   --sidebar-primary-foreground: #0A0A0A;
   --sidebar-accent: #1A1A1A;
   --sidebar-accent-foreground: #F5F5F5;
   --sidebar-border: #222222;
-  --sidebar-ring: #C8FF00;
+  /* --sidebar-ring: #C8FF00; */
 }
 
 @theme inline {

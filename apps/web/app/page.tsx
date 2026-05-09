@@ -14,7 +14,8 @@ export default function HomePage() {
 
     if (user) {
       router.replace("/dashboard")
-    } else {
+    } 
+    else {
       router.replace("/login")
     }
   }, [user, loading])

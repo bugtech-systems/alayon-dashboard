@@ -32,7 +32,7 @@ type CartAction =
   | { type: 'TOGGLE_CART' }
 
 
-  const CART_ID_KEY = 'medusa_cart_id'
+  const CART_ID_KEY = 'cart_id'
 const REGION_ID_KEY = 'medusa_region_id'
 
 
@@ -121,15 +121,19 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
     const fetchCart = useCallback(async (cartId: string) => {
       try {
         const { cart } = await medusaFetch(`/carts/${cartId}`)
+
         if (cart) {
           dispatch({ type: 'SET_CART', cart })
+          setCart(cart)
         } else {
           localStorage.removeItem(CART_ID_KEY)
           dispatch({ type: 'SET_CART', cart: null })
+          setCart(null)
         }
       } catch (error) {
         console.error('Error fetching cart:', error)
         localStorage.removeItem(CART_ID_KEY)
+        setCart(null)
         dispatch({ type: 'SET_CART', cart: null })
       }
     }, [medusaFetch])
@@ -176,7 +180,6 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
       const initCart = async () => {
         const cartId = localStorage.getItem(CART_ID_KEY)
         const storedRegionId = localStorage.getItem(REGION_ID_KEY)
-        
         if (cartId) {
           await fetchCart(cartId)
         }
@@ -194,13 +197,16 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
   const getOrCreateCart = async () => {
     try {
       let cartId = localStorage.getItem('cart_id')
+      console.log(cartId, 'xcccart')
       if (cartId) {
-        const { cart: existingCart } = await sdk.carts.retrieve(cartId)
+        const { cart: existingCart } = await sdk.store.cart.retrieve(cartId) as any
         setCart(existingCart)
+        return cartId
       } else {
-        const { cart: newCart } = await sdk.carts.create()
+        const { cart: newCart } = await sdk.store.cart.create() as any
         setCart(newCart)
         localStorage.setItem('cart_id', newCart.id)
+        return newCart?.id
       }
     } catch (error) {
       console.error('Error with cart:', error)
@@ -223,12 +229,24 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
   // }
 
   const updateCart = async (lineId: string, quantity: number) => {
-    if (!cart) return
+    console.log(lineId, state, 'uupp')
+    if (!state.cart) return
     try {
-      const { cart: updatedCart } = await sdk.carts.lineItems.update(cart.id, lineId, {
-        quantity,
-      })
-      setCart(updatedCart)
+
+       const { cart } = await medusaFetch(`/carts/${state?.cart?.id}/line-items/${lineId}`, {
+            method: 'POST',
+            body: JSON.stringify({
+              quantity,
+            }),
+          })
+  
+          if (cart) {
+          setCart(cart)
+            dispatch({ type: 'SET_CART', cart })
+          }
+
+
+  
     } catch (error) {
       throw error
     }
@@ -251,7 +269,6 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
   
         try {
           let cartId = localStorage.getItem(CART_ID_KEY)
-  
           if (!cartId) {
             cartId = await getOrCreateCart()
           }
@@ -322,14 +339,16 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
         if (!cartId) return
   
         dispatch({ type: 'SET_UPDATING', isUpdating: true })
-  
+        
         try {
-          const { cart } = await medusaFetch(`/carts/${cartId}/line-items/${lineId}`, {
+           await medusaFetch(`/carts/${cartId}/line-items/${lineId}`, {
             method: 'DELETE',
           })
-  
-          if (cart) {
-            dispatch({ type: 'SET_CART', cart })
+
+      const { cart: existingCart } = await sdk.store.cart.retrieve(cartId) as any
+
+          if (existingCart) {
+            dispatch({ type: 'SET_CART', cart: existingCart })
           }
         } catch (error) {
           console.error('Error removing from cart:', error)
@@ -402,9 +421,8 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
     const closeCart = useCallback(() => dispatch({ type: 'CLOSE_CART' }), [])
     const toggleCart = useCallback(() => dispatch({ type: 'TOGGLE_CART' }), [])
   
-
   return (
-    <CartContext.Provider value={{  ...state, openCart, closeCart, toggleCart, addToCart, updateCart: updateQuantity, removeFromCart,
+    <CartContext.Provider value={{  ...state, openCart, closeCart, toggleCart, addToCart,  updateCart, removeFromCart,
         cart: state.cart,
         isLoading: state.isLoading,
         isOpen: state.isOpen,

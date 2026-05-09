@@ -414,7 +414,6 @@ export function ProposalSectionsTable({
       )}
     </div>
   );
-console.log(filters, tabsConfig, 'FILYsTT')
 
   return (
     <div className="w-full space-y-4">

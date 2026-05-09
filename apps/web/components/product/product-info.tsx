@@ -13,7 +13,6 @@ export function ProductInfo({ product }) {
   // Get variants and options
   const variants = product.variants || []
   const options = product.options || []
-  
   // Get pricing
   const { lowestPrice, originalPrice, hasDiscount, discountPercentage } = getLowestPrice(product)
   
@@ -74,6 +73,7 @@ export function ProductInfo({ product }) {
   // Add to cart
   const handleAddToCart = async () => {
     if (!selectedVariant) return
+    console.log(selectedVariant, 'selected vari')
     await addToCart(selectedVariant.id, quantity)
     // Optional: reset quantity or show success message
     // setQuantity(1)

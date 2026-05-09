@@ -45,11 +45,12 @@ export function CartDrawer() {
   }, [closeCart])
 
 
-console.log(cart, "CART", cartLines)
 
   const subtotal = cart?.subtotal
     ? parseFloat(cart?.subtotal)
     : 0
+
+
 
   return (
     <>
@@ -315,10 +316,10 @@ console.log(cart, "CART", cartLines)
                       className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-heading text-lg tracking-wider gap-2"
                       size="lg"
                     >
-                      <a href={cart.checkoutUrl}>
+                      <Link href="/checkout">
                         <CreditCard className="w-5 h-5" />
                         CHECKOUT
-                      </a>
+                      </Link>
                     </Button>
                   </motion.div>
                   <button

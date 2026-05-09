@@ -1,6 +1,5 @@
 "use server"
 
-import "server-only"
 
 import { cookies as nextCookies } from "next/headers"
 
@@ -51,6 +50,19 @@ export const getCacheOptions = async (
 
   return { tags: [`${cacheTag}`] }
 }
+
+export const getCacheHeaders = async (
+  tag: string
+): Promise<{ next: { tags: string[] } } | {}> => {
+  const cacheTag = await getCacheTag(tag);
+
+  if (cacheTag) {
+    return { next: { tags: [`${cacheTag}`] } };
+  }
+
+  return {};
+};
+
 
 export const setAuthToken = async (token: string) => {
   const cookies = await nextCookies()
