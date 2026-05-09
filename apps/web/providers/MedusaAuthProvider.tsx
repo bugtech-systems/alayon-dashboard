@@ -71,7 +71,6 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
       })
 
 
-      console.log(res, 'SESSS')
   
     } catch {
       setSession(null)

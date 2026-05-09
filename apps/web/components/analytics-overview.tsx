@@ -134,8 +134,8 @@ export function AnalyticsOverview() {
   })
   const [selectedBranch, setSelectedBranch] = React.useState({id: filters.branch});
   const [selectedFilters, setSelectedFilters] = React.useState<string[]>(() => {
-    if (filters.peddler && filters.peddler !== 'all') {
-      return filters.peddler.split(',')
+    if (filters.batch && filters.batch !== 'all') {
+      return filters.batch.split(',')
     }
     return []
   })
@@ -158,9 +158,8 @@ export function AnalyticsOverview() {
 
 
   
-  const { revenueSeries: revenueData, inventoryMetrics, inventorySummary } = analyticsData || {inventorySummary: {}};
+  const { revenueSeries: revenueData, summary, inventoryMetrics, inventorySummary } = analyticsData || {inventorySummary: {}};
 
-  console.log(inventoryMetrics, revenueData, analyticsData, 'rwrwwrw')
 
 
   // Date range handling
@@ -223,8 +222,10 @@ export function AnalyticsOverview() {
 
   // Calculate revenue summary from API data
   const revenueSummary = React.useMemo(() => {
-    if (!revenueData || revenueData.length === 0) {
+    if (!summary || revenueData?.length === 0) {
       return {
+        current_paid_total_amount: 0,
+        current_unpaid_total_amount: 0,
         totalRevenue: 0,
         previousPeriodRevenue: 0,
         percentageChange: 0,
@@ -239,13 +240,14 @@ export function AnalyticsOverview() {
     const percentageChange = (absoluteChange / previousPeriodRevenue) * 100
 
     return {
+      ...summary,
       totalRevenue,
       previousPeriodRevenue,
       percentageChange: Math.abs(percentageChange),
       absoluteChange,
       trend: percentageChange >= 0 ? "up" as const : "down" as const
     }
-  }, [revenueData])
+  }, [revenueData, summary])
 
   // Calculate risk metrics
 // Calculate inventory metrics from API data
@@ -286,7 +288,6 @@ const invMetrics = React.useMemo(() => {
       }
     ]
   }
-console.log(inventorySummary, 'INV SUMM')
   // Extract metrics from inventory data
   const totalCans = inventorySummary.totalCans || 0
   const totalCrates = inventorySummary.totalCrates || 0
@@ -320,7 +321,6 @@ console.log(inventorySummary, 'INV SUMM')
 
   const cycleTrend = averageDaysDifference > 0 ? 'up' : 'down'
   const cycleTrendValue = `${cycleTrend === 'up' ? '+' : ''}${Math.abs(averageDaysDifference).toFixed(1)} days`
-  console.log(inventoryMetrics, 'INVDD')
   return inventoryMetrics
 }, [inventoryMetrics, inventorySummary])
 
@@ -352,6 +352,7 @@ console.log(inventorySummary, 'INV SUMM')
       setFilters(defaults)
     }
   }, [branches.length, filters.branch, filters.batch, filters.from, filters.to, setFilters])
+
 
 
   return (
@@ -440,20 +441,20 @@ function RevenueSummaryRow({
       <Card className="min-w-0">
         <CardHeader className="px-4 pt-4 pb-2">
           <CardTitle className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Revenue</span>
+            <span className="text-sm font-medium text-muted-foreground">Cash Sales</span>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardTitle>
           <div className="font-semibold text-3xl tabular-nums tracking-tight sm:text-4xl">
-            {formatCurrency(revenueSummary.totalRevenue)}
+            {formatCurrency(revenueSummary.current_paid_total_amount)}
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <Badge variant={revenueSummary.trend === "up" ? "default" : "destructive"}>
+            {/* <Badge variant={revenueSummary.trend === "up" ? "default" : "destructive"}>
               {revenueSummary.trend === "up" ? "↑" : "↓"} {revenueSummary.percentageChange.toFixed(1)}%
-            </Badge>
+            </Badge> */}
             <Badge variant="secondary">
-              {revenueSummary.trend === "up" ? "+" : "-"}{formatCurrency(Math.abs(revenueSummary.absoluteChange))}
+             Unpaid: {formatCurrency(Math.abs(revenueSummary?.current_unpaid_total_amount))}
             </Badge>
           </div>
 
