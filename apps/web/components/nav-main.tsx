@@ -23,6 +23,7 @@ import {
 import { CreateTransactionDialog } from "./CreateTransactionDialog";
 import { CreateBettingsDialog } from "./CreateBettingsDialog";
 import { CreateUserDialog } from "./CreateUserDialog";
+import { SendMessageDialog } from "./SendMessageDialog";
 
 export function NavMain({
   items,
@@ -36,6 +37,7 @@ export function NavMain({
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [isBettingsDialogOpen, setIsBettingsDialogOpen] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
 
   return (
     <>
@@ -70,6 +72,7 @@ export function NavMain({
                 size="icon"
                 className="size-8 group-data-[collapsible=icon]:opacity-0"
                 variant="outline"
+                onClick={() => setMessageOpen(!messageOpen)}
               >
                 <MailIcon />
                 <span className="sr-only">Inbox</span>
@@ -104,6 +107,10 @@ export function NavMain({
       <CreateUserDialog
         open={isUserDialogOpen}
         onOpenChange={setIsUserDialogOpen}
+      />
+      <SendMessageDialog
+          open={messageOpen}
+          onOpenChange={setMessageOpen}
       />
     </>
   );
