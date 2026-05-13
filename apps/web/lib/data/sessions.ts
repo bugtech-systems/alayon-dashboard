@@ -5,14 +5,18 @@ import "server-only";
 
 const jwtSecret = process.env.JWT_SECRET || "supersecret";
 
-export function createSession(token: string) {
+// ✅ FIXED: Make function async and await cookies()
+export async function createSession(token: string) {
   if (!token) {
     return;
   }
 
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-  cookies().set("_medusa_jwt", token, {
+  
+  // Await cookies() before using it
+  const cookieStore = await cookies();
+  
+  cookieStore.set("_medusa_jwt", token, {
     httpOnly: true,
     secure: process.env.VERCEL_ENV === "production",
     expires: expiresAt,
@@ -21,8 +25,10 @@ export function createSession(token: string) {
   });
 }
 
-export function retrieveSession() {
-  const token = cookies().get("_medusa_jwt")?.value;
+// ✅ FIXED: Make function async and await cookies()
+export async function retrieveSession() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("_medusa_jwt")?.value;
 
   if (!token) {
     return null;
@@ -31,16 +37,18 @@ export function retrieveSession() {
   return token;
 }
 
-export function destroySession() {
-  cookies().delete("_medusa_jwt");
-  revalidateTag("user");
+// ✅ FIXED: Make function async and await cookies()
+export async function destroySession() {
+  const cookieStore = await cookies();
+  cookieStore.delete("_medusa_jwt");
+  revalidateTag("user", "max");
 }
 
+// This function is fine as is (no cookies used)
 export async function decrypt(
   session: string | undefined = ""
 ): Promise<object | { message: string }> {
   try {
-    // Convert the secret to a CryptoKey
     const encoder = new TextEncoder();
     const keyData = encoder.encode(jwtSecret);
     const cryptoKey = await crypto.subtle.importKey(

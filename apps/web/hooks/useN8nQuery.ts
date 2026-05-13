@@ -1,10 +1,14 @@
 // hooks/useN8nQuery.ts
 
+import { getAuthHeaders } from "@/lib/medusa/data/cookies"
 import { useQuery } from "@tanstack/react-query"
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_N8N_WEBHOOK_BASE ||
-  "http://192.168.1.100:5678"
+  "https://n8n.sharewi.pro"
+
+const PUB_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
+
 
 type QueryOptions = {
   endpoint?: string
@@ -38,12 +42,10 @@ export async function n8nFetcher({
   endpoint,
   method = "GET",
   params,
-  body,
+  body = {},
   headers,
 }: QueryOptions) {
   if (!endpoint) throw new Error("Missing endpoint")
-    let session_id = localStorage.getItem('session_id');
-
   const url =
     method === "GET"
       ? buildURL(endpoint, params)
@@ -53,20 +55,18 @@ export async function n8nFetcher({
     method,
     headers: {
       "Content-Type": "application/json",
-      ...headers,
-      ...(session_id ? { session_id: session_id} : {})
+      "x-publishable-api-key": PUB_KEY,
+      ...(await getAuthHeaders())
     },
     body: (method === "POST" || method === "PUT") ? JSON.stringify(body) : undefined,
   })
 
 
-  const json = await res.json()
-
 
   if (!res.ok) {
     throw new Error(`n8n error: ${res.status}`)
   }
-
+  const json = await res.json()
 
   return Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : json.data ?? json;
 }

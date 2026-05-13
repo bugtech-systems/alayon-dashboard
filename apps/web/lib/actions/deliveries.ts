@@ -19,7 +19,7 @@ export async function proceedDelivery(
   }
 
   if (
-    delivery.delivery_status === DeliveryStatus.RESTAURANT_ACCEPTED &&
+    delivery.delivery_status === DeliveryStatus.COMPANY_ACCEPTED &&
     driverId
   ) {
     return await claimDelivery(delivery.id, driverId);
@@ -29,7 +29,7 @@ export async function proceedDelivery(
     return await prepareDelivery(delivery.id);
   }
 
-  if (delivery.delivery_status === DeliveryStatus.RESTAURANT_PREPARING) {
+  if (delivery.delivery_status === DeliveryStatus.COMPANY_PREPARING) {
     return await preparationReady(delivery.id);
   }
   if (delivery.delivery_status === DeliveryStatus.READY_FOR_PICKUP) {
@@ -54,12 +54,12 @@ export async function claimDelivery(
         method: "POST",
         body: { driver_id: driverId },
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
         },
       }
     );
 
-    revalidateTag(getCacheTag("deliveries"));
+    revalidateTag("deliveries", "max");
 
     return delivery;
   } catch (error) {
@@ -77,7 +77,7 @@ export async function passDelivery(
       {
         method: "DELETE",
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
         },
         body: {
           driver_id: driverId,
@@ -85,7 +85,7 @@ export async function passDelivery(
       }
     );
 
-    revalidateTag(getCacheTag("deliveries"));
+    revalidateTag("deliveries", "max");
 
     return { message: "Delivery passed" };
   } catch (error) {
@@ -102,12 +102,12 @@ export async function pickUpDelivery(
       {
         method: "POST",
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
         },
       }
     );
 
-    revalidateTag(getCacheTag("deliveries"));
+    revalidateTag("deliveries", "max");
 
     return delivery;
   } catch (error) {
@@ -124,12 +124,12 @@ export async function completeDelivery(
       {
         method: "POST",
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
         },
       }
     );
 
-    revalidateTag("deliveries");
+    revalidateTag("deliveries", "max");
 
     return delivery;
   } catch (error) {
@@ -146,12 +146,12 @@ export async function acceptDelivery(
       {
         method: "POST",
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
         },
       }
     );
 
-    revalidateTag(getCacheTag("deliveries"));
+    revalidateTag("deliveries", "max");
 
     return delivery;
   } catch (error) {
@@ -168,12 +168,12 @@ export async function declineDelivery(
       {
         method: "POST",
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
         },
       }
     );
 
-    revalidateTag(getCacheTag("deliveries"));
+    revalidateTag("deliveries", "max");
 
     return delivery;
   } catch (error) {
@@ -190,12 +190,12 @@ export async function prepareDelivery(
       {
         method: "POST",
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
         },
       }
     );
 
-    revalidateTag(getCacheTag("deliveries"));
+    revalidateTag("deliveries", "max");
 
     return delivery;
   } catch (error) {
@@ -212,12 +212,12 @@ export async function preparationReady(
       {
         method: "POST",
         headers: {
-          ...getAuthHeaders(),
+          ...(await getAuthHeaders()),
         },
       }
     );
 
-    revalidateTag(getCacheTag("deliveries"));
+    revalidateTag("deliveries", "max");
 
     return delivery;
   } catch (error) {

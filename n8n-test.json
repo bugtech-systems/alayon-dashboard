@@ -1,63 +1,125 @@
 {
-  "name": "Inventory Summary Workflow",
+  "name": "Save Bulk SMS to Database Only",
   "nodes": [
     {
-      "name": "Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "position": [250, 300],
       "parameters": {
-        "path": "/get-inventory-summary",
+        "httpMethod": "POST",
+        "path": "save-bulk-sms",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "inventory-webhook",
-      "typeVersion": 1
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhookTrigger",
+      "typeVersion": 2,
+      "position": [250, 300]
     },
     {
-      "name": "Parse Query Parameters",
+      "parameters": {
+        "jsCode": "// Extract input data\nconst inputData = $input.first().json;\nconst recipients = inputData.recipients || [];\nconst messageContent = inputData.message?.content || '';\nconst isFlash = inputData.message?.isFlash || false;\nconst branchId = inputData.filters?.branch || null;\nconst sentBy = inputData.sentBy || 'system';\n\n// Sanitize mobile number function\nfunction sanitizeMobileNumber(phone) {\n  if (!phone) return null;\n  \n  // Remove all non-numeric characters\n  let cleaned = phone.toString().replace(/\\D/g, '');\n  \n  // Convert to +639 format\n  if (cleaned.startsWith('63')) {\n    cleaned = '+63' + cleaned.substring(2);\n  } else if (cleaned.startsWith('0')) {\n    cleaned = '+63' + cleaned.substring(1);\n  } else if (cleaned.startsWith('9') && cleaned.length === 10) {\n    cleaned = '+63' + cleaned;\n  } else if (!cleaned.startsWith('+')) {\n    cleaned = '+63' + cleaned;\n  }\n  \n  // Validate final format\n  if (cleaned.startsWith('+63') && cleaned.length === 13) {\n    return cleaned;\n  }\n  \n  return null;\n}\n\n// Prepare items for insertion\nconst items = [];\nconst messageGroupId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;\n\nfor (const recipient of recipients) {\n  const sanitizedPhone = sanitizeMobileNumber(recipient.phone);\n  \n  items.push({\n    json: {\n      status: sanitizedPhone ? 'pending' : 'failed',\n      content: messageContent,\n      phone_number: sanitizedPhone || recipient.phone,\n      message_type: isFlash ? 'flash' : 'normal',\n      direction: 'out',\n      module_id: 'mod1',\n      message_group_id: messageGroupId,\n      branch_id: branchId,\n      recipient_name: recipient.name,\n      recipient_id: recipient.id,\n      is_flash: isFlash,\n      sent_by: sentBy,\n      error_message: !sanitizedPhone ? 'Invalid phone number format' : null,\n      created_at: new Date().toISOString()\n    }\n  });\n}\n\nreturn items;",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "prepare-data",
+      "name": "Prepare & Sanitize Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [450, 300],
-      "id": "inventory-parse-query",
-      "parameters": {
-        "jsCode": "const query = $input.first().json.query || {}\n\n// =========================\n// DEFAULTS\n// =========================\nconst now = new Date()\nconst defaultTo = now\nconst defaultFrom = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)\n\n// =========================\n// SAFE DATE FORMATTER\n// =========================\nfunction formatDate(date) {\n  return date.toISOString().split(\"T\")[0]\n}\n\n// =========================\n// PARSE INPUT DATES\n// =========================\nfunction parseDate(input, fallback) {\n  if (!input) return fallback\n  const d = new Date(input)\n  if (isNaN(d.getTime())) return fallback\n  return d\n}\n\nconst fromDate = parseDate(query.from, defaultFrom)\nconst toDate = parseDate(query.to, defaultTo)\n\n// =========================\n// NORMALIZED OUTPUT\n// =========================\nconst from = formatDate(fromDate)\nconst to = formatDate(toDate)\n\n// =========================\n// OTHER FILTERS\n// =========================\nconst branch = query.branch && query.branch !== \"all\" ? query.branch : null\nconst batch = query.batch && query.batch !== \"all\" ? query.batch : null\nconst category = query.category || null\nconst lowStockOnly = query.lowStockOnly === \"true\"\n\n// Pagination\nconst page = parseInt(query.page || \"1\", 10)\nconst limit = parseInt(query.limit || \"20\", 10)\nconst offset = (page - 1) * limit\n\nreturn [{\n  json: {\n    from,\n    to,\n    fromDate: fromDate.toISOString(),\n    toDate: toDate.toISOString(),\n    branch,\n    batch,\n    category,\n    lowStockOnly,\n    page,\n    limit,\n    offset\n  }\n}]"
-      }
+      "position": [450, 300]
     },
     {
-      "name": "Fetch Inventory Data",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [650, 300],
-      "id": "fetch-inventory-data",
       "parameters": {
-        "jsCode": "const params = $input.first().json\n\n// Mock inventory data - Replace with actual database query\n// In production, you would query your inventory database here\n\nconst allProducts = [\n  { id: 'P001', name: 'Premium Coffee Beans', category: 'Beverages', quantity: 234, minStock: 100, maxStock: 500, costPrice: 50, sellingPrice: 75 },\n  { id: 'P002', name: 'Organic Green Tea', category: 'Beverages', quantity: 189, minStock: 80, maxStock: 400, costPrice: 45, sellingPrice: 68 },\n  { id: 'P003', name: 'Espresso Machine', category: 'Equipment', quantity: 45, minStock: 20, maxStock: 100, costPrice: 300, sellingPrice: 499 },\n  { id: 'P004', name: 'Coffee Filters', category: 'Accessories', quantity: 567, minStock: 200, maxStock: 1000, costPrice: 5, sellingPrice: 12 },\n  { id: 'P005', name: 'Milk Frother', category: 'Equipment', quantity: 78, minStock: 30, maxStock: 150, costPrice: 45, sellingPrice: 89 },\n  { id: 'P006', name: 'Coffee Mugs', category: 'Accessories', quantity: 345, minStock: 150, maxStock: 600, costPrice: 8, sellingPrice: 19 },\n  { id: 'P007', name: 'Syrup Variety Pack', category: 'Beverages', quantity: 123, minStock: 50, maxStock: 300, costPrice: 25, sellingPrice: 45 },\n  { id: 'P008', name: 'Coffee Grinder', category: 'Equipment', quantity: 23, minStock: 15, maxStock: 80, costPrice: 120, sellingPrice: 199 },\n  { id: 'P009', name: 'Travel Tumbler', category: 'Accessories', quantity: 456, minStock: 100, maxStock: 800, costPrice: 12, sellingPrice: 29 },\n  { id: 'P010', name: 'Cold Brew Kit', category: 'Equipment', quantity: 12, minStock: 10, maxStock: 50, costPrice: 35, sellingPrice: 59 }\n]\n\n// Apply filters\nlet filteredProducts = [...allProducts]\n\nif (params.branch) {\n  // Different branches have different inventory levels\n  const branchMultiplier = {\n    'branch_1': 1.2,\n    'branch_2': 0.8,\n    'branch_3': 1.0\n  }\n  const multiplier = branchMultiplier[params.branch] || 1\n  filteredProducts = filteredProducts.map(p => ({\n    ...p,\n    quantity: Math.floor(p.quantity * multiplier),\n    minStock: Math.floor(p.minStock * multiplier),\n    maxStock: Math.floor(p.maxStock * multiplier)\n  }))\n}\n\nif (params.category) {\n  filteredProducts = filteredProducts.filter(p => p.category === params.category)\n}\n\nif (params.lowStockOnly) {\n  filteredProducts = filteredProducts.filter(p => p.quantity <= p.minStock)\n}\n\n// Calculate low stock and out of stock\nconst lowStockItems = filteredProducts.filter(p => p.quantity > 0 && p.quantity <= p.minStock).length\nconst outOfStockItems = filteredProducts.filter(p => p.quantity === 0).length\nconst reorderNeeded = filteredProducts.filter(p => p.quantity < p.minStock * 0.7).length\n\n// Calculate total inventory value (using selling price)\nconst totalValue = filteredProducts.reduce((sum, p) => sum + (p.quantity * p.sellingPrice), 0)\n\n// Get top products by value\nconst topProducts = filteredProducts\n  .map(p => ({\n    id: p.id,\n    name: p.name,\n    quantity: p.quantity,\n    value: p.quantity * p.sellingPrice,\n    unitPrice: p.sellingPrice\n  }))\n  .sort((a, b) => b.value - a.value)\n  .slice(0, 10)\n\n// Get categories summary\nconst categoriesMap = filteredProducts.reduce((acc, p) => {\n  if (!acc[p.category]) {\n    acc[p.category] = { count: 0, value: 0, items: [] }\n  }\n  acc[p.category].count += p.quantity\n  acc[p.category].value += p.quantity * p.sellingPrice\n  acc[p.category].items.push(p.name)\n  return acc\n}, {})\n\nconst categories = Object.keys(categoriesMap).map(name => ({\n  name,\n  count: categoriesMap[name].count,\n  value: categoriesMap[name].value,\n  percentageOfTotal: (categoriesMap[name].value / totalValue) * 100\n}))\n\n// Pagination\nconst paginatedProducts = topProducts.slice(params.offset, params.offset + params.limit)\n\nreturn [{\n  json: {\n    totalProducts: filteredProducts.length,\n    lowStockItems,\n    outOfStockItems,\n    totalValue,\n    reorderNeeded,\n    topProducts: paginatedProducts,\n    categories,\n    allProducts: filteredProducts,\n    filters: params\n  }\n}]"
-      }
+        "operation": "insert",
+        "table": "gsm_messages",
+        "columns": {
+          "status": "={{ $json.status }}",
+          "content": "={{ $json.content }}",
+          "phone_number": "={{ $json.phone_number }}",
+          "message_type": "={{ $json.message_type }}",
+          "direction": "={{ $json.direction }}",
+          "module_id": "={{ $json.module_id }}",
+          "message_group_id": "={{ $json.message_group_id }}",
+          "branch_id": "={{ $json.branch_id }}",
+          "recipient_name": "={{ $json.recipient_name }}",
+          "recipient_id": "={{ $json.recipient_id }}",
+          "is_flash": "={{ $json.is_flash }}",
+          "sent_by": "={{ $json.sent_by }}",
+          "error_message": "={{ $json.error_message }}",
+          "created_at": "={{ $json.created_at }}"
+        },
+        "returnFields": ["id", "phone_number", "status"]
+      },
+      "id": "save-to-database",
+      "name": "Save to Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [650, 300]
     },
     {
-      "name": "Return Inventory Response",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  COUNT(*) as total,\n  SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,\n  SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed\nFROM gsm_messages \nWHERE message_group_id = '{{$node['Prepare & Sanitize Data'].json[0].message_group_id}}'"
+      },
+      "id": "get-stats",
+      "name": "Get Insertion Statistics",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "responseNode": "Webhook Trigger"
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [850, 300],
-      "id": "inventory-respond",
-      "parameters": {
-        "responseBody": "={\n  \"success\": true,\n  \"data\": {\n    \"summary\": {\n      \"totalProducts\": {{$json.totalProducts}},\n      \"lowStockItems\": {{$json.lowStockItems}},\n      \"outOfStockItems\": {{$json.outOfStockItems}},\n      \"totalValue\": {{$json.totalValue}},\n      \"reorderNeeded\": {{$json.reorderNeeded}}\n    },\n    \"topProducts\": {{$json.topProducts}},\n    \"categories\": {{$json.categories}},\n    \"filters\": {{$json.filters}},\n    \"metadata\": {\n      \"timestamp\": \"{{new Date().toISOString()}}\",\n      \"page\": {{$json.filters.page}},\n      \"limit\": {{$json.filters.limit}}\n    }\n  }\n}",
-        "responseHeaders": {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        },
-        "responseStatusCode": 200
-      }
+      "position": [1050, 300]
     }
   ],
   "connections": {
-    "Webhook": {
-      "main": [[{ "node": "Parse Query Parameters", "type": "main", "index": 0 }]]
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Prepare & Sanitize Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Parse Query Parameters": {
-      "main": [[{ "node": "Fetch Inventory Data", "type": "main", "index": 0 }]]
+    "Prepare & Sanitize Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Fetch Inventory Data": {
-      "main": [[{ "node": "Return Inventory Response", "type": "main", "index": 0 }]]
+    "Save to Database": {
+      "main": [
+        [
+          {
+            "node": "Get Insertion Statistics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Insertion Statistics": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   }
 }

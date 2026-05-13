@@ -1,6 +1,5 @@
-import { sdk } from "../medusa/config";
+import { n8nFetcher } from "@/hooks/useN8nQuery";
 import { getAuthHeaders, getCacheOptions } from "../medusa/data/cookies";
-import { DriverDTO, RestaurantAdminDTO } from "../types";
 
 export async function retrieveUser() {
   try {
@@ -11,17 +10,17 @@ export async function retrieveUser() {
       }
     
       const next = {
-        ...(await getCacheOptions("users")),
+        ...(await getCacheOptions("user")),
       }
 
 
-    const { user } = await sdk.client.fetch<{
-      user: RestaurantAdminDTO | DriverDTO | null;
-    }>("/store/users/me", {
-      headers,
-      next,
+    const user = await n8nFetcher({endpoint: "/webhook/auth/session", 
+      method: "GET",
+      headers
     });
-    console.log(user, 'USSS')
+
+
+
     return user;
   } catch (error) {
     console.log(error, 'errr');

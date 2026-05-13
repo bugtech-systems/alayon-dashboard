@@ -1,11 +1,11 @@
 "use client";
 
 import { signup } from "@/lib/actions";
-import { RestaurantDTO } from "@/lib/types";
 import { Badge, Button, Input, Label, Select } from "@medusajs/ui";
 import Link from "next/link";
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useState, useEffect } from "react";
+import { useFormStatus } from "react-dom";
+import { useActionState } from "react";
 
 function Submit() {
   const status = useFormStatus();
@@ -24,16 +24,35 @@ function Submit() {
 
 const userTypes = [
   { value: "driver", label: "Driver" },
-  { value: "restaurant", label: "Restaurant" },
+  { value: "company", label: "Company" },
 ];
 
 export function SignupForm({
-  restaurants = [],
+  companies = [],
 }: {
-  restaurants: RestaurantDTO[];
+  companies: any;
 }) {
-  const [state, action] = useFormState(signup, { message: "" });
-  const [userType, setUserType] = useState("");
+  const [state, action] = useActionState(signup, { message: "" });
+  
+  // Initialize userType from localStorage or default to "driver"
+  const [userType, setUserType] = useState<string>("driver");
+  
+  // Load from localStorage on mount
+  useEffect(() => {
+    const savedUserType = localStorage.getItem("signup_user_type");
+    if (savedUserType && (savedUserType === "driver" || savedUserType === "company")) {
+      setUserType(savedUserType);
+    }
+  }, []);
+  
+  // Save to localStorage whenever userType changes
+  const handleUserTypeChange = (value: string) => {
+    setUserType(value);
+    console.log(value, 'VALL')
+    if(value){
+    localStorage.setItem("signup_user_type", value);
+    }
+  };
 
   return (
     <form action={action} className="flex flex-col gap-4 max-w-96">
@@ -41,7 +60,8 @@ export function SignupForm({
         <div>
           <Select
             name="user_type"
-            onValueChange={(value) => setUserType(value)}
+            value={userType}
+            onValueChange={handleUserTypeChange}
           >
             <Select.Trigger>
               <Select.Value placeholder="I'm a..." />
@@ -55,22 +75,24 @@ export function SignupForm({
             </Select.Content>
           </Select>
         </div>
-        {userType === "restaurant" && (
+        
+        {userType === "company" && (
           <div>
-            <Select name="restaurant_id">
+            <Select name="company_id">
               <Select.Trigger>
-                <Select.Value placeholder="Select restaurant" />
+                <Select.Value placeholder="Select company" />
               </Select.Trigger>
               <Select.Content>
-                {restaurants.map((restaurant) => (
-                  <Select.Item key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
+                {companies.map((company: any) => (
+                  <Select.Item key={company.id} value={company.id}>
+                    {company.name}
                   </Select.Item>
                 ))}
               </Select.Content>
             </Select>
           </div>
         )}
+        
         <div>
           <Label htmlFor="first_name">First Name</Label>
           <Input
@@ -80,6 +102,7 @@ export function SignupForm({
             placeholder="First Name"
           />
         </div>
+        
         <div>
           <Label htmlFor="last_name">Last Name</Label>
           <Input
@@ -89,23 +112,41 @@ export function SignupForm({
             placeholder="Last Name"
           />
         </div>
+        
         <div>
           <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" placeholder="Email" />
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="Email"
+            required
+          />
         </div>
+        
         <div>
           <Label htmlFor="phone">Phone</Label>
-          <Input id="phone" name="phone" type="phone" placeholder="Phone" />
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            placeholder="Phone (required)"
+            required
+          />
         </div>
+        
         <div>
           <Label htmlFor="password">Password</Label>
-          <Input id="password" name="password" type="password" />
-        </div>
-        <div>
-          <Label htmlFor="repeat_password">Repeat Password</Label>
-          <Input id="repeat_password" name="repeat_password" type="password" />
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            placeholder="Enter password"
+            required
+          />
         </div>
       </div>
+      
       <div className="flex flex-row justify-between">
         <Link href="/login">
           <Button variant="transparent" size="large">
@@ -114,8 +155,11 @@ export function SignupForm({
         </Link>
         <Submit />
       </div>
+      
       {state?.message && (
-        <Badge className="justify-center text-center">{state.message}</Badge>
+        <Badge className="justify-center text-center" variant="red">
+          {state.message}
+        </Badge>
       )}
     </form>
   );

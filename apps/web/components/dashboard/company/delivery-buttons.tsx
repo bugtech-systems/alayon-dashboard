@@ -5,7 +5,7 @@ import { DeliveryDTO, DeliveryStatus } from "@/lib/types";
 import { Button } from "@medusajs/ui";
 import { useState } from "react";
 
-export default function RestaurantDeliveryButtons({
+export default function CompanyDeliveryButtons({
   delivery,
 }: {
   delivery: DeliveryDTO;
@@ -37,7 +37,7 @@ export default function RestaurantDeliveryButtons({
       {[
         DeliveryStatus.PENDING,
         DeliveryStatus.PICKUP_CLAIMED,
-        DeliveryStatus.RESTAURANT_PREPARING,
+        DeliveryStatus.COMPANY_PREPARING,
       ].includes(delivery.delivery_status) && (
         <Button
           variant="primary"
@@ -48,7 +48,7 @@ export default function RestaurantDeliveryButtons({
             "Accept order"}
           {delivery.delivery_status === DeliveryStatus.PICKUP_CLAIMED &&
             "Start preparing"}
-          {delivery.delivery_status === DeliveryStatus.RESTAURANT_PREPARING &&
+          {delivery.delivery_status === DeliveryStatus.COMPANY_PREPARING &&
             "Set ready for pickup"}
         </Button>
       )}

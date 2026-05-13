@@ -21,7 +21,7 @@ import { getRegion } from "./regions"
 
 export async function retrieveCart(id?: string) {
   const cartId = id || (await getCartId())
-
+  console.log(cartId, '', await getCartId())
   if (!cartId) {
     return null
   }
@@ -57,7 +57,7 @@ export async function getOrSetCart(countryCode: string) {
   let cart = await retrieveCart()
   const region = await getRegion(countryCode)
   const customer = await retrieveCustomer()
-
+  console.log(customer, 'CUSSTOM')
   if (!region) {
     throw new Error(`Region not found for country code: ${countryCode}`)
   }

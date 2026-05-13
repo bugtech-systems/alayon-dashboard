@@ -14,6 +14,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, Store, Truck, User, Building2 } from "lucide-react"
 import { cn } from "@workspace/ui/lib/utils"
+import Link from "next/link"
 
 type UserType = "customer" | "company" | "driver" | "user"
 
@@ -92,6 +93,7 @@ export default function LoginPage() {
     
     try {
       // Pass user type to login function
+      console.log(formData, 'ffor')
       await login(formData.email, formData.password, formData.userType)
     } catch (error: any) {
       console.error("Login error:", error)
@@ -112,9 +114,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo/Brand Section */}
         <div className="mb-8 text-center">
+          <Link href="/products">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Store className="h-8 w-8 text-primary" />
           </div>
+          </Link>
           <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to your account to continue
@@ -262,16 +266,14 @@ export default function LoginPage() {
           <div className="border-t bg-gray-50 p-4 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}
+            <Link href="/signup">
               <button
                 type="button"
                 className="text-primary hover:text-primary/80 font-medium transition-colors"
-                onClick={() => {
-                  // Navigate to signup page
-                  console.log("Sign up clicked")
-                }}
               >
                 Create an account
               </button>
+              </Link>
             </p>
           </div>
         </div>

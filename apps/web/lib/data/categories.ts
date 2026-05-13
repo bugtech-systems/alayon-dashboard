@@ -1,6 +1,6 @@
 import { HttpTypes } from "@medusajs/types";
 import { sdk } from "../medusa/config";
-import { getAuthHeaders, getCacheHeaders } from "./cookies";
+import { getAuthHeaders, getCacheHeaders } from "../medusa/data/cookies";
 
 export async function listCategories(): Promise<
   HttpTypes.StoreProductCategory[]
@@ -8,8 +8,8 @@ export async function listCategories(): Promise<
   const { product_categories } = await sdk.store.category.list(
     {},
     {
-      ...getAuthHeaders(),
-      ...getCacheHeaders("categories"),
+      ...(await getAuthHeaders()),
+      ...(await getCacheHeaders("categories")),
     }
   );
 

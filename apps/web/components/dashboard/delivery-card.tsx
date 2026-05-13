@@ -2,8 +2,8 @@ import { DeliveryDTO, DriverDTO } from "@/lib/types";
 import { Container, Heading, Table } from "@medusajs/ui";
 import DriverDeliveryButtons from "./driver/delivery-buttons";
 import { DriverDeliveryStatusBadge } from "./driver/delivery-status-badge";
-import RestaurantDeliveryButtons from "./restaurant/delivery-buttons";
-import { RestaurantDeliveryStatusBadge } from "./restaurant/delivery-status-badge";
+import CompanyDeliveryButtons from "./company/delivery-buttons";
+import { CompanyDeliveryBadgeStatus } from "./company/delivery-status-badge";
 
 export default async function DeliveryCard({
   delivery,
@@ -12,12 +12,12 @@ export default async function DeliveryCard({
 }: {
   delivery: DeliveryDTO;
   driver?: DriverDTO;
-  type: "restaurant" | "driver";
+  type: "company" | "driver";
 }) {
   if (!delivery || delivery === null) return null;
 
   const items = delivery.order?.items || delivery.cart?.items;
-
+console.log(delivery, 'ITEMSS')
   return (
     <Container className="flex flex-col gap-6 p-4 shadow-elevation-card-rest hover:shadow-elevation-card-hover w-full">
       <div className="flex justify-between gap-2 flex-wrap">
@@ -25,8 +25,8 @@ export default async function DeliveryCard({
           Order {delivery?.id?.slice(-4)}
         </Heading>
         {type === "driver" && <DriverDeliveryStatusBadge delivery={delivery} />}
-        {type === "restaurant" && (
-          <RestaurantDeliveryStatusBadge delivery={delivery} />
+        {type === "company" && (
+          <CompanyDeliveryBadgeStatus delivery={delivery} />
         )}
       </div>
       <div className="flex gap-4 overflow-auto max-w-full">
@@ -53,8 +53,8 @@ export default async function DeliveryCard({
         {type === "driver" && driver && (
           <DriverDeliveryButtons delivery={delivery} driver={driver} />
         )}
-        {type === "restaurant" && (
-          <RestaurantDeliveryButtons delivery={delivery} />
+        {type === "company" && (
+          <CompanyDeliveryButtons delivery={delivery} />
         )}
       </div>
     </Container>

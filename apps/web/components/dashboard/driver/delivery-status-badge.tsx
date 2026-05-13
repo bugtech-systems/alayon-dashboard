@@ -8,7 +8,7 @@ export async function DriverDeliveryStatusBadge({
   delivery: DeliveryDTO;
 }) {
   switch (delivery.delivery_status) {
-    case DeliveryStatus.RESTAURANT_ACCEPTED:
+    case DeliveryStatus.COMPANY_ACCEPTED:
       return <Badge color="green">Available</Badge>;
     case DeliveryStatus.PICKUP_CLAIMED:
       return (
@@ -17,7 +17,7 @@ export async function DriverDeliveryStatusBadge({
           Queued
         </Badge>
       );
-    case DeliveryStatus.RESTAURANT_PREPARING:
+    case DeliveryStatus.COMPANY_PREPARING:
       return (
         <Badge color="purple" className="flex gap-1">
           <CircleQuarterSolid className="animate-spin" />

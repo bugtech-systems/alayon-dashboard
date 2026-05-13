@@ -1,19 +1,18 @@
-import AccountBadge from "@frontend/components/dashboard/account-badge";
-import DeliveryColumn from "@frontend/components/dashboard/delivery-column";
-import RealtimeClient from "@frontend/components/dashboard/realtime-client";
+import AccountBadge from "@/components/dashboard/account-badge";
+import DeliveryColumn from "@/components/dashboard/delivery-column";
+import RealtimeClient from "@/components/dashboard/realtime-client";
 import {
   listDeliveries,
   retrieveDriver,
   retrieveUser,
-} from "@frontend/lib/data";
-import { DeliveryStatus } from "@frontend/lib/types";
+} from "@/lib/data";
+import { DeliveryStatus } from "@/lib/types";
 import { Container, Heading, Text } from "@medusajs/ui";
 import { redirect } from "next/navigation";
 
 export default async function DriverDashboardPage() {
   const user = await retrieveUser();
-
-  if (!user || !user.id.includes("drv_")) {
+  if (!user) {
     redirect("/login");
   }
 

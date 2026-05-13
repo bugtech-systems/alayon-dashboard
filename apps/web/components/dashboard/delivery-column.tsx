@@ -13,7 +13,7 @@ export default async function DeliveryColumn({
   deliveries: DeliveryDTO[];
   statusFilters?: DeliveryStatus[];
   driver?: DriverDTO;
-  type: "restaurant" | "driver";
+  type: "company" | "driver";
 }) {
   const columnDeliveries = deliveries?.filter(
     (d) => d && statusFilters?.includes(d.delivery_status)

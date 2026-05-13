@@ -10,6 +10,8 @@ import type {
   StoreUpdateCartLineItem 
 } from '@medusajs/types'
 import { getRegion } from '../medusa/data/regions'
+import { retrieveCart } from '../medusa/data/cart'
+import { getCartId } from '../medusa/data/cookies'
 
 
 // Types for Medusa cart
@@ -103,7 +105,7 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers,
+        // ...options.headers,
         'x-publishable-api-key': pubKey
       } as any,
       credentials: 'include',
@@ -196,16 +198,18 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
 
   const getOrCreateCart = async () => {
     try {
-      let cartId = localStorage.getItem('cart_id')
-      console.log(cartId, 'xcccart')
-      if (cartId) {
-        const { cart: existingCart } = await sdk.store.cart.retrieve(cartId) as any
+
+      let cartId = localStorage.getItem(CART_ID_KEY)
+
+      let cart = await retrieveCart(cartId);
+      console.log(cart, 'CCACARART')
+      if (cart?.id) {
+        const { cart: existingCart } = await sdk.store.cart.retrieve(cart?.id) as any
         setCart(existingCart)
-        return cartId
+        return cart?.id
       } else {
         const { cart: newCart } = await sdk.store.cart.create() as any
         setCart(newCart)
-        localStorage.setItem('cart_id', newCart.id)
         return newCart?.id
       }
     } catch (error) {
@@ -266,15 +270,19 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
     const addToCart = useCallback(
       async (variantId: string, quantity = 1, metadata?: Record<string, any>) => {
         dispatch({ type: 'SET_LOADING', isLoading: true })
-  
+        let cartData = await getCartId();
+
+        console.log(cartData, 'caaaart')
         try {
-          let cartId = localStorage.getItem(CART_ID_KEY)
+      let cartId = await retrieveCart(cartData) || localStorage.getItem(CART_ID_KEY);
+      console.log(cartId)
+
           if (!cartId) {
             cartId = await getOrCreateCart()
           }
 
 
-
+          localStorage.setItem('cart_id', cartId)
           console.log(cartId, "CART ID ")
           if (!cartId) {
             throw new Error('Failed to create cart')

@@ -1,7 +1,7 @@
 "use server"
 
-import { sdk } from "@/lib/config"
-import { getAuthHeaders, getCacheOptions } from "@/lib/data/cookies"
+import { sdk } from "@/lib/medusa/config"
+import { getAuthHeaders, getCacheOptions } from "@/lib/medusa/data/cookies"
 import { HttpTypes } from "@medusajs/types"
 
 // Shipping actions

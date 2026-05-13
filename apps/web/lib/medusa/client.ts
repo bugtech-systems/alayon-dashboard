@@ -125,7 +125,7 @@ export async function getProductById(id: string): Promise<any | null> {
 export async function getFeaturedProducts(limit = 8): Promise<any[]> {
   const { products } = await sdk.store.product.list({
     limit,
-    order: 'created_at DESC',
+    // order: 'created_at DESC',
   })
   return products
 }

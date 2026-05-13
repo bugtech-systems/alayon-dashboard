@@ -2,8 +2,7 @@ import { sdk } from "../medusa/config";
 import { getAuthHeaders, getCacheHeaders } from "./cookies";
 
 export async function retrieveCart(cartId: string) {
-  let cId = localStorage.getItem('cart_id');
-  console.log(cId, 'ccidd')
+
   const { cart } = await sdk.store.cart.retrieve(
     cartId,
     {
@@ -11,8 +10,8 @@ export async function retrieveCart(cartId: string) {
         "+metadata, +items.*, +items.thumbnail, +items.title, +items.quantity, +items.total, +items.variant",
     },
     {
-      ...getAuthHeaders(),
-      ...getCacheHeaders("carts"),
+      ...(await getAuthHeaders()),
+      ...(await getCacheHeaders("carts")),
     }
   );
 

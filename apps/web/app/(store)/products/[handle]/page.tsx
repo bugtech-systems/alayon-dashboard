@@ -43,7 +43,6 @@ export default async function ProductPage({ params }) {
 
 
   const product = await getProductByHandle(handle)
-  console.log(!product, 'prrod')
   if (!product) {
     notFound()
   }

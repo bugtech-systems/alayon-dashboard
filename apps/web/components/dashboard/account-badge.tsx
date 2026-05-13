@@ -28,8 +28,8 @@ export default async function AccountBadge({
   data,
   type,
 }: {
-  data: DriverDTO | RestaurantDTO;
-  type: "driver" | "restaurant";
+  data: any;
+  type: "driver" | "company";
 }) {
   let name = "";
 
@@ -38,7 +38,7 @@ export default async function AccountBadge({
     name = driver.first_name + " " + driver.last_name;
   }
 
-  if (type === "restaurant") {
+  if (type === "company") {
     const restaurant = data as RestaurantDTO;
     name = restaurant.name;
   }
@@ -52,7 +52,7 @@ export default async function AccountBadge({
           <Text>{data.phone}</Text>
         </div>
         <Image
-          src={
+          src={ data?.logo_url ? data?.logo_url : 
             "https://robohash.org/" +
             data.id +
             "?size=200x200&set=set1&bgset=bg1"

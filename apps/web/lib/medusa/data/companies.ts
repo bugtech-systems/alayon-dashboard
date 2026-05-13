@@ -1,11 +1,11 @@
 "use server"
 
-import { sdk } from "@/lib/medusa/config"
+import { sdk } from "../config"
 import {
   getAuthHeaders,
   getCacheOptions,
   getCacheTag,
-} from "@/lib/medusa/data/cookies"
+} from "./cookies"
 import {
   StoreCompaniesResponse,
   StoreCompanyResponse,
@@ -174,4 +174,27 @@ export const updateApprovalSettings = async (
 
   const cacheTag = await getCacheTag("companies")
   revalidateTag(cacheTag)
+}
+
+export const listCompanies = async (filter) => {
+   const headers = {
+    ...(await getAuthHeaders()),
+    "Content-Type": "application/json",
+    // Accept: "plain/text",
+  }
+
+  const next = {
+    ...( await getCacheOptions("companies")),
+  }
+
+
+  const query = new URLSearchParams(filter).toString();
+
+ let {companies} = await sdk.client.fetch(`/store/companies?${query}`, {
+      method: "GET",
+      headers,
+      next
+    }) as any;
+    
+     return companies;
 }

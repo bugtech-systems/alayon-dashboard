@@ -11,12 +11,12 @@ export async function listDeliveries(
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        ...getAuthHeaders(),
-        ...getCacheHeaders("deliveries"),
+        ...(await getAuthHeaders()),
+        ...(await getCacheHeaders("deliveries")),
       },
     }
   );
-
+  
   return deliveries;
 }
 

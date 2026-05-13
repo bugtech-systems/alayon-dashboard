@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useTransition } from "react";
 
 export default function RealtimeClient({
-  restaurantId,
+  companyId,
   driverId,
   deliveryId,
 }: {
-  restaurantId?: string;
+  companyId?: string;
   driverId?: string;
   deliveryId?: string;
 }) {
@@ -18,8 +18,8 @@ export default function RealtimeClient({
 
   let serverUrl = "/api/subscribe";
 
-  if (restaurantId) {
-    serverUrl += `?restaurant_id=${restaurantId}`;
+  if (companyId) {
+    serverUrl += `?company_id=${companyId}`;
   }
 
   if (driverId) {

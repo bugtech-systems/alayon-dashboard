@@ -125,7 +125,7 @@ const data = {
   navSecondary: [
     {
       title: "Company",
-      url: "/company",
+      url: "/dashboard/company",
       icon: (
         <Settings2Icon
         />
@@ -133,7 +133,7 @@ const data = {
     },
     {
       title: "Rider",
-      url: "/rider",
+      url: "/dashboard/driver",
       icon: (
         <CircleHelpIcon
         />

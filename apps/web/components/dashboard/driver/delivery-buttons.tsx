@@ -27,7 +27,7 @@ export default function DriverDeliveryButtons({
 
   return (
     <>
-      {delivery.delivery_status === DeliveryStatus.RESTAURANT_ACCEPTED && (
+      {delivery.delivery_status === DeliveryStatus.COMPANY_ACCEPTED && (
         <Button
           variant="transparent"
           onClick={handleDeclineDelivery}
@@ -37,7 +37,7 @@ export default function DriverDeliveryButtons({
         </Button>
       )}
       {[
-        DeliveryStatus.RESTAURANT_ACCEPTED,
+        DeliveryStatus.COMPANY_ACCEPTED,
         DeliveryStatus.READY_FOR_PICKUP,
         DeliveryStatus.IN_TRANSIT,
       ].includes(delivery.delivery_status) && (
@@ -46,7 +46,7 @@ export default function DriverDeliveryButtons({
           onClick={handleProceedDelivery}
           isLoading={proceedIsLoading}
         >
-          {delivery.delivery_status === DeliveryStatus.RESTAURANT_ACCEPTED &&
+          {delivery.delivery_status === DeliveryStatus.COMPANY_ACCEPTED &&
             "Claim delivery"}
           {delivery.delivery_status === DeliveryStatus.READY_FOR_PICKUP &&
             "Set order picked up"}

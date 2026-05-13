@@ -134,7 +134,6 @@ export const listProducts = async ({
 export const listProductsWithSort = async ({
   page = 0,
   queryParams,
-  sortBy = "created_at",
   countryCode,
 }: {
   page?: number
@@ -159,7 +158,7 @@ export const listProductsWithSort = async ({
     countryCode,
   })
 
-  const sortedProducts = sortProducts(products, sortBy)
+  const sortedProducts = sortProducts(products)
 
   const pageParam = (page - 1) * limit
 

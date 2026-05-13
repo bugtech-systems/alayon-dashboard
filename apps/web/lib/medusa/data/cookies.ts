@@ -1,7 +1,9 @@
 "use server"
 
+import "server-only"
 
 import { cookies as nextCookies } from "next/headers"
+import { revalidatePath, revalidateTag } from "next/cache"
 
 export const getAuthHeaders = async (): Promise<
   { authorization: string } | {}
@@ -19,6 +21,19 @@ export const getAuthHeaders = async (): Promise<
     return {}
   }
 }
+
+export const getCacheHeaders = async (
+  tag: string
+): Promise<{ next: { tags: string[] } } | {}> => {
+  const cacheTag = await getCacheTag(tag);
+
+  if (cacheTag) {
+    return { next: { tags: [`${cacheTag}`] } };
+  }
+
+  return {};
+};
+
 
 export const getCacheTag = async (tag: string): Promise<string> => {
   try {
@@ -51,19 +66,6 @@ export const getCacheOptions = async (
   return { tags: [`${cacheTag}`] }
 }
 
-export const getCacheHeaders = async (
-  tag: string
-): Promise<{ next: { tags: string[] } } | {}> => {
-  const cacheTag = await getCacheTag(tag);
-
-  if (cacheTag) {
-    return { next: { tags: [`${cacheTag}`] } };
-  }
-
-  return {};
-};
-
-
 export const setAuthToken = async (token: string) => {
   const cookies = await nextCookies()
 
@@ -74,12 +76,28 @@ export const setAuthToken = async (token: string) => {
     secure: process.env.NODE_ENV === "production",
   })
 }
+export async function removeAuthToken() {
+  try {
+    const cookieStore = await nextCookies();
+    cookieStore.delete("_medusa_jwt");
+        // Revalidate to clear cached data
 
-export const removeAuthToken = async () => {
-  const cookies = await nextCookies()
-
-  cookies.delete("_medusa_jwt")
+    // Revalidate user cache
+    revalidateTag("user", "max");
+    revalidatePath("/dashboard");
+    
+    console.log("Auth token removed successfully");
+    return { success: true };
+  } catch (error) {
+    console.error("Error removing auth token:", error);
+    return { success: false };
+  }
 }
+
+// export const removeAuthToken = async () => {
+//   const cookies = await nextCookies()
+//   cookies.delete("_medusa_jwt")
+// }
 
 export const getCartId = async () => {
   const cookies = await nextCookies()

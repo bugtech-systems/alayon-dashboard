@@ -1,20 +1,40 @@
 "use client";
 
 import { DriverDTO, RestaurantAdminDTO } from "@/lib/types";
-import { logout } from "@/lib/actions";
 import { Avatar, Button, Text } from "@medusajs/ui";
 import Link from "next/link";
+import { useMedusaAuth } from "@/providers/MedusaAuthProvider";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 type ProfileBadgeProps = {
   user: RestaurantAdminDTO | DriverDTO | null;
 };
 
-export function ProfileBadge({ user }: ProfileBadgeProps) {
+export function ProfileBadge() {
+  const { user, logout, loading } = useMedusaAuth()
+  const router = useRouter()
+
+
+console.log(user, 'USSER')
+
   const dashboardPath = user
-    ? user.hasOwnProperty("restaurant_id")
-      ? "/dashboard/restaurant"
+    ? user.actor_type == 'company'
+      ? "/dashboard/company"
       : "/dashboard/driver"
     : "/login";
+
+  useEffect(() => {
+    if (loading) return
+
+    // if (user) {
+    //   router.replace(dashboardPath)
+    // } else {
+    //   router.replace("/login")
+    // }
+  }, [user, loading])
+
+
 
   return (
     <div className="flex flex-col relative group w-fit">
@@ -31,7 +51,7 @@ export function ProfileBadge({ user }: ProfileBadgeProps) {
               </Text>
               <Avatar
                 src={`https://robohash.org/${user.id}?size=40x40&set=set1&bgset=bg1`}
-                fallback={user.first_name[0] + user.last_name[0]}
+                fallback={`https://robohash.org/${user.id}?size=40x40&set=set1&bgset=bg1`}
                 className="bg-ui-bg-base cursor-pointer"
               />
             </>

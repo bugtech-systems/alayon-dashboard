@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { retrieveRestaurant } from "@/lib/data";
+import { retrieveCompany } from "@/lib/medusa/data/companies";
 import { Container, Heading, Text } from "@medusajs/ui";
 import Image from "next/image";
 import { useCart } from "@/lib/context/cart-context";
@@ -15,7 +15,7 @@ export function OrderSummary() {
     useEffect(() => {
         const fetchRestaurant = async () => {
             if (cart?.metadata?.restaurant_id) {
-                const restaurantData = await retrieveRestaurant(
+                const restaurantData = await retrieveCompany(
                     cart.metadata.restaurant_id as string
                 );
                 setRestaurant(restaurantData);
@@ -49,7 +49,6 @@ export function OrderSummary() {
     }
 
 
-    console.log(cart, 'CARTT')
     return (
         <Container className="flex flex-col gap-4">
             <Heading

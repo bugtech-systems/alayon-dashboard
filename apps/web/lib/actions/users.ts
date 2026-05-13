@@ -5,7 +5,10 @@ import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSession, destroySession } from "../../lib/data/sessions";
 import { sdk } from "../medusa/config";
-import { getAuthHeaders, getCacheHeaders, getCacheTag } from "../data/cookies";
+import { getAuthHeaders, getCacheHeaders, getCacheTag, removeAuthToken } from "../medusa/data/cookies";
+import { track } from "@vercel/analytics";
+import { apiFetch } from "../apiClient";
+import { n8nFetcher } from "@/hooks/useN8nQuery";
 
 type FormState =
   | {
@@ -13,10 +16,10 @@ type FormState =
     }
   | undefined;
 
-const redirecter = (actor_type: "restaurant" | "driver") => {
+const redirecter = (actor_type: "company" | "driver") => {
   let redirectPatch;
-  if (actor_type === "restaurant") {
-    redirectPatch = "/dashboard/restaurant";
+  if (actor_type === "company") {
+    redirectPatch = "/dashboard/company";
   } else if (actor_type === "driver") {
     redirectPatch = "/dashboard/driver";
   } else {
@@ -27,28 +30,26 @@ const redirecter = (actor_type: "restaurant" | "driver") => {
 
 export async function logout() {
   destroySession();
+  removeAuthToken()
   redirect("/");
 }
 
 export async function signup(prevState: FormState, data: FormData) {
   const user_type = data.get("user_type") as string;
-  const restaurant_id = data.get("restaurant_id") as string;
+  const company_id = data.get("company_id") as string;
   const first_name = data.get("first_name") as string;
   const last_name = data.get("last_name") as string;
   const phone = data.get("phone") as string;
   const email = data.get("email") as string;
   const password = data.get("password") as string;
-  const repeat_password = data.get("repeat_password") as string;
 
-  if (password !== repeat_password) {
-    return {
-      message: "Passwords do not match",
-    };
-  }
+ 
 
-  const actor_type = user_type as "restaurant" | "driver";
+  const actor_type = user_type as "company" | "driver";
 
   try {
+
+
     const token = await createAuthUser({
       email,
       password,
@@ -58,8 +59,10 @@ export async function signup(prevState: FormState, data: FormData) {
       throw new Error("Error creating auth user");
     });
 
+
+    console.log(token, 'TTTOOK')
     createSession(token);
-    revalidateTag(getCacheTag("users"));
+    revalidateTag('users', 'max');
 
     const createUserData: CreateUserType = {
       email,
@@ -70,23 +73,43 @@ export async function signup(prevState: FormState, data: FormData) {
       token,
     };
 
-    if (actor_type === "restaurant" && restaurant_id) {
-      createUserData.restaurant_id = restaurant_id;
+    if (actor_type === "company" && company_id) {
+      createUserData.company_id = company_id;
+      
+    let customer = await n8nFetcher({
+      endpoint: "/webhook/find-create-customer",
+      method: "POST",
+      body: { 
+      email,
+      first_name,
+      last_name,
+      phone,
+      password, metadata: {company_id, actor_type}}
+    })
+
+
+          console.log(customer, 'CUSTTO')
+
+
     }
+
+    console.log(createUserData, 'CREATE USER', token, company_id, 'siiignup')
 
     await createUser(createUserData).catch((error) => {
       throw new Error("Error creating user");
     });
 
-    const newToken = await createAuthUser({
+    const newToken = await getToken({
       email,
       password,
       actor_type,
       provider: "emailpass",
     });
 
+
+    console.log(newToken, 'TOKKE')
     createSession(newToken);
-    revalidateTag(getCacheTag("users"));
+    revalidateTag("users", "max");
   } catch (error) {
     return {
       message: "Error creating user",
@@ -110,7 +133,7 @@ export async function login(prevState: FormState, data: FormData) {
       actor_type,
       provider: "emailpass",
     });
-
+    await logout()
     destroySession();
     createSession(token);
 
@@ -132,7 +155,7 @@ export async function createAuthUser({
 }: {
   email: string;
   password: string;
-  actor_type: "restaurant" | "driver";
+  actor_type: "company" | "driver";
   provider: "emailpass";
 }) {
   const { token }: { token: string } = await sdk.client.fetch(
@@ -142,8 +165,8 @@ export async function createAuthUser({
       body: { entity_id: email, password, email },
       headers: {
         "Content-Type": "application/json",
-        ...getAuthHeaders(),
-        ...getCacheHeaders("users"),
+        ...(await getAuthHeaders()),
+        ...(await getCacheHeaders("users")),
       },
     }
   );
@@ -153,7 +176,7 @@ export async function createAuthUser({
 
 export type CreateUserType = (CreateDriverDTO | CreateRestaurantAdminDTO) & {
   actor_type: string;
-  restaurant_id?: string;
+  company_id?: string;
   token: string;
 };
 
@@ -165,8 +188,8 @@ export async function createUser(input: CreateUserType) {
     body: rest,
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeaders(),
-      ...getCacheHeaders("users"),
+      ...(await getAuthHeaders()),
+      ...(await getCacheHeaders("users")),
     },
   });
 
@@ -181,7 +204,7 @@ export async function getToken({
 }: {
   email: string;
   password: string;
-  actor_type: "restaurant" | "driver";
+  actor_type: "company" | "driver";
   provider: "emailpass";
 }) {
   const { token }: { token: string } = await sdk.client.fetch(
@@ -191,11 +214,68 @@ export async function getToken({
       body: { email, password: password.toString() },
       headers: {
         "Content-Type": "application/json",
-        ...getAuthHeaders(),
-        ...getCacheHeaders("users"),
+        ...(await getAuthHeaders()),
+        ...(await getCacheHeaders("users")),
       },
     }
   );
 
   return token;
+}
+
+export const createEmployee = async (data: any) => {
+  const { company_id, ...employeeData } = data
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const employee = await sdk.client.fetch<any>(
+    `/store/companies/${company_id}/employees`,
+    {
+      method: "POST",
+      body: employeeData,
+      headers,
+    }
+  )
+
+  track("employee_created", {
+    employee_id: employee.employee.id,
+  })
+
+  const cacheTag = await getCacheTag("companies")
+  revalidateTag(cacheTag, "max")
+
+  return employee
+}
+
+
+export const getEmployee = async (id: any) => {
+
+
+
+  const employee = await n8nFetcher({endpoint: `/webhook/get-company-employee?employee_id=${id}`, method: "GET",})
+
+  return employee
+}
+
+// lib/utils/phone.ts
+export const sanitizePhilippinePhone = async (phone: string) => {
+  if (!phone) return phone;
+  
+  // Remove all non-numeric characters
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // Convert to +639 format
+  if (cleaned.length === 11 && cleaned.startsWith('09')) {
+    return '+63' + cleaned.substring(1);
+  }
+  if (cleaned.length === 10 && cleaned.startsWith('9')) {
+    return '+63' + cleaned;
+  }
+  if (cleaned.length === 12 && cleaned.startsWith('63')) {
+    return '+' + cleaned;
+  }
+  
+  return phone; // Return original if format not recognized
 }

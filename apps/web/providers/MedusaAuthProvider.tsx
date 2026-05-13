@@ -9,10 +9,12 @@ import {
 import { useRouter } from "next/navigation"
 import { apiFetch } from "@/lib/apiClient"
 import { n8nFetcher } from "@/hooks/useN8nQuery"
+import { getAuthHeaders, removeAuthToken, setAuthToken } from "@/lib/medusa/data/cookies"
 
 type User = {
   id: string
   email: string
+  actor_type?: string
 }
 
 type AuthContextType = {
@@ -22,14 +24,15 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   session_id?: any
+  company?: any
 }
 
 
-const PUB_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function MedusaAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
+  const [company, setCompany] = useState<any>(null)
   const [session, setSession] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -40,47 +43,39 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
   // ----------------------------
   const fetchAuthSession = async () => {
     try {
-       let token = localStorage.getItem('token');
+      
+      let auth = await getAuthHeaders();
+      console.log(auth, 'aurtrhh')
+  //  let res = await apiFetch(
+  //     `/webhook/auth/session`, { 
+  //     method: "POST",
+  //     // body: { email, password, actorType },
+  //   })
 
-   
-
-      if(!token) return  router.push("/login")
+    // console.log(res, 'rewee')
 
       const res = await n8nFetcher({"endpoint": "/webhook/auth/session", 
-        method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "x-publishable-api-key": PUB_KEY
-          } as any})
-
+        method: "GET"
+      })
+      console.log(res, 'ressss')
       //   const userData = await resUser.json() as any;
-        setUser(res?.user ?? null)
-        fetchSession(res?.user?.id)
+        if(res.user || res.customer || res.company || res.driver){
+        setUser({...(res.user || res.customer || res.company || res.driver), actor_type: res.actor_type})
+        }
+        if(res.company){
+         setCompany(res.company)     
+        }
+        // fetchSession(res?.user?.id)
       
     } catch {
       setUser(null)
+      setCompany(null)
     } finally {
       setLoading(false)
     }
   }
-
-  const fetchSession = async (id?: any) => {
-    try {
-      let session_id = localStorage.getItem('session_id');
-      const res = await n8nFetcher({
-        endpoint: "/webhook/session",
-        method: "POST",
-        body: {...(session_id ? {id: session_id} : {}), auth_id: id }
-      })
-
 
   
-    } catch {
-      setSession(null)
-    } finally {
-      setLoading(false)
-    }
-  }
   
 
   useEffect(() => {
@@ -91,22 +86,23 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
   // LOGIN
   // ----------------------------
   const login = async (email: string, password: string, actorType: string) => {
-    const res = await n8nFetcher({endpoint: "/webhook/auth", 
+   let res = await apiFetch(
+      `/auth/${actorType}/emailpass`, { 
       method: "POST",
       body: { email, password, actorType },
     })
 
-
-  console.log(res, 'DATA')
-  if(res?.token){
-  localStorage.setItem('token', res?.token)
-  }
+    console.log(res, 'rewee')
+    if(res.token){
+    setAuthToken(res?.token)
     // Re-fetch session (sets user state)
     await fetchAuthSession()
-    await fetchSession()
+
+
+    }
 
     // ✅ redirect after login success
-    router.push("/dashboard")
+    router.push("/")
   }
 
   // ----------------------------
@@ -115,13 +111,15 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
   const logout = async () => {
 
     setUser(null)
+    setCompany(null)
     localStorage.removeItem('session_id')
     localStorage.removeItem('token')
+    removeAuthToken();
     router.push("/login")
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, company }}>
       {children}
     </AuthContext.Provider>
   )

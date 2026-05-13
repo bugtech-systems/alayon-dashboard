@@ -1,10 +1,5 @@
-import Footer from "@/components/common/footer";
 import { ProfileBadge } from "@/components/common/profile-badge";
-import { retrieveUser } from "@/lib/data";
-import { FlyingBox } from "@medusajs/icons";
-import { Text } from "@medusajs/ui";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -17,7 +12,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const user = await retrieveUser();
+  
+
+
 
   return (
     <>
@@ -28,20 +25,9 @@ export default async function RootLayout({
         >
          Alayon
         </Link>
-        <Link
-          href="https://medusajs.com/"
-          className="flex gap-1 items-center txt-compact-small hover:text-ui-bg-base-hover"
-        >
-          <Image
-            src="/medusa-logo.svg"
-            alt="Medusa"
-            className="h-8"
-            height={30}
-            width={30}
-          />
-        </Link>
+
         <div className="flex gap-2 items-center">
-          <ProfileBadge user={user} />
+          <ProfileBadge  />
         </div>
       </nav>
       <main className="flex flex-col gap-20 p-4 md:p-10 min-h-[calc(100vh-8rem)]">

@@ -1,11 +1,11 @@
 "use server";
 
 import { retrieveSession } from "@/lib/data/sessions";
-import { RestaurantDTO, RestaurantProductDTO } from "@/lib/types";
 import { promises as fs } from "fs";
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { sdk } from "../medusa/config";
 import { getAuthHeaders, getCacheTag } from "../data/cookies";
+import { CompanyDTO } from "../types";
 
 const BACKEND_URL =
   process.env.BACKEND_URL ||
@@ -17,24 +17,24 @@ const FRONTEND_URL =
   "http://localhost:3000";
 
 export async function setRestaurantStatus(
-  restaurantId: string,
+  companyId: string,
   status: boolean
-): Promise<RestaurantDTO | { message: string }> {
+): Promise<CompanyDTO | { message: string }> {
   try {
-    const { restaurant } = await sdk.client.fetch<{
-      restaurant: RestaurantDTO;
-    }>(`/restaurants/${restaurantId}/status`, {
+    const { company } = await sdk.client.fetch<{
+      company: CompanyDTO;
+    }>(`/store/companies/${companyId}/status`, {
       method: "POST",
       body: { is_open: status },
       headers: {
         "Content-Type": "application/json",
-        ...getAuthHeaders(),
+        ...(await getAuthHeaders()),
       },
     });
 
-    revalidateTag(getCacheTag("restaurants"));
+    revalidateTag("companies", "max");
 
-    return restaurant;
+    return company;
   } catch (error) {
     return { message: "Error setting restaurant status" };
   }
