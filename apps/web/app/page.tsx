@@ -20,7 +20,7 @@ export default function HomePage() {
         }
         router.replace("/home")
     } else {
-      router.replace("/login")
+        router.replace("/store")
     }
   }, [user, loading])
 
