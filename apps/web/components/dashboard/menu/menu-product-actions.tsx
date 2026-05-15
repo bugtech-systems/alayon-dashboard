@@ -1,7 +1,7 @@
 "use client";
 
 import { deleteProduct } from "@/lib/actions";
-import { RestaurantDTO } from "@/lib/types";
+import { CompanyDTO } from "@/lib/types";
 import {
   EllipsisHorizontal,
   PencilSquare,
@@ -14,16 +14,16 @@ import { useState } from "react";
 
 export function MenuProductActions({
   product,
-  restaurant,
+  company,
 }: {
   product: ProductDTO;
-  restaurant: RestaurantDTO;
+  company: CompanyDTO;
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    await deleteProduct(product.id, restaurant.id);
+    await deleteProduct(product.id, company.id);
     setIsDeleting(false);
   };
 

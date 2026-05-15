@@ -1,7 +1,7 @@
 // app/(checkout)/your-order/page.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -392,7 +392,7 @@ function OrderItem({ item, formatPrice, isMobile = false }: any) {
 export default function OrderStatusPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const deliveryId = searchParams.get("id") as any;
+  const deliveryId = searchParams.get("id");
   
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [driver, setDriver] = useState<Driver | null>(null);
@@ -400,15 +400,15 @@ export default function OrderStatusPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // if (!deliveryId) {
-    //   router.push("/account/orders?error=no_order_selected");
-    //   return;
-    // }
-    console.log(deliveryId, 'DELL')
+    if (!deliveryId) {
+      router.push("/account/orders?error=no_order_selected");
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const deliveryData = await retrieveDelivery(deliveryId) as any;
+        const deliveryData = await retrieveDelivery(deliveryId);
         
         if (!deliveryData) {
           setError("Order not found");
@@ -419,7 +419,7 @@ export default function OrderStatusPage() {
         
         if (deliveryData.driver_id) {
           try {
-            const driverData = await retrieveDriver(deliveryData.driver_id) as any;
+            const driverData = await retrieveDriver(deliveryData.driver_id);
             setDriver(driverData);
           } catch (err) {
             console.error("Failed to fetch driver:", err);
@@ -531,7 +531,7 @@ export default function OrderStatusPage() {
               <p className="text-xs text-muted-foreground">Order #{delivery.id.slice(-8)}</p>
               <h1 className="text-lg font-semibold text-foreground">Track Order</h1>
             </div>
-            <Badge variant={currentStatusConfig.variant as any} className="text-xs">
+            <Badge variant={currentStatusConfig.variant} className="text-xs">
               <CurrentStatusIcon className="h-3 w-3 mr-1" />
               {currentStatusConfig.shortLabel}
             </Badge>
@@ -555,7 +555,7 @@ export default function OrderStatusPage() {
                 Track your order from {delivery.company?.name || "Alayon Store"}
               </p>
             </div>
-            <Badge variant={currentStatusConfig.variant as any} className="w-fit text-sm py-1.5 px-4">
+            <Badge variant={currentStatusConfig.variant} className="w-fit text-sm py-1.5 px-4">
               <CurrentStatusIcon className="h-3.5 w-3.5 mr-1.5" />
               {currentStatusConfig.label}
             </Badge>

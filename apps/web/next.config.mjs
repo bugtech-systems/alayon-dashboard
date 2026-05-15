@@ -47,7 +47,13 @@ const nextConfig = {
         ],
       },
     ];
-  }
+  },
+  experimental: {
+    // Exclude API routes from static optimization
+    outputFileTracingExcludes: {
+      '*': ['./**/api/**/*'],
+    },
+  },
 }
 
 export default nextConfig

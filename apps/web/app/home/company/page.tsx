@@ -11,7 +11,7 @@ import { retrieveCompany } from "@/lib/data";
 
 
 
-export default async function RestaurantDashboardPage() {
+export default async function CompanyDashboardPage() {
   const user = (await retrieveUser()) as RestaurantAdminDTO;
 
   if (!user || !user.id.includes("comp_")) {
@@ -28,7 +28,7 @@ export default async function RestaurantDashboardPage() {
 
 
 
-  console.log(companyId, company, companyId, user)
+  console.log(companyId, company, companyId, user, 'aweaweaw')
 
 
   

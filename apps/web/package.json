@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev -p 3000 --turbopack",
     "build": "next build",
+    "build:ignore-errors": "next build || true",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",

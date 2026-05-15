@@ -7,8 +7,8 @@ import { ProductCard } from '@/components/product/product-card'
 import Link from 'next/link'
 import { getRegion } from '@/lib/medusa/data/regions'
 
-export async function generateMetadata({ params }) {
-  const { handle } = await params
+export async function generateMetadata({ params }: any) {
+  const { handle } = await params as any
   const product = await getProductByHandle(handle)
 
   if (!product) {
@@ -37,12 +37,12 @@ export async function generateMetadata({ params }) {
   }
 }
 
-export default async function ProductPage({ params }) {
+export default async function ProductPage({ params }: any) {
   const { handle } = await params
 
 
 
-  const product = await getProductByHandle(handle)
+  const product = await getProductByHandle(handle) as any
   if (!product) {
     notFound()
   }
@@ -62,7 +62,7 @@ export default async function ProductPage({ params }) {
       // Same category
       const sameCategory = product.categories?.length && 
         p.categories?.some(cat => 
-          product.categories.some(pCat => pCat.id === cat.id)
+          product.categories.some((pCat: any) => pCat.id === cat.id)
         )
       
       return sameCollection || sameCategory
@@ -151,7 +151,7 @@ export default async function ProductPage({ params }) {
                     <div className="flex">
                       <dt className="w-32 text-muted-foreground">Tags:</dt>
                       <dd className="text-foreground">
-                        {product.tags.map(tag => tag.value).join(', ')}
+                        {product.tags.map((tag: any) => tag.value).join(', ')}
                       </dd>
                     </div>
                   )}

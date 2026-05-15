@@ -227,7 +227,7 @@ export function ProductCard({ product, index, priority = false }: ProductCardPro
     >
       {/* Product Image Container */}
       <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50">
-        <Link href={`/product/${product.handle}`} className="relative w-full h-full block">
+        <Link href={`/products/${product.handle}`} className="relative w-full h-full block">
           <Image
             src={productImage}
             alt={product.title}

@@ -43,7 +43,7 @@ export default async function CompanyDashboardPage() {
       // redirect("/login");
     }
 
-    const { name, deliveries, is_open } = company;
+    const { name, deliveries, is_open } = company as any;
     console.log( company, 'commmss')
 
     return (

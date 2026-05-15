@@ -1,25 +1,25 @@
-import { MenuActions } from "@frontend/components/dashboard/menu/menu-actions";
-import { MenuProductActions } from "@frontend/components/dashboard/menu/menu-product-actions";
+import { MenuActions } from "@/components/dashboard/menu/menu-actions";
+import { MenuProductActions } from "@/components/dashboard/menu/menu-product-actions";
 import {
   listCategories,
-  retrieveRestaurant,
+  retrieveCompany,
   retrieveUser,
-} from "@frontend/lib/data";
-import { RestaurantAdminDTO } from "@frontend/lib/types";
+} from "@/lib/data";
+import { RestaurantAdminDTO } from "@/lib/types";
 import { ProductDTO, ProductVariantDTO } from "@medusajs/types";
 import { Heading, Table, Text } from "@medusajs/ui";
 import Image from "next/image";
 
 export default async function MenuPage() {
   const user = (await retrieveUser()) as RestaurantAdminDTO;
-  const restaurantId = user?.restaurant_id;
+  const companyId = user?.company_id;
 
-  const restaurant = await retrieveRestaurant(restaurantId);
+  const company = await retrieveCompany(companyId) as any;
   const categories = await listCategories();
 
   const categoryProductMap = new Map();
-
-  restaurant?.products?.forEach((product) => {
+console.log(company, user, categories, 'acaca')
+  company?.products?.forEach((product) => {
     if (product.categories) {
       product.categories.forEach((category) => {
         if (categoryProductMap.has(category.id)) {

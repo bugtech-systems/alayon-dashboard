@@ -1,9 +1,10 @@
 // app/products/page.jsx
-import { Suspense } from 'react'
+import { Suspense, useTransition } from 'react'
 import { getProducts } from '@/lib/medusa/client'
 import { ProductCard } from '@/components/product/product-card'
 import { ProductFilters } from '@/components/product/product-filters'
 import { Spinner } from '@/components/ui/spinner'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 
 export const metadata = {
   title: 'All Products | Shop',
@@ -11,7 +12,7 @@ export const metadata = {
 }
 
 // Helper function to get sorting parameters for Medusa
-function getSortingParams(sort) {
+function getSortingParams(sort: any) {
   switch (sort) {
     case 'newest':
       return { order: 'DESC', orderBy: 'created_at' }
@@ -31,13 +32,13 @@ function getSortingParams(sort) {
 }
 
 // Pagination Link Component (Client Component)
-function PaginationLink({ page, label, isActive, currentPage, totalPages }) {
+function PaginationLink({ page, label, isActive, currentPage, totalPages }: any) {
   'use client'
   
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams() as any
 
   const handleClick = () => {
     startTransition(() => {
@@ -70,7 +71,7 @@ function PaginationLink({ page, label, isActive, currentPage, totalPages }) {
 }
 
 // Pagination Controls Component
-function PaginationControls({ currentPage, totalPages }) {
+function PaginationControls({ currentPage, totalPages }: any) {
   // Calculate which page numbers to show
   const getPageNumbers = () => {
     const pages = []
@@ -98,7 +99,7 @@ function PaginationControls({ currentPage, totalPages }) {
     return pages
   }
 
-  const pages = getPageNumbers()
+  const pages = getPageNumbers() as any
 
   return (
     <div className="flex items-center gap-2">
@@ -121,7 +122,7 @@ function PaginationControls({ currentPage, totalPages }) {
         </>
       )}
       
-      {pages.map(page => (
+      {pages.map((page: any) => (
         <PaginationLink 
           key={page} 
           page={page} 
@@ -162,7 +163,7 @@ async function ProductGrid({
   price_min,
   price_max,
   page = 1
-}) {
+}: any) {
   const limit = 24
   const offset = (page - 1) * limit
 
@@ -170,10 +171,10 @@ async function ProductGrid({
   const params = {
     limit,
     offset,
-  }
+  } as any
 
   // Add sorting
-  const { order, orderBy } = getSortingParams(sort)
+  const { order, orderBy } = getSortingParams(sort) as any
   if (order && orderBy) {
     params.order = `${orderBy} ${order}`
   }
@@ -233,7 +234,7 @@ async function ProductGrid({
 }
 
 // Main Products Page Component
-export default async function ProductsPage({ searchParams }) {
+export default async function ProductsPage({ searchParams }: any) {
   const { sort, category, collection, price_min, price_max, page } = await searchParams
   const currentPage = page ? parseInt(page) : 1
 
@@ -259,8 +260,8 @@ export default async function ProductsPage({ searchParams }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <ProductFilters 
             currentSort={sort} 
-            currentCategory={category}
-            currentCollection={collection}
+            // currentCategory={category}
+            // currentCollection={collection}
           />
 
           <Suspense

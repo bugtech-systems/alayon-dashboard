@@ -240,6 +240,6 @@ export async function placeOrder(
     
     // Return success response
 
-    redirect("/your-order");
+    redirect(`/your-order?id=${delivery.id}`);
 
 }

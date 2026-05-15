@@ -1,13 +1,13 @@
 "use client";
 
-import { RestaurantDTO } from "@/lib/types";
+import { CompanyDTO } from "@/lib/types";
 import { Plus } from "@medusajs/icons";
 import { Button, Drawer, Text } from "@medusajs/ui";
 
 export function CreateCategoryDrawer({
-  restaurant,
+  company,
 }: {
-  restaurant: RestaurantDTO;
+  company: CompanyDTO;
 }) {
   return (
     <Drawer>
@@ -19,12 +19,12 @@ export function CreateCategoryDrawer({
       </Drawer.Trigger>
       <Drawer.Content className="z-50">
         <Drawer.Header>
-          <Drawer.Title>Creat Menu Category</Drawer.Title>
+          <Drawer.Title>Creat Product Category</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="p-4">
           <Text>
-            This is where you create a new category for your restaurant&apos;s
-            menu (not implemented in this demo)
+            This is where you create a new category for your company&apos;s
+            (not implemented in this demo)
           </Text>
         </Drawer.Body>
         <Drawer.Footer>

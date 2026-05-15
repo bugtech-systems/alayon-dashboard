@@ -21,9 +21,9 @@ console.log(companyId, 'COMPP')
 
   const categoryProductMap = new Map();
 
-  restaurant?.products?.forEach((product) => {
+  restaurant?.products?.forEach((product: any) => {
     if (product.categories) {
-      product.categories.forEach((category) => {
+      product.categories.forEach((category: any) => {
         if (categoryProductMap.has(category.id)) {
           categoryProductMap.get(category.id).products.push(product);
         } else {
@@ -41,11 +41,11 @@ console.log(companyId, 'COMPP')
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
           <Heading level="h1" className="text-2xl">
-            {restaurant.name} | Menu Dashboard
+            {company.name} | Menu Dashboard
           </Heading>
-          <Text>View and manage your restaurant&apos;s menu</Text>
+          <Text>View and manage your company&apos;s menu</Text>
         </div>
-        <MenuActions restaurant={restaurant} categories={categories} />
+        <MenuActions company={company} categories={categories} />
       </div>
       {Array.from(categoryProductMap).map(([categoryId, category]) => (
         <div key={categoryId} className="flex flex-col gap-4">
@@ -64,10 +64,7 @@ console.log(companyId, 'COMPP')
             </Table.Header>
             <Table.Body>
               {category.products?.map((product: ProductDTO) => {
-                const variants = product.variants as (ProductVariantDTO & {
-                  price_set: any;
-                  price: any;
-                })[];
+                const variants = product.variants as any;
                 const thumbnail =
                   process.env.NEXT_PUBLIC_DEMO_MODE === "true"
                     ? product.thumbnail?.replace(
@@ -97,7 +94,7 @@ console.log(companyId, 'COMPP')
                     <Table.Cell>
                       <MenuProductActions
                         product={product}
-                        restaurant={restaurant}
+                        company={company}
                       />
                     </Table.Cell>
                   </Table.Row>

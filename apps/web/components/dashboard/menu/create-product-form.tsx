@@ -1,16 +1,16 @@
 "use client";
 
 import { createProduct } from "@/lib/actions";
-import { RestaurantDTO } from "@/lib/types";
+import { CompanyDTO } from "@/lib/types";
 import { HttpTypes } from "@medusajs/types";
 import { Input, Label, Select, Textarea } from "@medusajs/ui";
 import { useFormState } from "react-dom";
 
 export function CreateProductForm({
-  restaurant,
+  company,
   categories,
 }: {
-  restaurant: RestaurantDTO;
+  company: CompanyDTO;
   categories: HttpTypes.StoreProductCategory[];
 }) {
   const [state, formAction] = useFormState(createProduct, null);
@@ -22,7 +22,7 @@ export function CreateProductForm({
       id="create-product"
       action={formAction}
     >
-      <input type="hidden" name="restaurant_id" value={restaurant.id} />
+      <input type="hidden" name="restaurant_id" value={company.id} />
       <Input placeholder="Title" name="title" />
       <Textarea placeholder="Description" name="description" />
       <Select name="category_id">

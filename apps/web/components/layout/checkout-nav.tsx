@@ -58,9 +58,7 @@ export function CheckoutNav() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname();
-  const { cart, openCart } = useCart();
 
-  const cartQuantity = cart?.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -72,7 +70,6 @@ export function CheckoutNav() {
 
 
 
-console.log(cart, cartQuantity, 'aaqqa')
 
   return (
     <>

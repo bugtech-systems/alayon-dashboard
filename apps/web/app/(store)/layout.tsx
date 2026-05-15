@@ -1,14 +1,13 @@
 import type { Metadata } from 'next'
 import { Bebas_Neue, Jost } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { NavigationHeader } from '@/components/layout/pill-nav'
-import { Footer } from '@/components/layout/footer'
 import { CartDrawer } from '@/components/cart/cart-drawer'
 import { MedusaAuthProvider } from '@/providers/MedusaAuthProvider'
 import { Providers } from '@/providers/queryProvider'
 import { TooltipProvider } from '@medusajs/ui'
 // import "@workspace/ui/styles/store-globals.css"
 import { CartProvider } from "@/lib/context/cart-context";
+import { NavigationHeader } from '@/components/layout/templates/nav'
 
 const bebasNeue = Bebas_Neue({
   weight: '400',

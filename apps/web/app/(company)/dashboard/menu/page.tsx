@@ -9,25 +9,24 @@ import { RestaurantAdminDTO } from "@/lib/types";
 import { ProductDTO, ProductVariantDTO } from "@medusajs/types";
 import { Heading, Table, Text } from "@medusajs/ui";
 import Image from "next/image";
-import { useRouter } from "next/navigation"
 
 export default async function MenuPage() {
   
-  const authData = (await retrieveUser()) as RestaurantAdminDTO;
+  const authData = (await retrieveUser()) as any;
   
   
   
   
   const companyId = authData?.company?.id;
 
-  const restaurant = await retrieveCompany(companyId);
+  const company = await retrieveCompany(companyId) as any;
   const categories = await listCategories();
 
   const categoryProductMap = new Map();
 
-  restaurant?.products?.forEach((product) => {
+  company?.products?.forEach((product: any) => {
     if (product.categories) {
-      product.categories.forEach((category) => {
+      product.categories.forEach((category: any) => {
         if (categoryProductMap.has(category.id)) {
           categoryProductMap.get(category.id).products.push(product);
         } else {
@@ -45,11 +44,11 @@ export default async function MenuPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-2">
           <Heading level="h1" className="text-2xl">
-            {restaurant.name} | Menu Dashboard
+            {company.name} | Dashboard
           </Heading>
-          <Text>View and manage your restaurant&apos;s menu</Text>
+          <Text>View and manage your company&apos;s products</Text>
         </div>
-        <MenuActions restaurant={restaurant} categories={categories} />
+        <MenuActions company={company} categories={categories} />
       </div>
       {Array.from(categoryProductMap).map(([categoryId, category]) => (
         <div key={categoryId} className="flex flex-col gap-4">
@@ -71,7 +70,7 @@ export default async function MenuPage() {
                 const variants = product.variants as (ProductVariantDTO & {
                   price_set: any;
                   price: any;
-                })[];
+                })[] | any;
                 const thumbnail =
                   process.env.NEXT_PUBLIC_DEMO_MODE === "true"
                     ? product.thumbnail?.replace(
@@ -101,7 +100,7 @@ export default async function MenuPage() {
                     <Table.Cell>
                       <MenuProductActions
                         product={product}
-                        restaurant={restaurant}
+                        company={company}
                       />
                     </Table.Cell>
                   </Table.Row>
