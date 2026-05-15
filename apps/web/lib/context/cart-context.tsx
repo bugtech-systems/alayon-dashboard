@@ -428,7 +428,10 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
     const openCart = useCallback(() => dispatch({ type: 'OPEN_CART' }), [])
     const closeCart = useCallback(() => dispatch({ type: 'CLOSE_CART' }), [])
     const toggleCart = useCallback(() => dispatch({ type: 'TOGGLE_CART' }), [])
-  
+    
+
+console.log(state, 'STATEE')
+
   return (
     <CartContext.Provider value={{  ...state, openCart, closeCart, toggleCart, addToCart,  updateCart, removeFromCart,
         cart: state.cart,
@@ -448,7 +451,8 @@ export function CartProvider({ children, regionId: initialRegionId = 'reg_defaul
 export const useCart = () => {
   const context = useContext(CartContext)
   if (context === undefined) {
-    throw new Error('useCart must be used within a CartProvider')
+    console.log('useCart must be used within a CartProvider')
+    // throw new Error('useCart must be used within a CartProvider')
   }
   return context
 }

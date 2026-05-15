@@ -1,10 +1,14 @@
 import type { Metadata } from 'next'
 import { Bebas_Neue, Jost } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { PillNav } from '@/components/layout/pill-nav'
+import { NavigationHeader } from '@/components/layout/pill-nav'
 import { Footer } from '@/components/layout/footer'
 import { CartDrawer } from '@/components/cart/cart-drawer'
+import { MedusaAuthProvider } from '@/providers/MedusaAuthProvider'
+import { Providers } from '@/providers/queryProvider'
+import { TooltipProvider } from '@medusajs/ui'
 // import "@workspace/ui/styles/store-globals.css"
+import { CartProvider } from "@/lib/context/cart-context";
 
 const bebasNeue = Bebas_Neue({
   weight: '400',
@@ -40,11 +44,21 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${bebasNeue.variable} ${jost.variable} bg-background`}>
       <body className="font-sans antialiased">
-          <PillNav items={navItems} />
+          {/* <PillNav items={navItems} /> */}
+                 <CartProvider>
+                  <MedusaAuthProvider>
+                  <Providers>
+                  <TooltipProvider>
+          <NavigationHeader/>
           <main className="min-h-screen pt-10 bg-background">{children}</main>
           {/* <Footer /> */}
           <CartDrawer />
         {process.env.NODE_ENV === 'production' && <Analytics />}
+        </TooltipProvider>
+      
+        </Providers>
+        </MedusaAuthProvider>
+        </CartProvider>  
       </body>
     </html>
   )

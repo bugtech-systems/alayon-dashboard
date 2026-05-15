@@ -33,7 +33,6 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export function MedusaAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [company, setCompany] = useState<any>(null)
-  const [session, setSession] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   const router = useRouter()

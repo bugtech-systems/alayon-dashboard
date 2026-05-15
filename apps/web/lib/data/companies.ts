@@ -1,77 +1,177 @@
-import { n8nFetcher } from "@/hooks/useN8nQuery";
-import { sdk } from "../medusa/config";
-import { getAuthHeaders } from "../medusa/data/cookies";
-import { getRegion } from "./regions";
-import { getCacheHeaders } from "./cookies";
+"use server"
 
+import { sdk } from "@/lib/medusa/config"
+import {
+  getAuthHeaders,
+  getCacheOptions,
+  getCacheTag,
+} from "@/lib/data/cookies"
+import {
+  StoreCompaniesResponse,
+  StoreCompanyResponse,
+  StoreCreateCompany,
+  StoreCreateEmployee,
+  StoreEmployeeResponse,
+  StoreUpdateCompany,
+  StoreUpdateEmployee,
+} from "@/types"
+import { track } from "@vercel/analytics/server"
+import { revalidateTag } from "next/cache"
 
-export async function listCompanies(
-  filter?: Record<string, string>
-): Promise<any[]> {
-  const query = new URLSearchParams(filter).toString();
-  const cacheHeaders = await getAuthHeaders();
+export const retrieveCompany = async (companyId: string) => {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
 
-  const { companies }: { companies: any[] } =
-    await sdk.client.fetch(`/store/companies?${query}`, {
-      method: "GET",
-      headers: {
-        ...cacheHeaders,
+  const next = {
+    ...(await getCacheOptions("companies")),
+  }
+
+  const { company } = await sdk.client.fetch<StoreCompanyResponse>(
+    `/store/companies/${companyId}`,
+    {
+      query: {
+        fields:
+          "+spending_limit_reset_frequency,*employees.customer,*approval_settings",
       },
-    });
-
-  return companies;
-}
-
-export async function retrieveCompanyByHandle(
-  handle: string
-): Promise<any> {
-  const region = await getRegion('ph');
-  console.log(region, 'REGGIONs');
-  const cacheHeaders = await getCacheHeaders("companies");
-  
-  const { companies }: { companies: any[] } =
-    await sdk.client.fetch(`/store/companies?handle=${handle}`, {
       method: "GET",
-      headers: {
-        ...cacheHeaders,
-      },
-    });
-
-  return companies[0];
-}
-
-export async function retrieveCompany(
-  companyId: string
-): Promise<any> {
-    const cacheHeaders = await getAuthHeaders();
-  const { company }: { company: any } =
-    await sdk.client.fetch(`/store/companies/${companyId}`, {
-      method: "GET",
-      headers: {
-        ...cacheHeaders,
-        ...(await getCacheHeaders("companies")),
-      },
-    });
-   
-   
-  return company;
-}
-
-
-export async function retrieveCompanyDeliveries(
-  companyId: string
-): Promise<any> {
-    const cacheHeaders = await getAuthHeaders();
-
-  const company = await n8nFetcher({endpoint:
-    `/webhook/get-company-deliveries?company_id=${companyId}`,
-      method: "GET",
-      headers: {
-        ...cacheHeaders,
-      }
+      headers,
+      next,
     }
-  );
-   
+  )
 
-  return company;
+  return company
+}
+
+export const createCompany = async (data: StoreCreateCompany) => {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const {
+    companies: [company],
+  } = await sdk.client.fetch<StoreCompaniesResponse>(`/store/companies`, {
+    method: "POST",
+    body: data,
+    headers,
+  })
+
+  track("company_created", {
+    company_id: company.id,
+    company_name: company.name,
+  })
+
+  const cacheTag = await getCacheTag("companies")
+  revalidateTag(cacheTag, "max")
+
+  return company
+}
+
+export const updateCompany = async (data: StoreUpdateCompany) => {
+  const { id, ...companyData } = data
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const company = await sdk.client.fetch<StoreCompanyResponse>(
+    `/store/companies/${id}`,
+    {
+      method: "POST",
+      body: companyData,
+      headers,
+    }
+  )
+
+  const cacheTag = await getCacheTag("companies")
+  revalidateTag(cacheTag)
+
+  return company
+}
+
+export const createEmployee = async (data: StoreCreateEmployee) => {
+  const { company_id, ...employeeData } = data
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const employee = await sdk.client.fetch<StoreEmployeeResponse>(
+    `/store/companies/${company_id}/employees`,
+    {
+      method: "POST",
+      body: employeeData,
+      headers,
+    }
+  )
+
+  track("employee_created", {
+    employee_id: employee.employee.id,
+  })
+
+  const cacheTag = await getCacheTag("companies")
+  revalidateTag(cacheTag, "max")
+
+  return employee
+}
+
+export const updateEmployee = async (data: StoreUpdateEmployee) => {
+  const { id, company_id, ...employeeData } = data
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const employee = await sdk.client.fetch<StoreEmployeeResponse>(
+    `/store/companies/${company_id}/employees/${id}`,
+    {
+      method: "POST",
+      body: employeeData,
+      headers,
+    }
+  )
+
+  const cacheTag = await getCacheTag("companies")
+  revalidateTag(cacheTag, "max")
+
+  return employee
+}
+
+export const deleteEmployee = async (companyId: string, employeeId: string) => {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  await sdk.client.fetch(
+    `/store/companies/${companyId}/employees/${employeeId}`,
+    {
+      method: "DELETE",
+      headers,
+    }
+  )
+
+  const cacheTag = await getCacheTag("companies")
+  revalidateTag(cacheTag, "max")
+}
+
+export const updateApprovalSettings = async (
+  companyId: string,
+  requiresAdminApproval: boolean
+) => {
+  const headers = {
+    ...(await getAuthHeaders()),
+    "Content-Type": "application/json",
+    Accept: "plain/text",
+  }
+
+  await sdk.client.fetch(`/store/companies/${companyId}/approval-settings`, {
+    method: "POST",
+    body: {
+      requires_admin_approval: requiresAdminApproval,
+    },
+    headers,
+  })
+
+  const cacheTag = await getCacheTag("companies")
+  revalidateTag(cacheTag, "max")
 }

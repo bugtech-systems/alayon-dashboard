@@ -1,28 +1,17 @@
+// app/page.tsx
+import { FooterModern } from "@/components/footer-modern";
+import { HeroSection } from "@/components/hero-section-modern";
+import { PillNav } from "@/components/layout/pill-nav";
+import { NavigationHeader } from "@/components/layout/templates/nav";
+import { ProductList } from "@/components/product-list";
 
-"use client"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useMedusaAuth } from "@/providers/MedusaAuthProvider"
-
-export default function HomePage() {
-  const { user, loading } = useMedusaAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (loading) return
-
-    if (user) {
-        if(user.actor_type == 'company'){
-                return router.replace("/dashboard/company")
-        }
-        if(user.actor_type == 'driver'){
-            return router.replace("/dashboard/driver")
-        }
-        router.replace("/home")
-    } else {
-        router.replace("/store")
-    }
-  }, [user, loading])
-
-  return null
+export default function Home() {
+  return (
+    <>
+        <NavigationHeader /> 
+      <HeroSection />
+      <ProductList />
+      <FooterModern/>
+    </>
+  );
 }

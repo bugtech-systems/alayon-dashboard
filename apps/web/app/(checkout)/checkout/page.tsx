@@ -1,18 +1,25 @@
+// app/checkout/page.tsx
 import CheckoutForm from "@/components/store/checkout/checkout-form";
 import { OrderSummary } from "@/components/store/checkout/order-summary";
 
-
 export default async function CheckoutPage() {
- 
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 mx-auto gap-4 md:gap-12 justify-center w-full">
-      <div className="md:col-span-3">
-        <CheckoutForm  />
-      </div>
-      <div className="md:col-span-2 order-first md:order-last">
-        <OrderSummary  />
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+          {/* Checkout Form */}
+          <div className="lg:col-span-2">
+              <CheckoutForm />
+          </div>
+          
+          {/* Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <OrderSummary />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+} 

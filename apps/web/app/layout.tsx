@@ -1,34 +1,30 @@
-import { Geist, Geist_Mono, Roboto, Public_Sans } from "next/font/google"
+// app/layout.tsx
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "@workspace/ui/globals.css"
-import { CartProvider } from "@/lib/context/cart-context"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Providers } from "@/providers/queryProvider"
-import { cn } from "@workspace/ui/lib/utils";
-import { TooltipProvider } from "@workspace/ui/components/tooltip"
-import { MedusaAuthProvider } from "@/providers/MedusaAuthProvider"
+import {  AppSidebar } from "@/components/app-sidebar";
+import { Footer } from "@/components/Footer";
+import { CartProvider } from "@/lib/context/cart-context";
+import { MedusaAuthProvider } from "@/providers/MedusaAuthProvider";
+import { Providers } from "@/providers/queryProvider";
+import { TooltipProvider } from "@medusajs/ui";
+import { ThemeProvider } from "@/components/theme-provider";
 
-const publicSansHeading = Public_Sans({subsets:['latin'],variable:'--font-heading'});
 
-const roboto = Roboto({subsets:['latin'],variable:'--font-sans'})
-
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-})
+export const metadata: Metadata = {
+  title: "My Store",
+  description: "Browse our latest products",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", roboto.variable, publicSansHeading.variable)}
-    >
+    <html lang="en">
       <body>
-                  <CartProvider>
+       <CartProvider>
         <MedusaAuthProvider>
         <Providers>
         <TooltipProvider>
@@ -37,8 +33,7 @@ export default function RootLayout({
         </Providers>
         </MedusaAuthProvider>
 </CartProvider>
-
       </body>
     </html>
-  )
+  );
 }

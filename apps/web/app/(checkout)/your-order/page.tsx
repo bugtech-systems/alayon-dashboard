@@ -1,14 +1,117 @@
-import AccountBadge from "@/components/dashboard/account-badge";
-import RealtimeClient from "@/components/dashboard/realtime-client";
-import OrderStatus from "@/components/store/order/order-status";
+// app/(checkout)/order-status/page.tsx
 import { retrieveDelivery, retrieveDriver } from "@/lib/data";
-import { Clock, MapPin } from "@medusajs/icons";
-import { Container, Heading, Text, Badge, Button } from "@medusajs/ui";
-import { Package2, StoreIcon } from "lucide-react";
+import { Clock, MapPin, Package2, Store, Truck, Phone, Mail, CheckCircle2, XCircle, AlertCircle, Package, ClipboardCheck, ShoppingBag, Navigation } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { cookies } from "next/headers";
 import Image from "next/image";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { DeliveryStatus } from "@/lib/types";
+
+// Get numeric status value
+const getNumericStatus = (status: DeliveryStatus) => {
+  switch (status) {
+    case DeliveryStatus.PENDING:
+      return 0;
+    case DeliveryStatus.COMPANY_ACCEPTED:
+      return 1;
+    case DeliveryStatus.PICKUP_CLAIMED:
+      return 2;
+    case DeliveryStatus.COMPANY_PREPARING:
+      return 3;
+    case DeliveryStatus.READY_FOR_PICKUP:
+      return 4;
+    case DeliveryStatus.IN_TRANSIT:
+      return 5;
+    case DeliveryStatus.DELIVERED:
+      return 6;
+    default:
+      return 0;
+  }
+};
+
+// Status configuration with display labels, variants, icons, and progress
+const STATUS_CONFIG: Record<DeliveryStatus, {
+  label: string;
+  variant: "default" | "secondary" | "destructive" | "outline" | "success";
+  icon: any;
+  progress: number;
+  color: string;
+  description: string;
+}> = {
+  [DeliveryStatus.PENDING]: {
+    label: "Order Placed",
+    variant: "secondary",
+    icon: Clock,
+    progress: 0,
+    color: "bg-gray-500",
+    description: "Your order has been received and is awaiting confirmation"
+  },
+  [DeliveryStatus.COMPANY_ACCEPTED]: {
+    label: "Order Confirmed",
+    variant: "default",
+    icon: CheckCircle2,
+    progress: 20,
+    color: "bg-blue-500",
+    description: "The store has accepted your order"
+  },
+  [DeliveryStatus.PICKUP_CLAIMED]: {
+    label: "Pickup Assigned",
+    variant: "default",
+    icon: ClipboardCheck,
+    progress: 35,
+    color: "bg-indigo-500",
+    description: "A rider has been assigned to pick up your order"
+  },
+  [DeliveryStatus.COMPANY_PREPARING]: {
+    label: "Preparing Your Order",
+    variant: "default",
+    icon: Package2,
+    progress: 50,
+    color: "bg-purple-500",
+    description: "The store is preparing your items"
+  },
+  [DeliveryStatus.READY_FOR_PICKUP]: {
+    label: "Ready for Pickup",
+    variant: "default",
+    icon: ShoppingBag,
+    progress: 65,
+    color: "bg-yellow-500",
+    description: "Your order is ready and waiting for pickup"
+  },
+  [DeliveryStatus.IN_TRANSIT]: {
+    label: "Out for Delivery",
+    variant: "default",
+    icon: Truck,
+    progress: 85,
+    color: "bg-orange-500",
+    description: "Your order is on its way to you"
+  },
+  [DeliveryStatus.DELIVERED]: {
+    label: "Delivered",
+    variant: "success",
+    icon: CheckCircle2,
+    progress: 100,
+    color: "bg-green-500",
+    description: "Your order has been delivered"
+  }
+};
+
+// Status steps in order
+const STATUS_STEPS = [
+  DeliveryStatus.PENDING,
+  DeliveryStatus.COMPANY_ACCEPTED,
+  DeliveryStatus.PICKUP_CLAIMED,
+  DeliveryStatus.COMPANY_PREPARING,
+  DeliveryStatus.READY_FOR_PICKUP,
+  DeliveryStatus.IN_TRANSIT,
+  DeliveryStatus.DELIVERED
+];
 
 // Cookie utility functions
 const COOKIE_KEYS = {
@@ -17,48 +120,31 @@ const COOKIE_KEYS = {
   LAST_ORDER: "_medusa_last_order",
 } as const;
 
-const COOKIE_CONFIG = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  maxAge: 60 * 60 * 24 * 7, // 7 days
-  path: "/",
-};
-
-// Helper to get and validate cookie
 async function getDeliveryCookie() {
   const cookieStore = await cookies();
   const deliveryId = cookieStore.get(COOKIE_KEYS.DELIVERY_ID)?.value;
   const deliveryToken = cookieStore.get(COOKIE_KEYS.DELIVERY_TOKEN)?.value;
-  
   return { deliveryId, deliveryToken };
 }
 
-// Helper to clear delivery cookies
 async function clearDeliveryCookies() {
   const cookieStore = await cookies();
-  
   Object.values(COOKIE_KEYS).forEach((key) => {
     cookieStore.delete(key);
   });
 }
 
-export default async function YourOrderPage() {
+export default async function OrderStatusPage() {
   const { deliveryId, deliveryToken } = await getDeliveryCookie();
 
-  // Validate required cookie
   if (!deliveryId) {
-    // Redirect to orders page instead of 404 for better UX
     redirect("/account/orders?error=no_order_selected");
   }
 
-  // Fetch delivery with token validation
   let delivery;
   try {
     delivery = await retrieveDelivery(deliveryId, deliveryToken);
-    
     if (!delivery) {
-      // Clear invalid cookies and redirect
       await clearDeliveryCookies();
       redirect("/account/orders?error=order_not_found");
     }
@@ -68,18 +154,15 @@ export default async function YourOrderPage() {
     redirect("/account/orders?error=order_fetch_failed");
   }
 
-  // Fetch driver if assigned
   let driver = null;
   if (delivery.driver_id) {
     try {
       driver = await retrieveDriver(delivery.driver_id);
     } catch (error) {
       console.error("Failed to fetch driver:", error);
-      // Don't fail the whole page if driver info is missing
     }
   }
 
-  // Formatting utilities
   const formatTime = (date: Date | string) => {
     return new Date(date).toLocaleTimeString("en-PH", {
       hour: "2-digit",
@@ -105,7 +188,6 @@ export default async function YourOrderPage() {
     }).format(amount);
   };
 
-  // Calculate order totals
   const subtotal = delivery.cart?.items?.reduce(
     (total: number, item: any) => total + item.quantity * item.unit_price,
     0
@@ -115,19 +197,22 @@ export default async function YourOrderPage() {
   const taxAmount = delivery.tax_amount || 0;
   const totalAmount = subtotal + deliveryFee + taxAmount;
 
-  // Time calculations
+  const currentStatus = delivery.status as DeliveryStatus;
+  const currentStatusConfig = STATUS_CONFIG[currentStatus] || STATUS_CONFIG[DeliveryStatus.PENDING];
+  const CurrentStatusIcon = currentStatusConfig.icon;
+  
+  const currentStepIndex = getNumericStatus(currentStatus);
+  const progressPercentage = currentStatusConfig.progress;
+
   const eta = delivery.eta ? formatTime(delivery.eta) : null;
   const deliveredAt = delivery.delivered_at ? formatTime(delivery.delivered_at) : null;
   const deliveryDate = delivery.delivered_at ? formatDate(delivery.delivered_at) : null;
-  
-  // Estimated remaining time (if not delivered)
+
   const getEstimatedRemaining = () => {
     if (delivery.delivered_at || !delivery.eta) return null;
-    
     const etaDate = new Date(delivery.eta);
     const now = new Date();
     const diffMinutes = Math.ceil((etaDate.getTime() - now.getTime()) / (1000 * 60));
-    
     if (diffMinutes <= 0) return "Any minute now";
     if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes !== 1 ? "s" : ""}`;
     const hours = Math.floor(diffMinutes / 60);
@@ -137,229 +222,342 @@ export default async function YourOrderPage() {
 
   const estimatedRemaining = getEstimatedRemaining();
 
-  // Order status configuration
-  const statusConfig = {
-    pending: { variant: "orange" as const, text: "Pending Confirmation", icon: "⏳" },
-    confirmed: { variant: "blue" as const, text: "Confirmed", icon: "✅" },
-    preparing: { variant: "purple" as const, text: "Preparing", icon: "👨‍🍳" },
-    ready: { variant: "green" as const, text: "Ready for Pickup", icon: "📦" },
-    picked_up: { variant: "blue" as const, text: "On the Way", icon: "🚚" },
-    delivered: { variant: "green" as const, text: "Delivered", icon: "🏠" },
-    cancelled: { variant: "red" as const, text: "Cancelled", icon: "❌" },
+  // Helper to check if a step is completed
+  const isStepCompleted = (stepStatus: DeliveryStatus) => {
+    return getNumericStatus(currentStatus) >= getNumericStatus(stepStatus);
   };
 
-  const currentStatus = statusConfig[delivery.status as keyof typeof statusConfig] || 
-    { variant: "neutral" as const, text: delivery.status, icon: "📋" };
+  // Helper to check if a step is current
+  const isStepCurrent = (stepStatus: DeliveryStatus) => {
+    return currentStatus === stepStatus;
+  };
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-8  mx-auto">
-      {/* Header Section */}
-      <Container className="flex justify-between p-6 flex-col md:flex-row gap-4 bg-gradient-to-r from-ui-bg-base to-ui-bg-subtle">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <StoreIcon className="text-ui-fg-subtle" />
-            <Heading level="h1" className="text-2xl md:text-3xl">
-              Order from {delivery.restaurant?.name || "Restaurant"}
-            </Heading>
-          </div>
-          <Text className="text-ui-fg-subtle">
-            Track your order in real-time • Order #{delivery.id.slice(-8)}
-          </Text>
-          <div className="mt-2">
-            <RealtimeClient deliveryId={delivery.id} />
-          </div>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-3 items-start md:items-center">
-          {driver && <AccountBadge data={driver} type="driver" />}
-          
-          <Container className="flex gap-3 items-center w-full sm:w-auto bg-ui-bg-base shadow-sm">
-            <div className="p-2 bg-ui-bg-subtle rounded-full">
-              <Clock className="text-ui-fg-subtle" />
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-primary mb-2">
+                <Package2 className="h-5 w-5" />
+                <span className="text-sm font-medium">Order Status</span>
+              </div>
+              <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
+                Order #{delivery.id.slice(-8)}
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Track your order from {delivery.company?.name || "Alayon Store"}
+              </p>
             </div>
-            <div className="flex flex-col">
-              <Text className="text-xs text-ui-fg-subtle">
-                {deliveredAt ? "Delivered at" : "Estimated delivery"}
-              </Text>
-              <Text className="text-xl font-semibold">
-                {deliveredAt || eta || "Calculating..."}
-              </Text>
-              {estimatedRemaining && !deliveredAt && (
-                <Text className="text-xs text-ui-fg-subtle">
-                  ~{estimatedRemaining} remaining
-                </Text>
-              )}
-              {deliveryDate && (
-                <Text className="text-xs text-ui-fg-subtle">{deliveryDate}</Text>
-              )}
-            </div>
-          </Container>
-        </div>
-      </Container>
-
-      {/* Main Content */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Order Items Section */}
-        <Container className="flex-1 p-6">
-          <div className="flex justify-between items-center mb-6 pb-4 border-b">
-            <div className="flex items-center gap-2">
-              <Package2 className="text-ui-fg-subtle" />
-              <Heading level="h2" className="text-xl">
-                Order Items
-              </Heading>
-            </div>
-            <Badge variant={currentStatus.variant}>
-              <span className="mr-1">{currentStatus.icon}</span>
-              {currentStatus.text}
+            <Badge variant={currentStatusConfig.variant} className="w-fit text-sm py-1.5 px-4">
+              <CurrentStatusIcon className="h-3.5 w-3.5 mr-1.5" />
+              {currentStatusConfig.label}
             </Badge>
           </div>
+        </div>
 
-          <div className="flex flex-col gap-4">
-            {delivery.cart?.items?.map((item: any) => {
-              const thumbnail = item.thumbnail;
-              const itemTotal = item.quantity * item.unit_price;
-              
-              return (
-                <div 
-                  key={item.id} 
-                  className="flex items-center gap-4 p-3 rounded-lg hover:bg-ui-bg-subtle transition-colors"
-                >
-                  <div className="relative w-20 h-20 flex-shrink-0">
-                    {thumbnail ? (
-                      <Image
-                        src={thumbnail}
-                        alt={item.title}
-                        className="object-cover rounded-md"
-                        fill
-                        sizes="80px"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-ui-bg-subtle rounded-md flex items-center justify-center">
-                        <Package className="text-ui-fg-subtle" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Order Items */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Status Timeline */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-6">
+                  {/* Progress Bar */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Order Placed</span>
+                      <span>Confirmed</span>
+                      <span>Pickup Assigned</span>
+                      <span>Preparing</span>
+                      <span>Ready</span>
+                      <span>Out for Delivery</span>
+                      <span>Delivered</span>
+                    </div>
+                    <Progress value={progressPercentage} className="h-2" />
+                  </div>
+
+                  {/* Step Indicators */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {STATUS_STEPS.map((step, index) => {
+                      const stepConfig = STATUS_CONFIG[step];
+                      const StepIcon = stepConfig.icon;
+                      const isCompleted = isStepCompleted(step);
+                      const isCurrent = isStepCurrent(step);
+                      
+                      return (
+                        <div key={step} className="text-center">
+                          <div className={cn(
+                            "w-8 h-8 mx-auto rounded-full flex items-center justify-center transition-all",
+                            isCompleted ? "bg-green-500 text-white" : 
+                            isCurrent ? "bg-primary text-white ring-4 ring-primary/20" :
+                            "bg-gray-200 text-gray-500"
+                          )}>
+                            {isCompleted ? (
+                              <CheckCircle2 className="h-4 w-4" />
+                            ) : (
+                              <StepIcon className="h-4 w-4" />
+                            )}
+                          </div>
+                          <p className={cn(
+                            "text-xs mt-2 hidden md:block",
+                            isCurrent ? "font-semibold text-primary" : "text-muted-foreground"
+                          )}>
+                            {stepConfig.label.split(" ")[0]}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Status Description and ETA */}
+                  <div className="text-center pt-2">
+                    <p className="text-sm text-muted-foreground">{currentStatusConfig.description}</p>
+                    {estimatedRemaining && !deliveredAt && (
+                      <div className="flex items-center justify-center gap-2 mt-3">
+                        <Clock className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">
+                          Estimated {estimatedRemaining} remaining
+                        </span>
                       </div>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <Text className="font-medium">{item.title}</Text>
-                    {item.variant?.title && (
-                      <Text className="text-sm text-ui-fg-subtle">
-                        {item.variant.title}
-                      </Text>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Order Items */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package2 className="h-5 w-5 text-primary" />
+                  Order Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {delivery.cart?.items?.map((item: any) => {
+                  const itemTotal = item.quantity * item.unit_price;
+                  return (
+                    <div key={item.id} className="flex gap-4 py-3 border-b last:border-0">
+                      <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                        {item.thumbnail ? (
+                          <Image
+                            src={item.thumbnail}
+                            alt={item.title}
+                            fill
+                            className="object-cover"
+                            sizes="80px"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package2 className="h-6 w-6 text-muted-foreground/50" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-foreground line-clamp-2">
+                          {item.title}
+                        </h3>
+                        {item.variant?.title && (
+                          <p className="text-sm text-muted-foreground mt-0.5">
+                            {item.variant.title}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-sm text-muted-foreground">
+                            Qty: {item.quantity}
+                          </span>
+                          <span className="font-semibold text-primary">
+                            {formatPrice(itemTotal)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <Separator className="my-4" />
+
+                {/* Order Summary */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>{formatPrice(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Delivery Fee</span>
+                    <span>{formatPrice(deliveryFee)}</span>
+                  </div>
+                  {taxAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Tax (12% VAT)</span>
+                      <span>{formatPrice(taxAmount)}</span>
+                    </div>
+                  )}
+                  <Separator className="my-2" />
+                  <div className="flex justify-between">
+                    <span className="font-semibold text-base">Total</span>
+                    <span className="font-bold text-xl text-primary">
+                      {formatPrice(totalAmount)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Status & Info */}
+          <div className="space-y-6">
+            {/* Delivery Status Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="h-5 w-5 text-primary" />
+                  Delivery Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Current Status</p>
+                    <p className="font-medium text-foreground">{currentStatusConfig.label}</p>
+                  </div>
+                  {deliveryDate && (
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Delivered on</p>
+                      <p className="font-medium text-foreground">{deliveryDate}</p>
+                      <p className="text-sm text-muted-foreground">{deliveredAt}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* ETA */}
+                {eta && !deliveredAt && (
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Estimated Delivery Time</p>
+                    <p className="font-semibold text-foreground">{eta}</p>
+                  </div>
+                )}
+
+                {/* Driver Info */}
+                {driver && (
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Truck className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-foreground">{driver.name}</p>
+                        <p className="text-sm text-muted-foreground">Your delivery partner</p>
+                        {driver.phone && (
+                          <div className="flex items-center gap-3 mt-2">
+                            <Button variant="outline" size="sm" className="h-8 gap-1">
+                              <Phone className="h-3 w-3" />
+                              Call
+                            </Button>
+                            <span className="text-xs text-muted-foreground">{driver.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Delivery Address Card */}
+            {delivery.delivery_address && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    Delivery Address
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <address className="not-italic text-muted-foreground text-sm">
+                    <p>{delivery.delivery_address.address_1}</p>
+                    {delivery.delivery_address.address_2 && (
+                      <p>{delivery.delivery_address.address_2}</p>
                     )}
-                  </div>
-                  <div className="text-right">
-                    <Text className="font-medium">{formatPrice(itemTotal)}</Text>
-                    <Text className="text-sm text-ui-fg-subtle">
-                      {item.quantity} x {formatPrice(item.unit_price)}
-                    </Text>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Order Summary */}
-          <div className="mt-6 pt-4 border-t">
-            <div className="flex justify-between items-center mb-2">
-              <Text className="text-ui-fg-subtle">Subtotal</Text>
-              <Text>{formatPrice(subtotal)}</Text>
-            </div>
-            <div className="flex justify-between items-center mb-2">
-              <Text className="text-ui-fg-subtle">Delivery Fee</Text>
-              <Text>{formatPrice(deliveryFee)}</Text>
-            </div>
-            {taxAmount > 0 && (
-              <div className="flex justify-between items-center mb-2">
-                <Text className="text-ui-fg-subtle">Tax (12% VAT)</Text>
-                <Text>{formatPrice(taxAmount)}</Text>
-              </div>
+                    <p>
+                      {delivery.delivery_address.city}, {delivery.delivery_address.country_code?.toUpperCase()}
+                      {delivery.delivery_address.postal_code && ` ${delivery.delivery_address.postal_code}`}
+                    </p>
+                  </address>
+                  {delivery.delivery_instructions && (
+                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <p className="text-xs font-medium text-muted-foreground mb-1">Delivery Instructions</p>
+                      <p className="text-sm">"{delivery.delivery_instructions}"</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             )}
-            <div className="flex justify-between items-center pt-3 mt-2 border-t border-ui-border-base">
-              <Text className="font-semibold text-lg">Total</Text>
-              <Text className="font-bold text-xl text-ui-fg-base">
-                {formatPrice(totalAmount)}
-              </Text>
-            </div>
-          </div>
-        </Container>
 
-        {/* Order Status Section */}
-        <div className="lg:w-96">
-          <OrderStatus delivery={delivery} />
-          
-          {/* Delivery Address */}
-          {delivery.delivery_address && (
-            <Container className="mt-4 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="text-ui-fg-subtle" />
-                <Heading level="h3" className="text-base">
-                  Delivery Address
-                </Heading>
-              </div>
-              <Text className="text-ui-fg-subtle">
-                {delivery.delivery_address.address_1}
-                {delivery.delivery_address.address_2 && `, ${delivery.delivery_address.address_2}`}
-                <br />
-                {delivery.delivery_address.city}, {delivery.delivery_address.country_code?.toUpperCase()}
-                {delivery.delivery_address.postal_code && ` ${delivery.delivery_address.postal_code}`}
-              </Text>
-              
-              {delivery.delivery_instructions && (
-                <div className="mt-4 pt-4 border-t">
-                  <Text className="text-sm font-medium mb-1">Delivery Instructions</Text>
-                  <Text className="text-sm text-ui-fg-subtle italic">
-                    "{delivery.delivery_instructions}"
-                  </Text>
-                </div>
-              )}
-            </Container>
-          )}
-
-          {/* Order Timeline */}
-          {delivery.timeline && delivery.timeline.length > 0 && (
-            <Container className="mt-4 p-6">
-              <Heading level="h3" className="text-base mb-4">
-                Order Timeline
-              </Heading>
-              <div className="space-y-3">
-                {delivery.timeline.map((event: any, index: number) => (
-                  <div key={index} className="flex gap-3 text-sm">
-                    <div className="w-20 text-ui-fg-subtle">
-                      {new Date(event.created_at).toLocaleTimeString("en-PH", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                    <div className="flex-1">
-                      <Text>{event.message}</Text>
-                    </div>
+            {/* Order Timeline */}
+            {delivery.timeline && delivery.timeline.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                    Activity Timeline
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {delivery.timeline.map((event: any, index: number) => (
+                      <div key={index} className="flex gap-3">
+                        <div className="relative">
+                          <div className={cn(
+                            "w-2 h-2 rounded-full mt-2",
+                            index === delivery.timeline.length - 1 ? "bg-primary" : "bg-muted-foreground/30"
+                          )} />
+                          {index !== delivery.timeline.length - 1 && (
+                            <div className="absolute top-4 left-0 w-px h-full bg-muted-foreground/20" />
+                          )}
+                        </div>
+                        <div className="flex-1 pb-4">
+                          <p className="text-sm font-medium text-foreground">{event.message}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {new Date(event.created_at).toLocaleString("en-PH", {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </Container>
-          )}
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Help Section */}
-          <Container className="mt-4 p-6 bg-ui-bg-subtle">
-            <Heading level="h3" className="text-base mb-2">
-              Need Help?
-            </Heading>
-            <Text className="text-sm text-ui-fg-subtle mb-4">
-              Having issues with your order? Contact our support team.
-            </Text>
-            <div className="flex gap-2">
-              <Link href={`/support?order=${delivery.id}`} className="flex-1">
-                <Button variant="secondary" className="w-full">
-                  Contact Support
-                </Button>
-              </Link>
-              <Link href="/account/orders">
-                <Button variant="transparent">
-                  View All Orders
-                </Button>
-              </Link>
-            </div>
-          </Container>
+            {/* Help Card */}
+            <Card className="bg-primary/5 border-primary/20">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <AlertCircle className="h-10 w-10 text-primary mx-auto mb-3" />
+                  <h3 className="font-semibold text-foreground mb-2">Need Help?</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Having issues with your order? Contact our support team.
+                  </p>
+                  <div className="flex gap-2">
+                    <Link href={`/support?order=${delivery.id}`} className="flex-1">
+                      <Button className="w-full">Contact Support</Button>
+                    </Link>
+                    <Link href="/account/orders">
+                      <Button variant="outline">All Orders</Button>
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

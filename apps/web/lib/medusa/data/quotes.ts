@@ -1,12 +1,12 @@
 "use server"
 
-import { sdk } from "@/lib/config"
+import { sdk } from "@/lib/medusa/config"
 import {
   getAuthHeaders,
   getCacheOptions,
   getCacheTag,
   getCartId,
-} from "@/lib/data/cookies"
+} from "@/lib/medusa/data/cookies"
 import {
   QuoteFilterParams,
   StoreCreateQuoteMessage,
