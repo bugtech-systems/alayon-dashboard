@@ -62,7 +62,7 @@ export const createCompany = async (data: StoreCreateCompany) => {
   })
 
   const cacheTag = await getCacheTag("companies")
-  revalidateTag(cacheTag)
+  revalidateTag(cacheTag, "max")
 
   return company
 }
@@ -84,7 +84,7 @@ export const updateCompany = async (data: StoreUpdateCompany) => {
   )
 
   const cacheTag = await getCacheTag("companies")
-  revalidateTag(cacheTag)
+  revalidateTag(cacheTag, "max")
 
   return company
 }
@@ -110,7 +110,7 @@ export const createEmployee = async (data: StoreCreateEmployee) => {
   })
 
   const cacheTag = await getCacheTag("companies")
-  revalidateTag(cacheTag)
+  revalidateTag(cacheTag, "max")
 
   return employee
 }
@@ -132,7 +132,7 @@ export const updateEmployee = async (data: StoreUpdateEmployee) => {
   )
 
   const cacheTag = await getCacheTag("companies")
-  revalidateTag(cacheTag)
+  revalidateTag(cacheTag, "max")
 
   return employee
 }
@@ -151,7 +151,7 @@ export const deleteEmployee = async (companyId: string, employeeId: string) => {
   )
 
   const cacheTag = await getCacheTag("companies")
-  revalidateTag(cacheTag)
+  revalidateTag(cacheTag, "max")
 }
 
 export const updateApprovalSettings = async (
@@ -173,7 +173,7 @@ export const updateApprovalSettings = async (
   })
 
   const cacheTag = await getCacheTag("companies")
-  revalidateTag(cacheTag)
+  revalidateTag(cacheTag, "max")
 }
 
 export const listCompanies = async (filter) => {

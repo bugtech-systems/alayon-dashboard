@@ -193,11 +193,15 @@ export default async function OrderStatusPage() {
     0
   ) || 0;
 
+
+console.log(delivery, 'sssdsds')
+
   const deliveryFee = delivery.delivery_fee || 0;
   const taxAmount = delivery.tax_amount || 0;
   const totalAmount = subtotal + deliveryFee + taxAmount;
 
-  const currentStatus = delivery.status as DeliveryStatus;
+  const currentStatus = delivery.delivery_status as DeliveryStatus;
+  console.log(currentStatus, 'CURRR')
   const currentStatusConfig = STATUS_CONFIG[currentStatus] || STATUS_CONFIG[DeliveryStatus.PENDING];
   const CurrentStatusIcon = currentStatusConfig.icon;
   
