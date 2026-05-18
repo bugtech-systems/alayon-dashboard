@@ -8,7 +8,6 @@ export const metadata: Metadata = {
 }
 
 export default async function Login() {
-  const regions = await listRegions()
 
-  return <LoginTemplate regions={regions} />
+  return <LoginTemplate/>
 }

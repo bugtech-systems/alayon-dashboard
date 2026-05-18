@@ -1,4 +1,4 @@
-import QuoteStatusBadge from "@/app/(main)/account/@dashboard/quotes/components/quote-status-badge"
+import QuoteStatusBadge from "@/app/(account)/account/@dashboard/quotes/components/quote-status-badge"
 import { convertToLocale } from "@/lib/util/money"
 import LocalizedClientLink from "@/modules/common/components/localized-client-link"
 import { StoreQuoteResponse } from "@/types"

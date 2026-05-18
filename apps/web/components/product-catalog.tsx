@@ -59,7 +59,7 @@ const safeParseInt = (value: string | null, defaultValue: number): number => {
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
-export function ProductCatalog() {
+export function ProductCatalog({regionId}: any) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -187,6 +187,7 @@ export function ProductCatalog() {
     if (selectedCategories.length > 0) {
       params.category_id = selectedCategories;
     }
+
 
     try {
       const { products: fetchedProducts, count } = await getProducts(params);
@@ -585,7 +586,7 @@ export function ProductCatalog() {
                 : "space-y-4"
             )}>
               {products.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} />
+                <ProductCard key={product.id} product={product} index={index} regionId={regionId} />
               ))}
             </div>
 

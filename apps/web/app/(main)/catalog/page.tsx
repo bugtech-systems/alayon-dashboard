@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ProductCatalog } from "@/components/product-catalog";
 import { ProductCatalogSkeleton } from "@/components/product-catalog-skeleton";
 import { retrieveCart } from "@/lib/data/cart";
+import { getRegion } from "@/lib/actions/regions";
 
 export const metadata = {
   title: "Product Catalog | My Grocery Store",
@@ -11,8 +12,8 @@ export const metadata = {
 
 export default async function CatalogPage() {
   const cart = await retrieveCart()
-
-
+  const region = await getRegion('ph');
+console.log(region, 'REEGE')
   return (
           <>
     <main className="min-h-screen bg-gray-50">
@@ -25,7 +26,7 @@ export default async function CatalogPage() {
 
         {/* Product Catalog with Suspense */}
         <Suspense fallback={<ProductCatalogSkeleton />}>
-          <ProductCatalog />
+          <ProductCatalog regionId={region?.id}/>
         </Suspense>
       </div>
     </main>

@@ -8,7 +8,6 @@ export default async function AccountPageLayout({
   children: React.ReactNode
 }) {
   const customer = await retrieveCustomer().catch(() => null)
-console.log(customer, 'CCCCC')
   return (
     <div className="flex flex-col gap-2 p-2">
       {/* <Image

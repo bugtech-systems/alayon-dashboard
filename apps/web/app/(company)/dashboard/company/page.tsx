@@ -6,7 +6,7 @@ import CompanyStatus from "@/components/dashboard/company/company-status";
 import { retrieveCompany,  retrieveUser } from "@/lib/data";
 import { DeliveryStatus } from "@/lib/types";
 import { Container, Heading, StatusBadge, Text } from "@medusajs/ui";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 
 export default async function CompanyDashboardPage() {
@@ -15,7 +15,7 @@ export default async function CompanyDashboardPage() {
     // If no user found or user doesn't exist, remove token and redirect
     if (!authData?.user || !authData?.user.id) {
       console.log("No user found, removing auth token...");
-      // redirect("/login");
+      redirect("/login");
     }
 
     let { user, company_id } = authData; 

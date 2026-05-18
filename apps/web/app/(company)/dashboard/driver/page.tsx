@@ -11,13 +11,14 @@ import { Container, Heading, Text } from "@medusajs/ui";
 import { redirect } from "next/navigation";
 
 export default async function DriverDashboardPage() {
-  const {user} = await retrieveUser();
+  const userData = await retrieveUser();
 
 
-  console.log(user, "REWEW")
-  if (!user) {
+  if (!userData || !userData?.user) {
     redirect("/login");
   }
+
+  let {user} = userData;
   
   const driver = await retrieveDriver(user?.id);
   console.log(driver, 'DRIVVE')

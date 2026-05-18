@@ -23,8 +23,7 @@ export function MapLocationPicker({ onLocationSelect, initialLocation }: MapLoca
   
   const defaultCenter: LatLngExpression = initialLocation 
     ? [initialLocation.lat, initialLocation.lng]
-    : [14.5995, 120.9842]; // Default to Manila
-
+    : [11.2433, 125.0047]; // Default to Manila
   useEffect(() => {
     setIsClient(true);
     

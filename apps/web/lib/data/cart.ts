@@ -71,10 +71,9 @@ export async function retrieveCart(id?: string) {
     })
 }
 
-export async function getOrSetCart(countryCode: string = 'ph') {
+export async function getOrSetCart(countryCode: string = 'ph', companyId?: string) {
   let cart = await retrieveCart()
   const region = await getRegion(countryCode)
-  const customer = await retrieveCustomer()
 
   if (!region) {
     throw new Error(`Region not found for country code: ${countryCode}`)
@@ -88,7 +87,7 @@ export async function getOrSetCart(countryCode: string = 'ph') {
     const body = {
       region_id: region.id,
       metadata: {
-        company_id: customer?.employee?.company_id,
+        company_id: companyId,
       },
     }
 
@@ -178,12 +177,14 @@ export async function addToCart({
 export async function addToCartBulk({
   lineItems,
   countryCode = 'ph',
+  companyId
 }: {
   lineItems: HttpTypes.StoreAddCartLineItem[]
   countryCode: string
+  companyId?: string
 }) {
-  console.log(countryCode, lineItems, 'llssns')
-  const cart = await getOrSetCart(countryCode)
+  console.log(countryCode, lineItems, 'llssns', companyId)
+  const cart = await getOrSetCart(countryCode, companyId)
 
   if (!cart) {
     throw new Error("Error retrieving or creating cart")
@@ -199,7 +200,7 @@ export async function addToCartBulk({
       process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
   }
 
-  console.log(lineItems, countryCode, 'addding')
+  console.log(lineItems, countryCode, 'addding', companyId)
   await fetch(
     `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/carts/${cart.id}/line-items/bulk`,
     {

@@ -9,6 +9,7 @@ export type AddToCartEventPayload = {
     quantity: number
   }[]
   regionId: string
+  companyId?: string
 }
 
 type CartAddEventHandler = (payload: AddToCartEventPayload) => void
@@ -27,6 +28,7 @@ export const addToCartEventBus: CartAddEventBus = {
       track("add_to_cart", {
         product_name: lineItem.productVariant.title,
         quantity: lineItem.quantity,
+        companyId: payload?.companyId
       })
     }
   },

@@ -8,6 +8,7 @@ import { sdk } from "../medusa/config";
 import { getAuthHeaders, getCacheTag } from "../medusa/data/cookies";
 import { StoreCompaniesResponse, StoreCompanyResponse, StoreCreateCompany, StoreCreateEmployee, StoreEmployeeResponse, StoreUpdateCompany } from "@/types";
 import { track } from "@vercel/analytics";
+import { getCacheOptions } from "../data/cookies";
 
 const BACKEND_URL =
   process.env.BACKEND_URL ||
@@ -129,7 +130,7 @@ export const retrieveCompany = async (companyId: string) => {
     {
       query: {
         fields:
-          "+spending_limit_reset_frequency,*employees.customer,*approval_settings",
+          "+spending_limit_reset_frequency,*employees.customer,*approval_settings,*product",
       },
       method: "GET",
       headers,

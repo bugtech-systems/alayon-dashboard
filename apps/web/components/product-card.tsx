@@ -295,7 +295,8 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
   const productImage = useMemo(() => getProductImage(product), [product]);
   const hoverImage = useMemo(() => getHoverImage(product), [product]);
   const hasVariants = product.variants?.length > 1;
-  
+  const company = Array.isArray(product.company) ? product.company[0] : product.company;
+  console.log(company, product.company, 'commppp', product)
   // Determine what price to display
   const displayPrice = useMemo(() => {
     if (selectedVariant) {
@@ -367,6 +368,7 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
       addToCartEventBus.emitCartAdd({
       lineItems: [lineItem],
       regionId,
+      companyId: company?.id
     })
 
       
@@ -395,7 +397,6 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
     "out-of-stock": "text-red-600 bg-red-50",
     "pre-order": "text-blue-600 bg-blue-50",
   };
-  console.log(isAdding,selectedVariant,regionId, 'ssslee')
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -499,15 +500,6 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
                   </>
                 )}
               </Button>
-              <Link href={`/products/${product.handle}`}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full aspect-square p-0 w-8 h-8 bg-white/20 backdrop-blur-sm hover:bg-white/30"
-                >
-                  <Eye className="w-4 h-4 text-white" />
-                </Button>
-              </Link>
             </div>
           </div>
         )}

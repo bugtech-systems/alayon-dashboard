@@ -437,6 +437,9 @@ const handlePaymentError = useCallback((error: string) => {
   const cityLabel = cities.find(c => c.value === selectedCity)?.label || "";
   const barangayLabel = barangays.find(b => b.value === selectedBarangay)?.label || "";
 
+
+console.log(selectedLocation, cityLabel, barangayLabel, 'loccc')
+
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-8">
       <div className="text-center mb-8">

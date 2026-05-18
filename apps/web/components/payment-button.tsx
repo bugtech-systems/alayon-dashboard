@@ -171,7 +171,7 @@ const ManualPaymentButton = ({
 
   const onPaymentCompleted = async () => {
     try {
-      await completeCart(cart, "comp_01KRF6QBE2CN5Z94BN4S0PYB8Z")
+      await completeCart(cart, cart?.metadata?.company_id)
       onSuccess?.()
     } catch (err: any) {
       setErrorMessage(err.message)
@@ -199,7 +199,6 @@ const ManualPaymentButton = ({
       >
         {submitting ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
             Processing...
           </>
         ) : (

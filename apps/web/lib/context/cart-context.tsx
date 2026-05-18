@@ -37,6 +37,7 @@ export type AddToCartEventPayload = {
     quantity: number
   }[]
   regionId: string
+  companyId?: string
 }
 
 const CartContext = createContext<
@@ -167,6 +168,7 @@ export function CartProvider({
             quantity: lineItem.quantity,
           })),
           countryCode: countryCode as string,
+          companyId: payload?.companyId
         }).catch((e) => {
           if (e.message === "Cart is pending approval") {
             toast.error("Cart is locked for approval.")

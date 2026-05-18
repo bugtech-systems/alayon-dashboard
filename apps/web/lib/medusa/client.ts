@@ -13,6 +13,7 @@ import type {
 } from './types'
 import { getAuthHeaders, getCacheOptions } from "./data/cookies"
 import { HttpTypes } from "@medusajs/types"
+import { getRegion } from '../actions/regions'
 
 
 // Cache configuration for React Server Components
@@ -32,13 +33,12 @@ export async function getProducts(options?: {
   category_id?: string[]
   q?: string
 }): Promise<{ products: MedusaProduct[]; count: number }> {
-  let regions = await getRegions()
-  let reg_id = regions.find(a => a.currency_code == 'php')?.id;
+  let region = await getRegion('ph');
   const params: Record<string, any> = {
-    fields: "variants.prices.*",
+    fields: "variants.prices.*,company.*",
     limit: options?.limit ?? 20,
     offset: options?.offset ?? 0,
-    region_id: reg_id
+    region_id: region?.id
   }
 
   // if (options?.order) params.order = options.order
@@ -48,7 +48,7 @@ export async function getProducts(options?: {
   if (options?.q) params.q = options.q
 
   try {
-    const {products, count} = await sdk.store.product.list(params)
+    const {products, count} = await sdk.store.product.list(params) as any
     return {products, count}
   } catch (error) {
     console.error('Error fetching products:', error)
@@ -59,7 +59,10 @@ export async function getProducts(options?: {
 // Add product types helper
 export async function getProductTypes(): Promise<string[]> {
   try {
-    const { products } = await medusaClient.products.list({ limit: 100 })
+    const { products } = await medusaClient.products.list({ 
+      fields: "variants.prices.*,company.*",
+      limit: 100
+     })
     const types = new Set(products.map(p => p.type?.value).filter(Boolean))
     return Array.from(types) as string[]
   } catch (error) {
@@ -98,7 +101,7 @@ export async function getProductByHandle(handle) {
         handle,
         region_id: region[0].id,
         fields:
-          "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags",
+          "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags,*company",
       },
       headers,
       next,

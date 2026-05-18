@@ -151,7 +151,7 @@ export async function login(_currentState: unknown, formData: FormData) {
             getCacheTag("carts"),
           ])
 
-        revalidateTag(customerCacheTag)
+        revalidateTag(customerCacheTag, 'max')
 
         const customer = await retrieveCustomer()
         const cart = await retrieveCart()
@@ -165,8 +165,8 @@ export async function login(_currentState: unknown, formData: FormData) {
           })
         }
 
-        revalidateTag(productsCacheTag)
-        revalidateTag(cartsCacheTag)
+        revalidateTag(productsCacheTag, 'max')
+        revalidateTag(cartsCacheTag, 'max')
       })
   } catch (error: any) {
     return error.toString()

@@ -230,7 +230,7 @@ console.log(firstName, lastName, address, city, phone, barangay, 'FOOORM')
 
 
 
-  const delivery = await createDelivery(id, "comp_01KRF6QBE2CN5Z94BN4S0PYB8Z");
+  const delivery = await createDelivery(id, cart?.metadata?.company_id);
 
   // track("order_completed", {
   //   order_id: delivery.id,

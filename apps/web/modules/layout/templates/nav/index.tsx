@@ -203,15 +203,9 @@ export async function NavigationHeader() {
             </div>
 
             {/* Right section - Actions */}
-            <div className="flex items-center gap-1 lg:gap-2">
+            <div className="flex items-center gap-1 lg:gap-2 mx-5">
               {/* Desktop Search */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="hidden lg:flex h-9 w-9"
-              >
-                <Search className="h-5 w-5" />
-              </Button>
+
 
               {/* Quote Button */}
               {/* {customer && cart?.items && cart.items.length > 0 ? (

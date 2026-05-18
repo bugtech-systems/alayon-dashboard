@@ -161,9 +161,7 @@ export function NavigationHeader() {
               </Sheet>
 
               {/* Mobile Search Button */}
-              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setSearchOpen(true)}>
-                <Search className="h-5 w-5" />
-              </Button>
+
             </div>
 
             {/* Logo */}
@@ -194,14 +192,7 @@ export function NavigationHeader() {
             {/* Right section - Actions */}
             <div className="flex items-center gap-1 lg:gap-2">
               {/* Desktop Search */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="hidden lg:flex h-9 w-9"
-                onClick={() => setSearchOpen(true)}
-              >
-                <Search className="h-5 w-5" />
-              </Button>
+    
 
               {/* Account Button */}
               <Button variant="ghost" size="icon" className="h-9 w-9 relative group">
