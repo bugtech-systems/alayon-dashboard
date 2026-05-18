@@ -130,7 +130,7 @@ const TAB_CONFIGS = {
 
 
 export default function Page() {
- const { filters, setFilters } = useURLFilters({ defaultPage: 1, defaultLimit: 10 });
+ const { filters, setFilters } = useURLFilters() as any;
   
   // Get current tab from URL
   const currentTab = filters.tab || "transactions";

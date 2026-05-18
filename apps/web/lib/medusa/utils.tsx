@@ -10,7 +10,7 @@ export function formatPrice(price) {
   
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: price.currency_code || 'USD',
+    currency: price.currency_code || 'PHP',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })

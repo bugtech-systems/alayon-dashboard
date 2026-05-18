@@ -11,6 +11,7 @@ import Link from "next/link";
 
 export default async function CompanyDashboardPage() {
     const authData = (await retrieveUser()) as any;
+    console.log(authData, 'aaayyt')
     // If no user found or user doesn't exist, remove token and redirect
     if (!authData?.user || !authData?.user.id) {
       console.log("No user found, removing auth token...");

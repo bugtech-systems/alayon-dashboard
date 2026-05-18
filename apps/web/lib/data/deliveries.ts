@@ -31,7 +31,7 @@ export async function retrieveDelivery(
         "Content-Type": "application/json",
         ...getAuthHeaders(),
         ...getCacheHeaders("deliveries"),
-      },
+      } as any,
     }
   );
   return delivery;

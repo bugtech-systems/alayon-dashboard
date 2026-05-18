@@ -1,23 +1,27 @@
-import { CheckoutNav } from "@/components/layout/checkout-nav";
-import { CartProvider } from "@/lib/context/cart-context";
+import LocalizedClientLink from "@/modules/common/components/localized-client-link"
+import LogoIcon from "@/modules/common/icons/logo"
+import MedusaCTA from "@/modules/layout/components/medusa-cta"
 
-
-export default async function RootLayout({
+export default function CheckoutLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-
-
-
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <>
-  <CartProvider>
-        <CheckoutNav/>
-      <main className="flex flex-col gap-4 p-4 md:p-10 transition-all duration-150 ease-in-out min-h-[calc(100vh-8rem)]">
+    <div className="w-full bg-white relative small:min-h-screen">
+      {/* <div className="h-16 bg-white">
+        <nav className="flex h-full items-center content-container justify-between">
+          <LocalizedClientLink className="hover:text-ui-fg-base" href="/">
+            <h1 className="text-base font-medium flex items-center">
+              <LogoIcon className="inline mr-2" />
+              Alayon B2B Starter
+            </h1>
+          </LocalizedClientLink>
+        </nav>
+      </div> */}
+      <div className="h-[100vh] relative bg-neutral-100" data-testid="checkout-container">
         {children}
-      </main>
-      </CartProvider>
-    </>
-  );
+      </div>
+    </div>
+  )
 }

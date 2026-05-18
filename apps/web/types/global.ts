@@ -30,3 +30,23 @@ export interface B2BCustomer extends HttpTypes.StoreCustomer {
 }
 
 export type FilterType = string | string[] | { [key: string]: any }
+
+
+// types/location.ts
+export interface Barangay {
+  id: string;
+  name: string;
+}
+
+export interface Municipality {
+  id: string;
+  name: string;
+  barangays: Barangay[];
+}
+
+export interface UserLocation {
+  municipality: string;
+  municipalityId: string;
+  barangay: string;
+  barangayId: string;
+}

@@ -11,6 +11,7 @@ type OverviewProps = {
 }
 
 const Overview = ({ customer, orders }: OverviewProps) => {
+  console.log('wewweeww')
   return (
     <div data-testid="overview-page-wrapper">
       <div className="hidden small:block">
@@ -29,6 +30,7 @@ const Overview = ({ customer, orders }: OverviewProps) => {
             </span>
           </span>
         </div>
+        <h1>HELLLo</h1>
         <div className="flex flex-col gap py-8 border-t border-gray-200">
           <div className="flex flex-col gap-y-8 h-full col-span-1 row-span-2 flex-1">
             <div className="flex items-start gap-x-16 mb-6">

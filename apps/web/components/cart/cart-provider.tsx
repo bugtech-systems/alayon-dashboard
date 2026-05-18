@@ -15,6 +15,7 @@ import type {
   StoreAddCartLineItem,
   StoreUpdateCartLineItem 
 } from '@medusajs/types'
+import { setCartId } from '@/lib/medusa/data/cookies'
 
 // Types for Medusa cart
 type MedusaCart = StoreCart
@@ -163,7 +164,8 @@ export function CartProvider({
       })
       
       if (cart) {
-        localStorage.setItem(CART_ID_KEY, cart.id)
+        // localStorage.setItem(CART_ID_KEY, cart.id)
+        setCartId(cart?.id)
         dispatch({ type: 'SET_CART', cart })
         return cart.id
       }

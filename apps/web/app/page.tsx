@@ -1,16 +1,18 @@
 // app/page.tsx
 import { FooterModern } from "@/components/footer-modern";
 import { HeroSection } from "@/components/hero-section-modern";
-import { PillNav } from "@/components/layout/pill-nav";
-import { NavigationHeader } from "@/components/layout/templates/nav";
+import { NavigationHeader } from "@/modules/layout/templates/nav/index";
 import { ProductList } from "@/components/product-list";
+import { getRegion } from "@/lib/actions/regions";
 
-export default function Home() {
+export default async function Home() {
+  const region = await getRegion('ph');
+console.log(region, 'REEG')
   return (
     <>
-        <NavigationHeader /> 
+        <NavigationHeader/> 
       <HeroSection />
-      <ProductList />
+      <ProductList  region={region}/>
       <FooterModern/>
     </>
   );

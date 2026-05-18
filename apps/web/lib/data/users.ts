@@ -1,5 +1,5 @@
 import { n8nFetcher } from "@/hooks/useN8nQuery";
-import { getAuthHeaders, getCacheOptions } from "../medusa/data/cookies";
+import { getAuthHeaders, getCacheOptions } from "../data/cookies";
 
 export async function retrieveUser() {
   try {
@@ -16,11 +16,12 @@ export async function retrieveUser() {
 
     const user = await n8nFetcher({endpoint: "/webhook/auth/session", 
       method: "GET",
-      headers
+      headers,
+      next
     });
 
 
-
+    console.log(user, 'USSSE')
     return user;
   } catch (error) {
     console.log(error, 'errr');

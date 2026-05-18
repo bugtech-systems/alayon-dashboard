@@ -38,7 +38,7 @@ export default async function DriverDashboardPage() {
           <DeliveryColumn
             title="Available jobs"
             deliveries={deliveries}
-            statusFilters={[DeliveryStatus.RESTAURANT_ACCEPTED]}
+            statusFilters={[DeliveryStatus.COMPANY_ACCEPTED]}
             type="driver"
             driver={driver}
           />
@@ -47,7 +47,7 @@ export default async function DriverDashboardPage() {
             deliveries={deliveries}
             statusFilters={[
               DeliveryStatus.PICKUP_CLAIMED,
-              DeliveryStatus.RESTAURANT_PREPARING,
+              DeliveryStatus.COMPANY_PREPARING,
             ]}
             type="driver"
             driver={driver}

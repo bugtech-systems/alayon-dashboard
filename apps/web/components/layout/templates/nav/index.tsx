@@ -1,20 +1,22 @@
 // components/navigation-header.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, Search, User, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useCart } from "@/lib/context/cart-context";
-import { CartDrawer } from "@/components/cart/cart-drawer";
+import { LocationDialog } from "@/components/location/LocationDialog";
+import { useLocation } from "@/lib/context/LocationContext";
+import CartButton from "@/components/cart/cart-button";
+import SkeletonCartButton from "@/modules/skeletons/components/skeleton-cart-button";
 
 const navigation = [
   { name: "Home", href: "/" },
   { name: "Catalog", href: "/catalog" },
-  { name: "Products", href: "/products" },
+  // { name: "Products", href: "/products" },
   { name: "Contact", href: "/contact" },
 ];
 
@@ -54,13 +56,22 @@ const featuredProducts = [
   },
 ];
 
+// Create a wrapper component to use the location context
+function LocationDialogWrapper() {
+  const { showLocationDialog, setShowLocationDialog } = useLocation();
+  
+  return (
+    <LocationDialog 
+      open={showLocationDialog} 
+      onOpenChange={setShowLocationDialog}
+    />
+  );
+}
+
 export function NavigationHeader() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname();
-  const { cart, openCart } = useCart();
-
-  const cartQuantity = cart?.items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -69,9 +80,9 @@ export function NavigationHeader() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
   return (
     <>
+    <LocationDialogWrapper/>
       {/* Announcement Bar */}
       <div className="bg-primary text-primary-foreground py-3 text-center text-sm">
         <p>Welcome to our store</p>
@@ -201,7 +212,10 @@ export function NavigationHeader() {
               </Button>
 
               {/* Cart Button with Badge */}
-              <Button 
+           <Suspense fallback={<SkeletonCartButton />}>
+              <CartButton />
+            </Suspense>
+              {/* <Button 
                 variant="ghost" 
                 size="icon" 
                 className="h-9 w-9 relative"
@@ -213,7 +227,7 @@ export function NavigationHeader() {
                     {cartQuantity > 99 ? "99+" : cartQuantity}
                   </span>
                 )}
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
@@ -246,8 +260,7 @@ export function NavigationHeader() {
         </div>
       )}
 
-      {/* Cart Drawer - Integrated Component */}
-      <CartDrawer />
+
     </>
   );
 }

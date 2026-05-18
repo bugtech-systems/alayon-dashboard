@@ -44,7 +44,6 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
     try {
       
       let auth = await getAuthHeaders();
-      console.log(auth, 'aurtrhh')
   //  let res = await apiFetch(
   //     `/webhook/auth/session`, { 
   //     method: "POST",

@@ -6,7 +6,7 @@ import { Text, clx, useToggleState } from "@medusajs/ui"
 import { Fragment } from "react"
 
 import LocalizedClientLink from "@/modules/common/components/localized-client-link"
-import CountrySelect from "../country-select/index.jsx"
+import CountrySelect from "../country-select"
 import { HttpTypes } from "@medusajs/types"
 
 const SideMenuItems = {

@@ -24,7 +24,7 @@ export default async function CompanyDashboardPage() {
 
   const companyId = user.company_id;
   const company = await retrieveCompany(companyId);
-  const { name, deliveries, is_open } = company;
+  const { name, deliveries, is_open } = company as any;
 
 
 
@@ -38,7 +38,7 @@ export default async function CompanyDashboardPage() {
       <div className="flex flex-col gap-10">
         <div className="flex flex-col gap-2">
           <Heading level="h1" className="text-2xl">
-            {name} | Restaurant Dashboard
+            {name} | Company Dashboard
           </Heading>
           <Text>View and manage your company&apos;s orders.</Text>
         </div>

@@ -5,7 +5,7 @@ import { B2BCart } from "@/types"
 import { PayPalScriptProvider } from "@paypal/react-paypal-js"
 import { loadStripe } from "@stripe/stripe-js"
 import React, { createContext } from "react"
-import StripeWrapper from "./stripe-wrapper.jsx"
+import StripeWrapper from "./stripe-wrapper"
 
 type WrapperProps = {
   cart: B2BCart

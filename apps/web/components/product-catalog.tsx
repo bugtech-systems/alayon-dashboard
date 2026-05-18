@@ -1,7 +1,7 @@
 // components/product-catalog.tsx
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { 
   Filter, 
@@ -40,7 +40,7 @@ const sortOptions = [
   { value: "name-desc", label: "Name: Z to A" },
 ];
 
-// Categories
+// Categories (these should ideally come from your Medusa API)
 const categories: Category[] = [
   { id: "1", name: "Fresh Produce", handle: "fresh-produce" },
   { id: "2", name: "Dairy & Eggs", handle: "dairy-eggs" },
@@ -86,8 +86,8 @@ export function ProductCatalog() {
   
   // Refs to prevent infinite loops
   const isUpdatingFromURL = useRef(false);
-  const isUpdatingFilters = useRef(false);
   const initialLoadDone = useRef(false);
+  const fetchAbortController = useRef<AbortController | null>(null);
 
   // Initialize filters from URL (runs once on mount)
   useEffect(() => {
@@ -123,8 +123,6 @@ export function ProductCatalog() {
   useEffect(() => {
     if (!initialLoadDone.current || isUpdatingFromURL.current) return;
     
-    isUpdatingFilters.current = true;
-    
     const timeoutId = setTimeout(() => {
       const params = new URLSearchParams();
       
@@ -140,17 +138,20 @@ export function ProductCatalog() {
       const url = queryString ? `${pathname}?${queryString}` : pathname;
       
       router.replace(url, { scroll: false });
-      isUpdatingFilters.current = false;
     }, 300);
     
-    return () => {
-      clearTimeout(timeoutId);
-      isUpdatingFilters.current = false;
-    };
+    return () => clearTimeout(timeoutId);
   }, [currentPage, sortBy, selectedCategories, inStockOnly, onSaleOnly, priceRange, router, pathname]);
 
   // Fetch products
   const fetchProducts = useCallback(async () => {
+    // Cancel previous request
+    if (fetchAbortController.current) {
+      fetchAbortController.current.abort();
+    }
+    
+    fetchAbortController.current = new AbortController();
+    
     setIsLoading(true);
     setError(null);
     
@@ -158,15 +159,16 @@ export function ProductCatalog() {
     const params: any = {
       limit,
       offset,
+      fields: "*variants.calculated_price,+variants.inventory_quantity,+variants.allow_backorder",
     };
 
     // Add sorting
     switch (sortBy) {
       case "price-asc":
-        params.order = "price ASC";
+        params.order = "variants.calculated_price.calculated_amount ASC";
         break;
       case "price-desc":
-        params.order = "price DESC";
+        params.order = "variants.calculated_price.calculated_amount DESC";
         break;
       case "name-asc":
         params.order = "title ASC";
@@ -181,7 +183,7 @@ export function ProductCatalog() {
         params.order = "created_at DESC";
     }
 
-    // Add category filter
+    // Add category filter if we have category IDs from Medusa
     if (selectedCategories.length > 0) {
       params.category_id = selectedCategories;
     }
@@ -189,88 +191,108 @@ export function ProductCatalog() {
     try {
       const { products: fetchedProducts, count } = await getProducts(params);
       
-      // Transform products with mock data for grocery store
-      const transformedProducts = fetchedProducts.map((p: any, idx: number) => ({
-        ...p,
-        rating: 4 + (idx % 5) * 0.2,
-        reviews: Math.floor(Math.random() * 500) + 10,
-        isSale: idx % 3 === 0 && idx !== 0,
-        isNew: idx < 2,
-        inStock: true,
-        unit: ["kg", "pcs", "L", "pack"][idx % 4],
-        unitValue: [1, 500, 2, 6][idx % 4],
-      }));
+      // Process products - only use data from Medusa, no mock badges
+      const processedProducts = fetchedProducts.map((product: any) => {
+        // Calculate if product has any variant on sale
+        const hasSaleVariant = product.variants?.some((variant: any) => 
+          variant.calculated_price?.calculated_amount < variant.calculated_price?.original_amount
+        );
+        
+        // Calculate if product is in stock
+        const isInStock = product.variants?.some((variant: any) => 
+          (variant.inventory_quantity && variant.inventory_quantity > 0) || 
+          variant.allow_backorder || 
+          !variant.manage_inventory
+        );
+        
+        return {
+          ...product,
+          hasSale: hasSaleVariant,
+          inStock: isInStock,
+        };
+      });
       
       // Apply client-side filters
-      let filtered = [...transformedProducts];
+      let filtered = [...processedProducts];
       
       if (inStockOnly) {
-        filtered = filtered.filter((p: any) => p.inStock);
+        filtered = filtered.filter((product: any) => product.inStock);
       }
       
       if (onSaleOnly) {
-        filtered = filtered.filter((p: any) => p.isSale);
+        filtered = filtered.filter((product: any) => product.hasSale);
       }
       
       if (priceRange.min > 0 || priceRange.max < 5000) {
-        filtered = filtered.filter((p: any) => {
-          const variantPrice = p.variants?.[0]?.calculated_price?.calculated_amount;
-          const price = variantPrice || p.price || 0;
-          return price >= priceRange.min && price <= priceRange.max;
+        filtered = filtered.filter((product: any) => {
+          // Get lowest variant price
+          let lowestPrice = Infinity;
+          product.variants?.forEach((variant: any) => {
+            const price = variant.calculated_price?.calculated_amount || 0;
+            if (price < lowestPrice) lowestPrice = price;
+          });
+          return lowestPrice >= priceRange.min && lowestPrice <= priceRange.max;
         });
       }
       
       setProducts(filtered);
       setTotalCount(filtered.length);
-    } catch (err) {
-      console.error("Error fetching products:", err);
-      setError("Failed to load products. Please try again.");
-      setProducts([]);
-      setTotalCount(0);
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error("Error fetching products:", err);
+        setError("Failed to load products. Please try again.");
+        setProducts([]);
+        setTotalCount(0);
+      }
     } finally {
       setIsLoading(false);
       setIsInitialLoad(false);
     }
   }, [currentPage, limit, sortBy, selectedCategories, inStockOnly, onSaleOnly, priceRange]);
 
-  // Fetch products when dependencies change (but not on every render)
+  // Fetch products when dependencies change
   useEffect(() => {
     if (!initialLoadDone.current) return;
     fetchProducts();
+    
+    return () => {
+      if (fetchAbortController.current) {
+        fetchAbortController.current.abort();
+      }
+    };
   }, [fetchProducts]);
 
   // Reset page when filters change
   useEffect(() => {
     if (!initialLoadDone.current || isUpdatingFromURL.current) return;
     setCurrentPage(1);
-  }, [sortBy, selectedCategories, inStockOnly, onSaleOnly, priceRange]);
+  }, [sortBy, selectedCategories, inStockOnly, onSaleOnly, priceRange.min, priceRange.max]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   const handlePageChange = (page: number) => {
     if (page === currentPage || page < 1 || page > totalPages) return;
-    isUpdatingFromURL.current = true;
     setCurrentPage(page);
-    setTimeout(() => {
-      isUpdatingFromURL.current = false;
-    }, 100);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const clearAllFilters = () => {
-    isUpdatingFromURL.current = true;
     setSelectedCategories([]);
     setPriceRange({ min: 0, max: 5000 });
     setInStockOnly(false);
     setOnSaleOnly(false);
     setSortBy("newest");
     setCurrentPage(1);
-    setTimeout(() => {
-      isUpdatingFromURL.current = false;
-    }, 100);
   };
 
-  const activeFilterCount = selectedCategories.length + (inStockOnly ? 1 : 0) + (onSaleOnly ? 1 : 0) + (priceRange.min > 0 || priceRange.max < 5000 ? 1 : 0);
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedCategories.length > 0) count++;
+    if (inStockOnly) count++;
+    if (onSaleOnly) count++;
+    if (priceRange.min > 0 || priceRange.max < 5000) count++;
+    return count;
+  }, [selectedCategories.length, inStockOnly, onSaleOnly, priceRange.min, priceRange.max]);
 
   // Filter Sidebar Component
   const FilterSidebar = () => (

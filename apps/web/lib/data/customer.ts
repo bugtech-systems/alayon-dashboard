@@ -32,6 +32,8 @@ export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
     ...(await getCacheOptions("customers")),
   }
 
+
+
   return await sdk.client
     .fetch<{ customer: B2BCustomer }>(`/store/customers/me`, {
       method: "GET",
@@ -193,10 +195,10 @@ export async function signout(countryCode: string, customerId: string) {
       getCacheTag("carts"),
     ])
 
-  revalidateTag(authCacheTag)
-  revalidateTag(customerCacheTag)
-  revalidateTag(productsCacheTag)
-  revalidateTag(cartsCacheTag)
+  revalidateTag(authCacheTag, "max")
+  revalidateTag(customerCacheTag, "max")
+  revalidateTag(productsCacheTag, "max")
+  revalidateTag(cartsCacheTag, "max")
 
   redirect(`/${countryCode}/account`)
 }
@@ -216,7 +218,7 @@ export async function transferCart() {
 
   const cartCacheTag = await getCacheTag("carts")
 
-  revalidateTag(cartCacheTag)
+  revalidateTag(cartCacheTag, "max")
 }
 
 export const addCustomerAddress = async (
@@ -244,7 +246,7 @@ export const addCustomerAddress = async (
     .createAddress(address, {}, headers)
     .then(async () => {
       const cacheTag = await getCacheTag("customers")
-      revalidateTag(cacheTag)
+      revalidateTag(cacheTag, "max")
       return { success: true, error: null }
     })
     .catch((err) => {
@@ -263,7 +265,7 @@ export const deleteCustomerAddress = async (
     .deleteAddress(addressId, headers)
     .then(async () => {
       const cacheTag = await getCacheTag("customers")
-      revalidateTag(cacheTag)
+      revalidateTag(cacheTag, "max")
       return { success: true, error: null }
     })
     .catch((err) => {
@@ -298,7 +300,7 @@ export const updateCustomerAddress = async (
     .updateAddress(addressId, address, {}, headers)
     .then(async () => {
       const cacheTag = await getCacheTag("customers")
-      revalidateTag(cacheTag)
+      revalidateTag(cacheTag, "max")
       return { success: true, error: null }
     })
     .catch((err) => {

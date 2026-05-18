@@ -2,13 +2,13 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "@workspace/ui/globals.css"
-import {  AppSidebar } from "@/components/app-sidebar";
-import { Footer } from "@/components/Footer";
-import { CartProvider } from "@/lib/context/cart-context";
 import { MedusaAuthProvider } from "@/providers/MedusaAuthProvider";
 import { Providers } from "@/providers/queryProvider";
 import { TooltipProvider } from "@medusajs/ui";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Analytics } from "@vercel/analytics/next";
+import { LocationProvider, useLocation } from '@/lib/context/LocationContext';
+
 
 
 export const metadata: Metadata = {
@@ -22,17 +22,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-       <CartProvider>
+     <LocationProvider>
         <MedusaAuthProvider>
         <Providers>
         <TooltipProvider>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          {children}
+          </ThemeProvider>
         </TooltipProvider>
         </Providers>
         </MedusaAuthProvider>
-</CartProvider>
+</LocationProvider>
+        <Analytics />
+
       </body>
     </html>
   );

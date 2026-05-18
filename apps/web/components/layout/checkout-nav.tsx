@@ -3,19 +3,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, Search, User, ShoppingCart } from "lucide-react";
+import { redirect, usePathname } from "next/navigation";
+import { Menu, Search, User, ShoppingCart, ArrowLeft, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useCart } from "@/lib/context/cart-context";
-import { CartDrawer } from "@/components/cart/cart-drawer";
 
 const navigation = [
   { name: "Home", href: "/" },
-  { name: "Catalog", href: "/catalog" },
-  { name: "Products", href: "/products" },
-  { name: "Contact", href: "/contact" },
+  // { name: "Catalog", href: "/catalog" },
+  // { name: "Products", href: "/products" },
+  // { name: "Contact", href: "/contact" },
 ];
 
 // Featured products for mobile menu
@@ -151,20 +149,22 @@ export function CheckoutNav() {
               </Sheet>
 
               {/* Mobile Search Button */}
-             {/* <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setSearchOpen(true)}>
-                <Search className="h-5 w-5" />
-              </Button>  */}
+       
             </div>
 
             {/* Logo */}
             <div className="flex lg:flex-1">
+             
               <Link href="/" className="text-xl font-semibold hover:opacity-80 transition-opacity">
                 Alayon
               </Link>
+              
             </div>
-
+  <Button variant="ghost" size="icon" className="h-9 w-9" >
+                {/* <Home className="h-5 w-5" /> */}
+              </Button>
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex lg:items-center lg:gap-x-8">
+            {/* <div className="hidden lg:flex lg:items-center lg:gap-x-8">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
@@ -179,43 +179,10 @@ export function CheckoutNav() {
                   {item.name}
                 </Link>
               ))}
-            </div>
+            </div> */}
 
             {/* Right section - Actions */}
-            <div className="flex items-center gap-1 lg:gap-2">
-              {/* Desktop Search */}
-              {/* <Button 
-                variant="ghost" 
-                size="icon" 
-                className="hidden lg:flex h-9 w-9"
-                onClick={() => setSearchOpen(true)}
-              >
-                <Search className="h-5 w-5" />
-              </Button> */}
 
-              {/* Account Button */}
-              <Button variant="ghost" size="icon" className="h-9 w-9 relative group">
-                <User className="h-5 w-5" />
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                  Account
-                </span>
-              </Button>
-
-              {/* Cart Button with Badge */}
-              {/* <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-9 w-9 relative"
-                onClick={openCart}
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {cartQuantity > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">
-                    {cartQuantity > 99 ? "99+" : cartQuantity}
-                  </span>
-                )}
-              </Button> */}
-            </div>
           </div>
         </div>
       </header>
@@ -247,8 +214,6 @@ export function CheckoutNav() {
         </div>
       )}
 
-      {/* Cart Drawer - Integrated Component */}
-      <CartDrawer />
     </>
   );
 }

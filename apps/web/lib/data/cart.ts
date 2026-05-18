@@ -1,7 +1,7 @@
 "use server"
 
-import { sdk } from "@/lib/medusa/config"
-import medusaError from "@/lib/medusa/util/medusa-error"
+import { sdk } from "@/lib/config"
+import medusaError from "@/lib/util/medusa-error"
 import { StoreApprovalResponse } from "@/types/approval"
 import { B2BCart } from "@/types/global"
 import { HttpTypes, StoreCart } from "@medusajs/types"
@@ -15,13 +15,31 @@ import {
   getCartId,
   removeCartId,
   setCartId,
-} from "@/lib/medusa/data/cookies"
-import { retrieveCustomer } from "@/lib/medusa/data/customer"
-import { getRegion } from "@/lib/medusa/data/regions"
+} from "@/lib/data/cookies"
+import { retrieveCustomer } from "@/lib/data/customer"
+import { getRegion } from "@/lib/data/regions"
+import { DeliveryDTO } from "../types"
+
+export async function createDelivery(cartId: string, company_id: any) {
+  const { delivery } = await sdk.client.fetch<{
+    delivery: DeliveryDTO;
+  }>("/store/deliveries", {
+    method: "POST",
+    body: { cart_id: cartId, company_id },
+    headers: {
+      "Content-Type": "application/json",
+      ...(await getAuthHeaders()),
+    }
+  });
+
+  revalidateTag("deliveries", 'max');
+
+  return delivery;
+}
 
 export async function retrieveCart(id?: string) {
   const cartId = id || (await getCartId())
-
+    console.log(cartId, await getCartId(), 'aaaccc')
   if (!cartId) {
     return null
   }
@@ -53,7 +71,7 @@ export async function retrieveCart(id?: string) {
     })
 }
 
-export async function getOrSetCart(countryCode: string) {
+export async function getOrSetCart(countryCode: string = 'ph') {
   let cart = await retrieveCart()
   const region = await getRegion(countryCode)
   const customer = await retrieveCustomer()
@@ -75,7 +93,7 @@ export async function getOrSetCart(countryCode: string) {
     }
 
     const cartResp = await sdk.store.cart.create(body, {}, headers)
-
+    console.log(cartResp, 'carrt resp')
     setCartId(cartResp.cart.id)
 
     const cartCacheTag = await getCacheTag("carts")
@@ -119,7 +137,7 @@ export async function updateCart(data: HttpTypes.StoreUpdateCart) {
 export async function addToCart({
   variantId,
   quantity,
-  countryCode,
+  countryCode = 'ph',
 }: {
   variantId: string
   quantity: number
@@ -159,11 +177,12 @@ export async function addToCart({
 
 export async function addToCartBulk({
   lineItems,
-  countryCode,
+  countryCode = 'ph',
 }: {
   lineItems: HttpTypes.StoreAddCartLineItem[]
   countryCode: string
 }) {
+  console.log(countryCode, lineItems, 'llssns')
   const cart = await getOrSetCart(countryCode)
 
   if (!cart) {
@@ -180,6 +199,7 @@ export async function addToCartBulk({
       process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
   }
 
+  console.log(lineItems, countryCode, 'addding')
   await fetch(
     `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/carts/${cart.id}/line-items/bulk`,
     {
@@ -196,6 +216,7 @@ export async function addToCartBulk({
     })
     .catch(medusaError)
 }
+
 
 export async function updateLineItem({
   lineId,
@@ -470,7 +491,7 @@ export async function setContactDetails(
 }
 
 export async function placeOrder(
-  cartId?: string
+  cartId?: string, company_id?: string
 ): Promise<HttpTypes.StoreCompleteCartResponse> {
   const id = cartId || (await getCartId())
 
@@ -494,6 +515,8 @@ export async function placeOrder(
     return response
   }
 
+  let delivery = await createDelivery(id, company_id)
+
   track("order_completed", {
     order_id: response.order.id,
   })
@@ -504,11 +527,7 @@ export async function placeOrder(
 
   await removeCartId()
 
-  redirect(
-    `/${response.order.shipping_address?.country_code?.toLowerCase()}/order/confirmed/${
-      response.order.id
-    }`
-  )
+  redirect(`/your-order?id=${delivery.id}`)
 }
 
 /**

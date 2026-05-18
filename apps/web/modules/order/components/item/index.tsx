@@ -3,7 +3,7 @@ import { Text } from "@medusajs/ui"
 
 import LineItemOptions from "@/modules/common/components/line-item-options"
 import Thumbnail from "@/modules/products/components/thumbnail"
-import ItemTotalPrice from "./item-total-price.jsx"
+import ItemTotalPrice from "./item-total-price"
 
 type ItemProps = {
   item: HttpTypes.StoreOrderLineItem

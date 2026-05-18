@@ -1,7 +1,7 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
-import { setRestaurantStatus } from "@/lib/actions";
+import { setCompanyStatus } from "@/lib/actions";
 import { useState } from "react";
 
 export default function CompanyStatus({
@@ -13,7 +13,7 @@ export default function CompanyStatus({
 
   const handleStatusChange = async () => {
     setIsOpen(!isOpen);
-    await setRestaurantStatus(company.id, !isOpen);
+    await setCompanyStatus(company.id, !isOpen);
   };
 
   return (

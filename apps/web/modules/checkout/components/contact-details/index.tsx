@@ -7,9 +7,9 @@ import { CheckCircleSolid } from "@medusajs/icons"
 import { clx, Container, Heading, Text } from "@medusajs/ui"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useActionState, useCallback } from "react"
-import ContactDetailsForm from "../contact-details-form/index.jsx"
-import ErrorMessage from "../error-message/index.jsx"
-import { SubmitButton } from "../submit-button/index.jsx"
+import ContactDetailsForm from "../contact-details-form"
+import ErrorMessage from "../error-message"
+import { SubmitButton } from "../submit-button"
 
 const ContactDetails = ({
   cart,

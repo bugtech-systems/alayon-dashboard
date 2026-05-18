@@ -9,8 +9,8 @@ import { ChevronDownMini, ChevronUpMini } from "@medusajs/icons"
 import { Badge, Heading, Input, Text } from "@medusajs/ui"
 import { usePathname } from "next/navigation"
 import React, { useActionState } from "react"
-import ErrorMessage from "../error-message/index.jsx"
-import { SubmitButton } from "../submit-button/index.jsx"
+import ErrorMessage from "../error-message"
+import { SubmitButton } from "../submit-button"
 
 type PromotionCodeProps = {
   cart: B2BCart

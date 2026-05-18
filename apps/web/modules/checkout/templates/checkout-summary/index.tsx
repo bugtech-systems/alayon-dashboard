@@ -7,7 +7,7 @@ import Divider from "@/modules/common/components/divider"
 import { B2BCart } from "@/types"
 import { Container } from "@medusajs/ui"
 
-const CheckoutSummary = async ({ cart }: { cart: B2BCart }) => {
+export const CheckoutSummary = async ({ cart }: { cart: B2BCart }) => {
   const customer = await retrieveCustomer()
 
   return (
@@ -25,4 +25,3 @@ const CheckoutSummary = async ({ cart }: { cart: B2BCart }) => {
   )
 }
 
-export default CheckoutSummary

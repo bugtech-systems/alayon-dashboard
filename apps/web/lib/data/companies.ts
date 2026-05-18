@@ -54,8 +54,8 @@ export const createCompany = async (data: StoreCreateCompany) => {
     method: "POST",
     body: data,
     headers,
-  })
-
+  }) as any
+ 
   track("company_created", {
     company_id: company.id,
     company_name: company.name,
@@ -84,7 +84,7 @@ export const updateCompany = async (data: StoreUpdateCompany) => {
   )
 
   const cacheTag = await getCacheTag("companies")
-  revalidateTag(cacheTag)
+  revalidateTag(cacheTag, "max")
 
   return company
 }

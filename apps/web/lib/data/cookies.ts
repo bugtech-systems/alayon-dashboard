@@ -1,28 +1,40 @@
-'use server'
+"use server"
 
-import { cookies, headers } from "next/headers";
+import "server-only"
 
-export const getAuthHeaders = async (): Promise<{ authorization: string } | {}> => {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("_medusa_jwt")?.value;
+import { cookies as nextCookies } from "next/headers"
 
-  if (token) {
-    return { authorization: `Bearer ${token}` };
+export const getAuthHeaders = async (): Promise<
+  { authorization: string } | {}
+> => {
+  try {
+    const cookies = await nextCookies()
+    const token = cookies.get("_medusa_jwt")?.value
+
+    if (token) {
+      return { authorization: `Bearer ${token}` }
+    }
+
+    return {}
+  } catch (error) {
+    return {}
   }
-
-  return {};
-};
+}
 
 export const getCacheTag = async (tag: string): Promise<string> => {
-  const headersList = await headers();
-  const cacheId = headersList.get("_medusa_cache_id");
+  try {
+    const cookies = await nextCookies()
+    const cacheId = cookies.get("_medusa_cache_id")?.value
 
-  if (cacheId) {
-    return `${tag}-${cacheId}`;
+    if (!cacheId) {
+      return ""
+    }
+
+    return `${tag}-${cacheId}`
+  } catch (error) {
+    return ""
   }
-
-  return "";
-};
+}
 
 export const getCacheOptions = async (
   tag: string
@@ -40,6 +52,7 @@ export const getCacheOptions = async (
   return { tags: [`${cacheTag}`] }
 }
 
+
 export const getCacheHeaders = async (
   tag: string
 ): Promise<{ next: { tags: string[] } } | {}> => {
@@ -51,3 +64,46 @@ export const getCacheHeaders = async (
 
   return {};
 };
+
+
+export const setAuthToken = async (token: string) => {
+  const cookies = await nextCookies()
+
+  cookies.set("_medusa_jwt", token, {
+    maxAge: 60 * 60 * 24 * 7,
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+  })
+}
+
+export const removeAuthToken = async () => {
+  const cookies = await nextCookies()
+
+  cookies.delete("_medusa_jwt")
+}
+
+export const getCartId = async () => {
+  const cookies = await nextCookies()
+
+  return cookies.get("_medusa_cart_id")?.value
+}
+
+export const setCartId = async (cartId: string) => {
+  const cookies = await nextCookies()
+
+  cookies.set("_medusa_cart_id", cartId, {
+    maxAge: 60 * 60 * 24 * 7,
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+  })
+}
+
+export const removeCartId = async () => {
+  const cookies = await nextCookies()
+
+  cookies.set("_medusa_cart_id", "", {
+    maxAge: -1,
+  })
+}

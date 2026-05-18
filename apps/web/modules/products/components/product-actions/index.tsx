@@ -1,8 +1,8 @@
 "use client"
 
 import { HttpTypes } from "@medusajs/types"
-import ProductPrice from "../product-price/index.jsx"
-import ProductVariantsTable from "../product-variants-table/index.jsx"
+import ProductPrice from "../product-price"
+import ProductVariantsTable from "../product-variants-table"
 
 type ProductActionsProps = {
   product: HttpTypes.StoreProduct

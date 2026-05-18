@@ -8,9 +8,7 @@ import Spinner from "@/modules/common/icons/spinner"
 import { B2BCart } from "@/types"
 import { ApprovalStatusType } from "@/types/approval/module"
 import { Container, Text, toast } from "@medusajs/ui"
-import { OnApproveActions, OnApproveData } from "@paypal/paypal-js"
-import { PayPalButtons, usePayPalScriptReducer } from "@paypal/react-paypal-js"
-import { useElements, useStripe } from "@stripe/react-stripe-js"
+
 import React, { useState } from "react"
 
 type PaymentButtonProps = {
@@ -64,28 +62,13 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
   const paymentSession = cart.payment_collection?.payment_sessions?.[0]
 
   switch (true) {
-    case isStripeLike(paymentSession?.provider_id):
-      return (
-        <StripePaymentButton
-          notReady={notReady}
-          cart={cart}
-          data-testid={dataTestId}
-        />
-      )
+
     case isManual(paymentSession?.provider_id):
       return (
         <ManualTestPaymentButton
           notReady={notReady}
           data-testid={dataTestId}
           cart={cart}
-        />
-      )
-    case isPaypal(paymentSession?.provider_id):
-      return (
-        <PayPalPaymentButton
-          notReady={notReady}
-          cart={cart}
-          data-testid={dataTestId}
         />
       )
     default:

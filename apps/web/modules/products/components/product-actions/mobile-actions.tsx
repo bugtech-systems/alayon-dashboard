@@ -7,7 +7,7 @@ import Button from "@/modules/common/components/button"
 import ChevronDown from "@/modules/common/icons/chevron-down"
 import X from "@/modules/common/icons/x"
 import React, { Fragment, useMemo } from "react"
-import OptionSelect from "./option-select.jsx"
+import OptionSelect from "./option-select.tsx
 
 type MobileActionsProps = {
   product: HttpTypes.StoreProduct

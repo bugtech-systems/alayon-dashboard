@@ -98,7 +98,9 @@ export const HeroSection = () => {
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Link href="/wholesale/register">
+              <Link 
+              href="/contact"
+              >
                 <Button
                   size="lg"
                   variant="outline"
@@ -244,12 +246,12 @@ export const HeroSection = () => {
                   <p className="text-sm text-white/80">Order before 10 AM for delivery within Tacloban City</p>
                 </div>
               </div>
-              <Link href="/delivery-info">
+              {/* <Link href="/delivery-info"> */}
                 <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50 rounded-full">
                   Learn More
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </Link>
+              {/* </Link> */}
             </div>
           </div>
         </motion.div>

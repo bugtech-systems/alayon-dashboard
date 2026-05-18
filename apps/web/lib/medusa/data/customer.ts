@@ -56,7 +56,7 @@ export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
     .catch(medusaError)
 
   const cacheTag = await getCacheTag("customers")
-  revalidateTag(cacheTag)
+  revalidateTag(cacheTag, "max")
 
   return updateRes
 }
@@ -116,7 +116,7 @@ export async function signup(_currentState: unknown, formData: FormData) {
     })
 
     const cacheTag = await getCacheTag("customers")
-    revalidateTag(cacheTag)
+    revalidateTag(cacheTag, "max")
 
     await transferCart()
 
@@ -149,7 +149,7 @@ export async function login(_currentState: unknown, formData: FormData) {
             getCacheTag("carts"),
           ])
 
-        revalidateTag(customerCacheTag)
+        revalidateTag(customerCacheTag, "max")
 
         const customer = await retrieveCustomer()
         const cart = await retrieveCart()
@@ -163,8 +163,8 @@ export async function login(_currentState: unknown, formData: FormData) {
           })
         }
 
-        revalidateTag(productsCacheTag)
-        revalidateTag(cartsCacheTag)
+        revalidateTag(productsCacheTag, "max")
+        revalidateTag(cartsCacheTag, "max")
       })
   } catch (error: any) {
     return error.toString()
@@ -193,10 +193,10 @@ export async function signout(countryCode: string, customerId: string) {
       getCacheTag("carts"),
     ])
 
-  revalidateTag(authCacheTag)
-  revalidateTag(customerCacheTag)
-  revalidateTag(productsCacheTag)
-  revalidateTag(cartsCacheTag)
+  revalidateTag(authCacheTag, "max")
+  revalidateTag(customerCacheTag, "max")
+  revalidateTag(productsCacheTag, "max")
+  revalidateTag(cartsCacheTag, "max")
 
   redirect(`/${countryCode}/account`)
 }

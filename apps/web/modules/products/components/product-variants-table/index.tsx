@@ -5,7 +5,7 @@ import { clx, Table } from "@medusajs/ui"
 import Button from "@/modules/common/components/button"
 import ShoppingBag from "@/modules/common/icons/shopping-bag"
 import { useState } from "react"
-import BulkTableQuantity from "../bulk-table-quantity/index.jsx"
+import BulkTableQuantity from "../bulk-table-quantity"
 
 const ProductVariantsTable = ({
   product,

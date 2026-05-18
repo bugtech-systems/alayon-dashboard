@@ -3,7 +3,7 @@
 import { HttpTypes } from "@medusajs/types"
 import { Table, Text } from "@medusajs/ui"
 import Markdown from "react-markdown"
-import Accordion from "./accordion.jsx"
+import Accordion from "./accordion"
 
 type ProductTabsProps = {
   product: HttpTypes.StoreProduct

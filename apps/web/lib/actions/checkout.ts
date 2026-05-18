@@ -25,7 +25,7 @@ export async function updateCart(cartId: string, data: Record<string, unknown>) 
     }
   );
 
-  revalidateTag(getCacheOptions("carts"));
+  revalidateTag("carts", "max");
 
   return response;
 }
@@ -179,30 +179,34 @@ export async function createDelivery(cartId: string, company_id: any) {
 export async function placeOrder(
   prevState: any, data: FormData
 ) {
-  const id = data.get("cart-id")?.toString()
+  const id = data.get("cart-id")?.toString();
+  
   const cart = await retrieveCart(id);
+
+  console.log(cart, 'CAAARRTT')
   if (!id) {
     throw new Error("No existing cart found when placing an order")
   }
 
 
-  const firstName = data.get("first-name")?.toString();
-  const lastName = data.get("last-name")?.toString();
+  const firstName = data.get("first_name")?.toString();
+  const lastName = data.get("last_name")?.toString();
   const address = data.get("address")?.toString();
-  const city = data.get("city")?.toString();
+  const city = data.get("city_code")?.toString();
+  const barangay = data.get("barangay_code")?.toString();
   const zip = data.get("zip")?.toString();
   const phone = data.get("phone")?.toString();
   const email = data.get("email")?.toString();
   const notes = data.get("notes")?.toString();
-
+console.log(firstName, lastName, address, city, phone, barangay, 'FOOORM')
   if (
     !firstName ||
     !lastName ||
     !address ||
     !city ||
-    !zip ||
-    !phone ||
-    !email 
+    // !zip ||
+    !phone 
+    // || !email 
   ) {
     return { message: "Please fill in all fields" };
   }
@@ -216,30 +220,78 @@ export async function placeOrder(
     phone,
   };
 
+  // const cartsTag = await getCacheOptions("carts")
+  // const ordersTag = await getCacheOptions("orders")
+  // const approvalsTag = await getCacheOptions("approvals")
+
+  // const response = await sdk.store.cart
+  //   .complete(id, {}, {...(await getAuthHeaders())})
+  //   .catch(medusaError) as any
 
 
 
   const delivery = await createDelivery(id, "comp_01KRF6QBE2CN5Z94BN4S0PYB8Z");
 
-  // const response = await sdk.store.cart
-  //   .complete(id, {}, headers)
-  //   .catch(medusaError)
+  // track("order_completed", {
+  //   order_id: delivery.id,
+  // })
 
-  // if (response.type === "cart") {
-  //   return response
-  // }
-
-  track("order_completed", {
-    order_id: delivery.id,
-  })
-
+  console.log(delivery, 'DELIVERY')
 //     // Optional: Clear cart from localStorage by setting cookie (if you still use cookies)
     const cookieStore = await cookies();
     cookieStore.set("_medusa_cart_id", "", { maxAge: 0 });
     cookieStore.set("_medusa_delivery_id", delivery.id);
-    
+
+
+  revalidateTag("carts", "max")
+  // revalidateTag("orders", "max")
+  // revalidateTag("approvals", "max")
     // Return success response
-
+    
     redirect(`/your-order?id=${delivery.id}`);
+    
+}
 
+export async function updateCartShippingAddress(cartId: string, shippingAddress: any) {
+  try {
+    const headers = await getAuthHeaders();
+    
+    const response = await sdk.client.fetch(
+      `/store/carts/${cartId}`,
+      {
+        method: "POST",
+        body: {
+          shipping_address: shippingAddress,
+        },
+        headers,
+      }
+    ) as any;
+    
+    revalidateTag(`carts`, "max");
+    
+    return { success: true, cart: response.cart };
+  } catch (error: any) {
+    console.error("Error updating cart shipping address:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateCartEmail(cartId: string, email: string) {
+  try {
+    const { cart } = await sdk.store.cart.update(cartId, { email });
+    return { success: true, cart };
+  } catch (error) {
+    console.error("Error updating cart email:", error);
+    return { success: false, error };
+  }
+}
+
+export async function updateCartMetadata(cartId: string, metadata: Record<string, any>) {
+  try {
+    const { cart } = await sdk.store.cart.update(cartId, { metadata });
+    return { success: true, cart };
+  } catch (error) {
+    console.error("Error updating cart metadata:", error);
+    return { success: false, error };
+  }
 }

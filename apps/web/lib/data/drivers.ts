@@ -14,7 +14,7 @@ export async function retrieveDriver(driverId: string): Promise<DriverDTO> {
       "Content-Type": "application/json",
       ...getAuthHeaders(),
       ...getCacheHeaders("drivers"),
-    },
+    } as any,
   });
 
   return driver;
