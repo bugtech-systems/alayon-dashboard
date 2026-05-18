@@ -160,9 +160,11 @@ export function CheckoutNav() {
               </Link>
               
             </div>
+                          <Link href="/" className="text-xl font-semibold hover:opacity-80 transition-opacity">
   <Button variant="ghost" size="icon" className="h-9 w-9" >
-                {/* <Home className="h-5 w-5" /> */}
+              <Home className="h-5 w-5" /> 
               </Button>
+              </Link>
             {/* Desktop Navigation */}
             {/* <div className="hidden lg:flex lg:items-center lg:gap-x-8">
               {navigation.map((item) => (

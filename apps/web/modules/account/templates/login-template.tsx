@@ -2,6 +2,7 @@
 
 import Login from "@/modules/account/components/login"
 import Register from "@/modules/account/components/register"
+import Signup from "@/modules/account/components/signup"
 import { HttpTypes } from "@medusajs/types"
 import { clx } from "@medusajs/ui"
 import Image from "next/image"
@@ -56,7 +57,7 @@ const LoginTemplate = ({ regions }: { regions: HttpTypes.StoreRegion[] }) => {
         {currentView === LOGIN_VIEW.LOG_IN ? (
           <Login setCurrentView={updateView} />
         ) : (
-          <Register setCurrentView={updateView} regions={regions} />
+          <Signup setCurrentView={updateView} regions={regions} />
         )}
       </div>
 

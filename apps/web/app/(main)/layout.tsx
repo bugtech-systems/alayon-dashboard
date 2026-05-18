@@ -22,7 +22,7 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
     freeShippingPrices = await listCartFreeShippingPrices(cart.id)
   }
 
-
+console.log(customer, 'CUUSSt')
 
   return (
     <>

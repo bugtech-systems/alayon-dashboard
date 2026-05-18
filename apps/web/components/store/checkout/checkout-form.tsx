@@ -207,9 +207,9 @@ const handlePaymentError = useCallback((error: string) => {
     if (updateTimeout.current) clearTimeout(updateTimeout.current);
     
     const hasRequiredData = formData.first_name && formData.last_name && formData.address_1 && selectedCity && selectedBarangay;
-    if (hasRequiredData) {
-      updateTimeout.current = setTimeout(updateCartData, 3000);
-    }
+    // if (hasRequiredData) {
+    //   updateTimeout.current = setTimeout(updateCartData, 3000);
+    // }
     
     return () => {
       if (updateTimeout.current) clearTimeout(updateTimeout.current);

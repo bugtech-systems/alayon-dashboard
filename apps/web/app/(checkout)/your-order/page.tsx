@@ -8,7 +8,8 @@ import Link from "next/link";
 import { 
   Clock, MapPin, Package2, Truck, Phone, 
   CheckCircle2, AlertCircle, ClipboardCheck, 
-  ShoppingBag, ChevronRight, XCircle 
+  ShoppingBag, ChevronRight, XCircle, Receipt,
+  FileText, Building2, Banknote
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,9 @@ interface Delivery {
   delivery_status: DeliveryStatus;
   delivery_fee: number;
   tax_amount: number;
+  tax_rate?: number;
+  subtotal?: number;
+  total?: number;
   eta?: string;
   delivered_at?: string;
   driver_id?: string;
@@ -52,11 +56,13 @@ interface Delivery {
       thumbnail?: string;
       quantity: number;
       unit_price: number;
+      tax_total?: number;
       variant?: { title: string };
     }>;
   };
   company?: {
     name: string;
+    tax_id?: string;
   };
   timeline?: Array<{
     message: string;
@@ -168,6 +174,115 @@ const getNumericStatus = (status: DeliveryStatus): number => {
   const index = STATUS_STEPS.indexOf(status);
   return index === -1 ? 0 : index;
 };
+
+// Tax Breakdown Component
+function TaxBreakdown({ subtotal, taxAmount, taxRate, deliveryFee }: { 
+  subtotal: number; 
+  taxAmount: number; 
+  taxRate?: number;
+  deliveryFee: number;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Calculate tax breakdown
+  const vatRate = taxRate || 0.12; // Default to 12% VAT
+  const vatAmount = taxAmount;
+  const taxableAmount = subtotal + deliveryFee;
+  const calculatedVatRate = taxableAmount > 0 ? (vatAmount / taxableAmount) * 100 : 0;
+  
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between w-full text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Receipt className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Tax Details</span>
+        </div>
+        <ChevronRight className={cn(
+          "h-4 w-4 text-muted-foreground transition-transform",
+          isExpanded && "rotate-90"
+        )} />
+      </button>
+      
+      {isExpanded && (
+        <div className="p-3 bg-gray-50 rounded-lg space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Taxable Amount</span>
+            <span className="font-medium">
+              {new Intl.NumberFormat("en-PH", {
+                style: "currency",
+                currency: "PHP"
+              }).format(taxableAmount)}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">VAT Rate</span>
+            <span className="font-medium">{calculatedVatRate.toFixed(2)}%</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">VAT Amount (12%)</span>
+            <span className="font-medium text-primary">
+              {new Intl.NumberFormat("en-PH", {
+                style: "currency",
+                currency: "PHP"
+              }).format(vatAmount)}
+            </span>
+          </div>
+          <Separator className="my-1" />
+          <p className="text-xs text-muted-foreground">
+            Tax is computed based on Philippine VAT regulations (12% on goods and services).
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Order Summary Component
+function OrderSummary({ subtotal, deliveryFee, taxAmount, total, formatPrice }: any) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
+          <Receipt className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
+          Order Summary
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Subtotal</span>
+            <span>{formatPrice(subtotal)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Delivery Fee</span>
+            <span>{formatPrice(deliveryFee)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">VAT (12%)</span>
+            <span className="font-medium text-primary">{formatPrice(taxAmount)}</span>
+          </div>
+          <Separator className="my-2" />
+          <div className="flex justify-between pt-1">
+            <span className="font-semibold">Total Amount</span>
+            <span className="font-bold text-primary text-base lg:text-xl">
+              {formatPrice(total)}
+            </span>
+          </div>
+        </div>
+        
+        <TaxBreakdown 
+          subtotal={subtotal}
+          taxAmount={taxAmount}
+          taxRate={0.12}
+          deliveryFee={deliveryFee}
+        />
+      </CardContent>
+    </Card>
+  );
+}
 
 // Mobile Timeline Component
 function MobileTimeline({ currentStatus, progressPercentage, estimatedRemaining, deliveredAt }: any) {
@@ -303,6 +418,7 @@ function DesktopTimeline({ currentStatus, progressPercentage, estimatedRemaining
 function OrderItem({ item, formatPrice, isMobile = false }: any) {
   const [isExpanded, setIsExpanded] = useState(false);
   const itemTotal = item.quantity * item.unit_price;
+  const itemTax = item.tax_total || 0;
   
   if (isMobile) {
     return (
@@ -351,7 +467,10 @@ function OrderItem({ item, formatPrice, isMobile = false }: any) {
         {isExpanded && (
           <div className="ml-[68px] mb-3 p-3 bg-gray-50 rounded-lg text-xs space-y-1">
             <p><span className="text-muted-foreground">Unit price:</span> {formatPrice(item.unit_price)}</p>
-            <p><span className="text-muted-foreground">Total:</span> {formatPrice(itemTotal)}</p>
+            <p><span className="text-muted-foreground">Item total:</span> {formatPrice(itemTotal)}</p>
+            {itemTax > 0 && (
+              <p><span className="text-muted-foreground">Tax (VAT):</span> {formatPrice(itemTax)}</p>
+            )}
           </div>
         )}
       </div>
@@ -381,7 +500,12 @@ function OrderItem({ item, formatPrice, isMobile = false }: any) {
           <p className="text-sm text-muted-foreground mt-0.5">{item.variant.title}</p>
         )}
         <div className="flex items-center justify-between mt-2">
-          <span className="text-sm text-muted-foreground">Qty: {item.quantity}</span>
+          <div className="space-y-0.5">
+            <span className="text-sm text-muted-foreground">Qty: {item.quantity}</span>
+            {itemTax > 0 && (
+              <p className="text-xs text-muted-foreground">Tax included: {formatPrice(itemTax)}</p>
+            )}
+          </div>
           <span className="font-semibold text-primary">{formatPrice(itemTotal)}</span>
         </div>
       </div>
@@ -400,11 +524,6 @@ export default function OrderStatusPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // if (!deliveryId) {
-    //   router.push("/account/orders?error=no_order_selected");
-    //   return;
-    // }
-    console.log(deliveryId, 'DELL')
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -489,14 +608,24 @@ export default function OrderStatusPage() {
     );
   }
 
+  // Calculate totals with proper tax handling
   const subtotal = delivery.cart?.items?.reduce(
     (total, item) => total + item.quantity * item.unit_price,
     0
   ) || 0;
 
   const deliveryFee = delivery.delivery_fee || 0;
-  const taxAmount = delivery.tax_amount || 0;
-  const totalAmount = subtotal + deliveryFee + taxAmount;
+  
+  // Use tax amount from delivery or calculate if not provided
+  let taxAmount = delivery.tax_amount || 0;
+  let totalAmount = delivery.total || (subtotal + deliveryFee + taxAmount);
+  
+  // If tax amount is 0 but we have subtotal, calculate 12% VAT
+  if (taxAmount === 0 && subtotal > 0) {
+    const taxableAmount = subtotal + deliveryFee;
+    taxAmount = taxableAmount * 0.12;
+    totalAmount = taxableAmount + taxAmount;
+  }
 
   const currentStatus = delivery.delivery_status;
   const currentStatusConfig = STATUS_CONFIG[currentStatus] || STATUS_CONFIG.pending;
@@ -524,7 +653,6 @@ export default function OrderStatusPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
-      
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 lg:hidden">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
@@ -604,29 +732,14 @@ export default function OrderStatusPage() {
 
                 <Separator className="my-3 lg:my-4" />
 
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>{formatPrice(subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Delivery Fee</span>
-                    <span>{formatPrice(deliveryFee)}</span>
-                  </div>
-                  {taxAmount > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tax (12% VAT)</span>
-                      <span>{formatPrice(taxAmount)}</span>
-                    </div>
-                  )}
-                  <Separator className="my-2" />
-                  <div className="flex justify-between pt-1">
-                    <span className="font-semibold">Total</span>
-                    <span className="font-bold text-primary text-base lg:text-xl">
-                      {formatPrice(totalAmount)}
-                    </span>
-                  </div>
-                </div>
+                {/* Order Summary */}
+                <OrderSummary 
+                  subtotal={subtotal}
+                  deliveryFee={deliveryFee}
+                  taxAmount={taxAmount}
+                  total={totalAmount}
+                  formatPrice={formatPrice}
+                />
               </CardContent>
             </Card>
           </div>
@@ -704,6 +817,29 @@ export default function OrderStatusPage() {
                       <p className="text-foreground">"{delivery.delivery_instructions}"</p>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Company Info */}
+            {delivery.company && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
+                    <Building2 className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
+                    Merchant Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1 text-sm">
+                  <p className="font-medium">{delivery.company.name}</p>
+                  {delivery.company.tax_id && (
+                    <p className="text-xs text-muted-foreground">
+                      TIN: {delivery.company.tax_id}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Registered under Philippine BIR regulations. VAT invoice available upon request.
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -787,4 +923,3 @@ export default function OrderStatusPage() {
     </div>
   );
 }
-

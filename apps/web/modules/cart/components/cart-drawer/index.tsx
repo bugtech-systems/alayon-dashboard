@@ -27,12 +27,67 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { X, ShoppingCart, AlertCircle, Lock, Truck, Percent } from "lucide-react"
+import { 
+  X, 
+  ShoppingCart, 
+  AlertCircle, 
+  Lock, 
+  Truck, 
+  Percent,
+  Landmark,
+  Wallet,
+  ShieldCheck
+} from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 type CartDrawerProps = {
   customer: B2BCustomer | null
   freeShippingPrices: StoreFreeShippingPrice[]
+}
+
+// Helper to calculate tax amount
+const calculateTaxAmount = (cart: any): number => {
+  if (!cart) return 0
+  
+  // If tax_total is available from Medusa, use it
+  if (cart.tax_total && cart.tax_total > 0) {
+    return cart.tax_total
+  }
+  
+  // Fallback: Calculate from tax lines if available
+  if (cart.tax_lines && cart.tax_lines.length > 0) {
+    return cart.tax_lines.reduce((sum: number, line: any) => sum + (line.rate / 100 * line.subtotal), 0)
+  }
+  
+  return 0
+}
+
+// Helper to calculate total including taxes
+const calculateTotalWithTax = (cart: any): number => {
+  if (!cart) return 0
+  
+  // If Medusa provides total with tax
+  if (cart.total && cart.total > 0) {
+    return cart.total
+  }
+  
+  // Calculate: subtotal + tax_total + shipping_total - discount_total
+  const subtotal = cart.item_subtotal || 0
+  const taxTotal = cart.tax_total || calculateTaxAmount(cart)
+  const shippingTotal = cart.shipping_total || 0
+  const discountTotal = cart.discount_total || 0
+  
+  return subtotal + taxTotal + shippingTotal - discountTotal
+}
+
+// Helper to get tax rate display
+const getTaxRate = (cart: any): number | null => {
+  if (!cart?.tax_lines || cart.tax_lines.length === 0) return null
+  
+  // Get the first tax line's rate (assuming standard rate applies)
+  const taxLine = cart.tax_lines[0]
+  return taxLine.rate
 }
 
 const CartDrawer = ({
@@ -58,7 +113,16 @@ const CartDrawer = ({
       return acc + item.quantity
     }, 0) || 0
 
+  // Calculate various totals
   const subtotal = useMemo(() => cart?.item_subtotal ?? 0, [cart])
+  const taxAmount = useMemo(() => calculateTaxAmount(cart), [cart])
+  const shippingTotal = useMemo(() => cart?.shipping_total ?? 0, [cart])
+  const discountTotal = useMemo(() => cart?.discount_total ?? 0, [cart])
+  const totalWithTax = useMemo(() => calculateTotalWithTax(cart), [cart])
+  const taxRate = useMemo(() => getTaxRate(cart), [cart])
+  
+  // Check if taxes are included in prices (Medusa setting)
+  const taxesIncluded = cart?.region?.automatic_taxes ? true : false
 
   const spendLimitExceeded = useMemo(
     () => checkSpendingLimit(cart, customer),
@@ -73,10 +137,6 @@ const CartDrawer = ({
     }
 
     open()
-
-    // const timer = setTimeout(close, 5000)
-
-    // setActiveTimer(timer)
   }
 
   useEffect(() => {
@@ -112,11 +172,14 @@ const CartDrawer = ({
   }, [pathname])
 
   const checkoutStep = cart ? getCheckoutStep(cart) : undefined
-  const checkoutPath = customer
-    ? checkoutStep
+  const checkoutPath = checkoutStep
       ? `/checkout?step=${checkoutStep}`
       : "/checkout"
-    : "/account"
+
+  // Check if free shipping is applicable
+  const hasFreeShipping = freeShippingPrices?.some(
+    (price) => subtotal >= price.min_cart_value
+  )
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsOpen} direction="right">
@@ -133,7 +196,7 @@ const CartDrawer = ({
           <span className="text-xs font-medium hidden sm:inline-block">
             {cart && items && items.length > 0
               ? convertToLocale({
-                  amount: subtotal,
+                  amount: totalWithTax,
                   currency_code: cart.currency_code,
                 })
               : "Cart"}
@@ -155,7 +218,7 @@ const CartDrawer = ({
           <DrawerHeader className="p-0">
             <DrawerTitle className="text-base font-semibold">
               {totalItems > 0 ? (
-                <>Cart ({totalItems})</>
+                <>Your Cart ({totalItems})</>
               ) : (
                 "Your Cart"
               )}
@@ -218,20 +281,124 @@ const CartDrawer = ({
 
                 <Separator className="my-2" />
 
-                {/* Subtotal */}
-                <div className="flex justify-between items-center pt-1">
-                  <span className="text-xs text-muted-foreground">Subtotal</span>
-                  <span className="text-sm font-semibold">
-                    {convertToLocale({
-                      amount: subtotal,
-                      currency_code: cart?.currency_code,
-                    })}
-                  </span>
+                {/* Detailed Breakdown */}
+                <div className="space-y-2">
+                  {/* Subtotal */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Subtotal</span>
+                    <span className="text-sm font-medium">
+                      {convertToLocale({
+                        amount: subtotal,
+                        currency_code: cart?.currency_code,
+                      })}
+                    </span>
+                  </div>
+
+                  {/* Discount */}
+                  {discountTotal > 0 && (
+                    <div className="flex justify-between items-center text-green-600">
+                      <div className="flex items-center gap-1">
+                        <Percent className="h-3 w-3" />
+                        <span className="text-xs">Discount</span>
+                      </div>
+                      <span className="text-sm font-medium">
+                        -{convertToLocale({
+                          amount: discountTotal,
+                          currency_code: cart?.currency_code,
+                        })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Shipping */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-1">
+                      <Truck className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Shipping</span>
+                    </div>
+                    {hasFreeShipping && shippingTotal === 0 ? (
+                      <span className="text-xs text-green-600 font-medium">Free</span>
+                    ) : (
+                      <span className="text-sm font-medium">
+                        {convertToLocale({
+                          amount: shippingTotal,
+                          currency_code: cart?.currency_code,
+                        })}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Taxes */}
+                  {taxAmount > 0 && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex justify-between items-center cursor-help">
+                            <div className="flex items-center gap-1">
+                              <Landmark className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                Tax {taxRate ? `(${taxRate}% VAT)` : ''}
+                              </span>
+                            </div>
+                            <span className="text-sm font-medium">
+                              {convertToLocale({
+                                amount: taxAmount,
+                                currency_code: cart?.currency_code,
+                              })}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="text-xs">
+                          <p>Value Added Tax (VAT)</p>
+                          {taxesIncluded && <p className="text-muted-foreground">Included in prices</p>}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+
+                  <Separator className="my-2" />
+
+                  {/* Total (including taxes) */}
+                  <div className="flex justify-between items-center pt-1">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold">Total</span>
+                      {taxAmount > 0 && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {taxesIncluded ? "Tax included" : "Plus tax"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-lg font-bold text-primary">
+                        {convertToLocale({
+                          amount: totalWithTax,
+                          currency_code: cart?.currency_code,
+                        })}
+                      </span>
+                      {shippingTotal > 0 && (
+                        <p className="text-[10px] text-muted-foreground">
+                          + shipping
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Tax Information Note */}
+                  {taxAmount === 0 && cart?.region?.automatic_taxes && (
+                    <div className="bg-blue-50 rounded-md p-2 mt-2">
+                      <div className="flex items-center gap-1.5">
+                        <ShieldCheck className="h-3 w-3 text-blue-600" />
+                        <span className="text-[10px] text-blue-700">
+                          Taxes will be calculated at checkout
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Spending Limit Warning */}
                 {spendLimitExceeded && (
-                  <Alert variant="destructive" className="bg-red-50 border-red-200 py-2">
+                  <Alert variant="destructive" className="bg-red-50 border-red-200 py-2 mt-2">
                     <AlertCircle className="h-3 w-3 text-red-600" />
                     <AlertDescription className="text-xs text-red-800">
                       This order exceeds your spending limit. Please contact your manager for approval.
@@ -272,24 +439,33 @@ const CartDrawer = ({
                   className="w-full gap-1.5 text-sm h-9"
                   disabled={totalItems === 0 || spendLimitExceeded}
                 >
-                  {customer ? (
-                    spendLimitExceeded ? (
-                      <>
-                        <Lock className="h-3.5 w-3.5" />
-                        Limit Exceeded
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-3.5 w-3.5" />
-                        Checkout
-                      </>
-                    )
+                  {spendLimitExceeded ? (
+                    <>
+                      <Lock className="h-3.5 w-3.5" />
+                      Limit Exceeded
+                    </>
                   ) : (
-                    "Log in to checkout"
+                    <>
+                      <Wallet className="h-3.5 w-3.5" />
+                      Proceed to Checkout
+                    </>
                   )}
                 </Button>
               </LocalizedClientLink>
             </div>
+            
+            {/* Total in Footer */}
+            {totalWithTax > 0 && (
+              <div className="flex justify-between items-center pt-1 border-t mt-1">
+                <span className="text-xs font-medium">Total to pay:</span>
+                <span className="text-base font-bold text-primary">
+                  {convertToLocale({
+                    amount: totalWithTax,
+                    currency_code: cart?.currency_code,
+                  })}
+                </span>
+              </div>
+            )}
           </DrawerFooter>
         )}
       </DrawerContent>

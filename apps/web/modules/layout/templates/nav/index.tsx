@@ -1,4 +1,3 @@
-import { retrieveCart } from "@/lib/data/cart"
 import { retrieveCustomer } from "@/lib/data/customer"
 import AccountButton from "@/modules/account/components/account-button"
 import CartButton from "@/modules/cart/components/cart-button"
@@ -158,7 +157,7 @@ function SearchModal() {
 
 export async function NavigationHeader() {
   const customer = await retrieveCustomer().catch(() => null)
-
+  console.log(customer, 'CUST NAV')
   return (
     <>
       {/* Announcement Bar */}

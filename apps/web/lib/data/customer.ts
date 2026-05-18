@@ -38,7 +38,7 @@ export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
     .fetch<{ customer: B2BCustomer }>(`/store/customers/me`, {
       method: "GET",
       query: {
-        fields: "*employee, *orders",
+        // fields: "",
       },
       headers,
       next,
@@ -200,8 +200,55 @@ export async function signout(countryCode: string, customerId: string) {
   revalidateTag(productsCacheTag, "max")
   revalidateTag(cartsCacheTag, "max")
 
-  redirect(`/${countryCode}/account`)
+  redirect(`/account`)
 }
+
+
+export async function register(_currentState: unknown, formData: FormData) {
+  const password = formData.get("password") as string
+  const customerForm = {
+    email: formData.get("email") as string,
+    first_name: formData.get("first_name") as string,
+    last_name: formData.get("last_name") as string,
+    phone: formData.get("phone") as string,
+  }
+
+  try {
+    const token = await sdk.auth.register("customer", "emailpass", {
+      email: customerForm.email,
+      password: password,
+    })
+
+    await setAuthToken(token as string)
+
+    const headers = {
+      ...(await getAuthHeaders()),
+    }
+
+    const { customer: createdCustomer } = await sdk.store.customer.create(
+      customerForm,
+      {},
+      headers
+    )
+
+    const loginToken = await sdk.auth.login("customer", "emailpass", {
+      email: customerForm.email,
+      password,
+    })
+
+    await setAuthToken(loginToken as string)
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    await transferCart()
+
+    return createdCustomer
+  } catch (error: any) {
+    return error.toString()
+  }
+}
+
 
 export async function transferCart() {
   const cartId = await getCartId()

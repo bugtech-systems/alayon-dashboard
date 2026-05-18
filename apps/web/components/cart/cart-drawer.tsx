@@ -201,11 +201,10 @@ export const CartDrawer = ({
                         disabled={totalItems === 0 || spendLimitExceeded}
                       >
                         <LockClosedSolidMini />
-                        {customer
-                          ? spendLimitExceeded
+                        {spendLimitExceeded
                             ? "Spending Limit Exceeded"
                             : "Secure Checkout"
-                          : "Log in to checkout"}
+                         }
                       </Button>
                     </LocalizedClientLink>
                     {spendLimitExceeded && (
