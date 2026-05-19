@@ -20,7 +20,7 @@ type CartAddEventBus = {
   registerCartAddHandler: (handler: CartAddEventHandler) => void
 }
 
-export const addToCartEventBus: CartAddEventBus = {
+export const addToCartEventBus: CartAddEventBus | any = {
   emitCartAdd(payload: AddToCartEventPayload) {
     this.handler(payload)
 

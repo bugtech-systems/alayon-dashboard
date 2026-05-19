@@ -75,7 +75,7 @@ export function ProposalSectionsTable({
   const page = filters.page || 1;
   const limit = filters.limit || config.defaultPageSize || 10;
   
-  const [sorting, setSorting] = React.useState<SortingState>(() => {
+  const [sorting, setSorting] = React.useState<SortingState | any>(() => {
     if (filters.sort_by) {
       return [{ id: filters.sort_by, desc: filters.sort_order === "desc" }];
     }
@@ -106,9 +106,7 @@ export function ProposalSectionsTable({
   const { data, isLoading, isFetching } = useN8nQuery({
     widget: widgetConfig,
     filters: queryFilters,
-    enabled: true,
-    staleTime: 30000,
-    keepPreviousData: true,
+    enabled: true
   });
 
   const tableData = (data && data[0]?.data) || [];
@@ -131,7 +129,7 @@ export function ProposalSectionsTable({
   }, [setFilters]);
 
   const handleSortingChange = React.useCallback((updater: any) => {
-    setSorting((prev) => {
+    setSorting((prev: any) => {
       const newSorting = typeof updater === "function" ? updater(prev) : updater;
       if (newSorting.length > 0) {
         setFilters({ sort_by: newSorting[0].id, sort_order: newSorting[0].desc ? "desc" : "asc", page: 1 });
@@ -170,7 +168,7 @@ export function ProposalSectionsTable({
         return <span className="text-sm font-medium">{col.header}</span>;
       },
       cell: ({ getValue, row }) => {
-        const value = getValue();
+        const value = getValue() as any;
         const originalRow = row.original;
         
         if (col.cellRenderer) {
@@ -183,7 +181,7 @@ export function ProposalSectionsTable({
             return (
               <span className="font-medium">
                 {col.currency || "₱"}
-                {(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {(value || 0).toLocaleString()}
               </span>
             );
           case "badge": {
@@ -423,7 +421,7 @@ export function ProposalSectionsTable({
           {tabsConfig && tabsConfig.length > 0 && (
             <Tabs value={filters.tab || tabsConfig[0]?.value} onValueChange={handleTabChange}>
               <TabsList>
-                {tabsConfig.map((tab) => (
+                {tabsConfig.map((tab: any) => (
                   <TabsTrigger key={tab.id} value={tab.value}>
                     {tab.label}
                   </TabsTrigger>
@@ -441,7 +439,7 @@ export function ProposalSectionsTable({
                   <div className="mb-3">
                     <Tabs value={filters.tab || tabsConfig[0]?.value} onValueChange={handleTabChange}>
                       <TabsList className="w-full">
-                        {tabsConfig.map((tab) => (
+                        {tabsConfig.map((tab: any) => (
                           <TabsTrigger key={tab.id} value={tab.value} className="flex-1">
                             {tab.label}
                           </TabsTrigger>

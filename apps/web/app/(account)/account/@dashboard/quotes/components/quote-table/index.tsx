@@ -9,22 +9,22 @@ export const QuoteTableItem = ({
   originalItem,
   currencyCode,
 }: {
-  item: AdminOrderPreview["items"][0]
+  item: AdminOrderPreview["items"][0] | any
   originalItem?: AdminOrderLineItem
   currencyCode: string
 }) => {
   const isAddedItem = useMemo(
-    () => !!item.actions?.find((a) => a.action === "ITEM_ADD"),
+    () => !!item.actions?.find((a: any) => a.action === "ITEM_ADD"),
     [item]
   )
 
   const isItemUpdated = useMemo(
-    () => !!item.actions?.find((a) => a.action === "ITEM_UPDATE"),
+    () => !!item.actions?.find((a: any) => a.action === "ITEM_UPDATE"),
     [item]
   )
 
   const isItemRemoved = useMemo(() => {
-    const updateAction = item.actions?.find((a) => a.action === "ITEM_UPDATE")
+    const updateAction = item.actions?.find((a: any) => a.action === "ITEM_UPDATE")
 
     return !!updateAction && item.quantity === item.detail.fulfilled_quantity
   }, [item])
@@ -50,7 +50,7 @@ export const QuoteTableItem = ({
             </div>
           )}
           <Text size="small">
-            {item.variant?.options?.map((o) => o.value).join(" · ")}
+            {item.variant?.options?.map((o: any) => o.value).join(" · ")}
           </Text>
         </div>
 

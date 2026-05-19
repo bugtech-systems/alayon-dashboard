@@ -115,7 +115,7 @@ export const ProductPrice = memo(function ProductPrice({
   size = "md",
   align = "left",
 }: ProductPriceProps) {
-  const { variants } = product;
+  const { variants } = product as any;
   
   if (!variants || variants.length === 0) {
     return null;
@@ -123,7 +123,7 @@ export const ProductPrice = memo(function ProductPrice({
 
   // Find selected variant
   const selectedVariant = variantId 
-    ? variants.find(v => v.id === variantId)
+    ? variants.find((v: any) => v.id === variantId)
     : null;
   
   // If a specific variant is selected, show its price
@@ -152,7 +152,7 @@ export const ProductPrice = memo(function ProductPrice({
       },
     };
 
-    const alignClasses = {
+    const alignClasses: any = {
       left: "text-left",
       center: "text-center",
       right: "text-right",
@@ -185,12 +185,12 @@ export const ProductPrice = memo(function ProductPrice({
         </div>
 
         {/* Bulk pricing info if available */}
-        {selectedVariant.prices?.some(p => p.min_quantity) && (
+        {selectedVariant.prices?.some((p: any) => p.min_quantity) && (
           <p className="text-xs text-gray-500">
             Bulk pricing available for quantities of{" "}
             {selectedVariant.prices
-              .filter(p => p.min_quantity)
-              .map(p => `${p.min_quantity}+`)
+              .filter((p: any) => p.min_quantity)
+              .map((p: any) => `${p.min_quantity}+`)
               .join(", ")}
           </p>
         )}
@@ -204,7 +204,7 @@ export const ProductPrice = memo(function ProductPrice({
   const hasAnySale = hasSale(variants);
   
   // Find the variant with the lowest current price for discount calculation
-  const lowestVariant = variants.reduce((lowest, current) => {
+  const lowestVariant = variants.reduce((lowest: any, current: any) => {
     const currentAmount = current.calculated_price?.calculated_amount;
     const lowestAmount = lowest.calculated_price?.calculated_amount;
     return currentAmount < lowestAmount ? current : lowest;
@@ -240,8 +240,14 @@ export const ProductPrice = memo(function ProductPrice({
 
   // If all variants have the same price
   const allSamePrice = variants.every(
-    v => v.calculated_price?.calculated_amount === lowestCurrent
+    (v: any) => v.calculated_price?.calculated_amount === lowestCurrent
   );
+
+ const alignClasses: any = {
+      left: "text-left",
+      center: "text-center",
+      right: "text-right",
+    };
 
   if (allSamePrice) {
     return (
@@ -271,7 +277,7 @@ export const ProductPrice = memo(function ProductPrice({
   }
 
   // Show price range
-  const highestCurrent = variants.reduce((highest, current) => {
+  const highestCurrent = variants.reduce((highest: any, current: any) => {
     const currentAmount = current.calculated_price?.calculated_amount;
     const highestAmount = highest.calculated_price?.calculated_amount;
     return currentAmount > highestAmount ? current : highest;
@@ -325,11 +331,11 @@ export function CompactProductPrice({ product, className }: { product: any; clas
   
   const lowestPrice = getLowestPrice(variants);
   const hasMultiplePrices = variants.some(
-    v => v.calculated_price?.calculated_amount !== lowestPrice?.amount
+    (v: any) => v.calculated_price?.calculated_amount !== lowestPrice?.amount
   );
   
   if (hasMultiplePrices) {
-    const highestPrice = variants.reduce((highest, current) => {
+    const highestPrice = variants.reduce((highest: any, current: any) => {
       const currentAmount = current.calculated_price?.calculated_amount;
       const highestAmount = highest.calculated_price?.calculated_amount;
       return currentAmount > highestAmount ? current : highest;

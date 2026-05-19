@@ -75,7 +75,7 @@ export function ProductCatalog({regionId}: any) {
   
   // Filter states - initialized from URL on mount only
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 5000 });
+  const [priceRange, setPriceRange] = useState<PriceRange | any>({ min: 0, max: 5000 });
   const [sortBy, setSortBy] = useState("newest");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [onSaleOnly, setOnSaleOnly] = useState(false);
@@ -331,7 +331,7 @@ export function ProductCatalog({regionId}: any) {
             min={0}
             max={5000}
             step={50}
-            onValueChange={(value) => setPriceRange({ min: value[0], max: value[1] })}
+            onValueChange={(value) => setPriceRange({ min: value[0] as any, max: value[1]  as any})}
             className="w-full"
           />
           <div className="flex items-center justify-between gap-2">

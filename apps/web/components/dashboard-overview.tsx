@@ -143,7 +143,7 @@ export function AnalyticsOverview() {
       })
   }
 
-    const handleBranch = (value) => {
+    const handleBranch = (value: any) => {
      setFilters({
                 branch: value,
                 batch: "all", // Reset batch when branch changes

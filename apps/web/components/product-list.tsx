@@ -87,7 +87,7 @@ function getSortingParams(sort: string | null) {
 }
 
 // Helper to get product image
-const getProductImage = (product: Product): string => {
+const getProductImage = (product: Product | any): string => {
   if (product.thumbnail) return product.thumbnail;
   if (product.images && product.images.length > 0) return product.images[0].url;
   return "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&h=800&fit=crop";

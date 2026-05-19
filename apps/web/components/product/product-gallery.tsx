@@ -6,7 +6,7 @@ import Image from 'next/image'
 import { ChevronLeft, ChevronRight, ShoppingBag, ZoomIn } from 'lucide-react'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 
-export function ProductGallery({ product }) {
+export function ProductGallery({ product }: any) {
   // Get all product images
   const images = product.images?.length 
     ? product.images 
@@ -102,7 +102,7 @@ export function ProductGallery({ product }) {
       {/* Thumbnails */}
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {images.map((image, index) => (
+          {images.map((image: any, index: any) => (
             <button
               key={index}
               onClick={() => setSelectedIndex(index)}

@@ -10,10 +10,7 @@ export default async function Footer() {
     offset: "0",
     limit: "6",
   })
-  const product_categories = await listCategories({
-    offset: 0,
-    limit: 6,
-  })
+  const product_categories = await listCategories()
 
   return (
     <footer className="border-t border-ui-border-base w-full">

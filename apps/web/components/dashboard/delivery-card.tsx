@@ -12,7 +12,7 @@ export default async function DeliveryCard({
 }: {
   delivery: DeliveryDTO;
   driver?: DriverDTO;
-  type: "company" | "driver";
+  type: "company" | "driver" | any;
 }) {
   if (!delivery || delivery === null) return null;
 

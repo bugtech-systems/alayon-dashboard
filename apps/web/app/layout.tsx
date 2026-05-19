@@ -1,18 +1,17 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "@workspace/ui/globals.css"
 import { MedusaAuthProvider } from "@/providers/MedusaAuthProvider";
 import { Providers } from "@/providers/queryProvider";
-import { TooltipProvider } from "@medusajs/ui";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Analytics } from "@vercel/analytics/next";
-import { LocationProvider, useLocation } from '@/lib/context/LocationContext';
+import { LocationProvider } from '@/lib/context/LocationContext';
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 
 
 export const metadata: Metadata = {
-  title: "My Store",
+  title: "Alayon Store",
   description: "Browse our latest products",
 };
 
@@ -24,18 +23,18 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        <TooltipProvider>
      <LocationProvider>
         <MedusaAuthProvider>
         <Providers>
-        <TooltipProvider>
         <ThemeProvider>
           {children}
           </ThemeProvider>
-        </TooltipProvider>
         </Providers>
         </MedusaAuthProvider>
 </LocationProvider>
         <Analytics />
+        </TooltipProvider>
 
       </body>
     </html>

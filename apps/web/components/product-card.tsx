@@ -55,7 +55,7 @@ interface ProductCardProps {
 
 
 // Helper: Get default variant (first available or first in stock)
-const getDefaultVariant = (product: Product): VariantPrice | null => {
+const getDefaultVariant = (product: Product): VariantPrice | any => {
   if (!product.variants || product.variants.length === 0) return null;
   
   // First try to find in-stock variant
@@ -134,14 +134,14 @@ const isVariantInStock = (variant: VariantPrice | null): boolean => {
 };
 
 // Helper: Get product image
-const getProductImage = (product: Product): string => {
+const getProductImage = (product: Product | any): string => {
   if (product.thumbnail) return product.thumbnail;
   if (product.images && product.images.length > 0) return product.images[0].url;
   return "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&h=800&fit=crop";
 };
 
 // Helper: Get hover image
-const getHoverImage = (product: Product): string | undefined => {
+const getHoverImage = (product: Product | any): string | undefined => {
   if (product.images && product.images.length > 1) return product.images[1].url;
   return undefined;
 };
@@ -276,7 +276,7 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
   // Get selected variant object
   const selectedVariant = useMemo(() => {
     if (!selectedVariantId) return null;
-    return product.variants?.find(v => v.id === selectedVariantId) || null;
+    return product.variants?.find((v: any) => v.id === selectedVariantId) || null;
   }, [product.variants, selectedVariantId]);
   
   // Get variant-specific price info

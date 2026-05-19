@@ -87,7 +87,7 @@ export function BalanceDistributionCard() {
     }));
 
     // Update chart config dynamically
-    accountsWithColors.forEach((account: BalanceAccount) => {
+    accountsWithColors.forEach((account: BalanceAccount | any) => {
       if (!chartConfig[account.key as keyof typeof chartConfig]) {
         (chartConfig as any)[account.key] = {
           color: account.fill,
@@ -207,7 +207,7 @@ export function BalanceDistributionCard() {
             </ChartContainer>
 
             <div className="flex min-w-0 flex-col gap-3">
-              {enrichedChartData.map((item: BalanceAccount) => (
+              {enrichedChartData.map((item: BalanceAccount | any) => (
                 <div className="grid grid-cols-[1fr_auto] items-end gap-3" key={item.key}>
                   <div className="min-w-0">
                     <div className="flex min-w-0 items-center gap-1">

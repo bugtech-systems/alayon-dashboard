@@ -39,13 +39,13 @@ const QuoteMessages = ({
   })
 
   const [isCreatingMessage, setIsCreatingMessage] = useState(false)
-  const handleCreateMessage = (data: StoreCreateQuoteMessage) => {
+  const handleCreateMessage: any = (data: StoreCreateQuoteMessage) => {
     setIsCreatingMessage(true)
     createQuoteMessage(quote.id, data).finally(() => {
       reset(defaultValues)
       setIsCreatingMessage(false)
     })
-  }
+  };
 
   const originalItemsMap = useMemo(() => {
     return new Map<string, AdminOrderLineItem>(
@@ -123,7 +123,7 @@ const QuoteMessages = ({
               <Controller
                 name="item_id"
                 control={control}
-                render={({ field: { onChange, ref, value, ...field } }) => (
+                render={({ field: { onChange, ref, value, ...field } }: any) => (
                   <Select {...field} onValueChange={onChange} value={value}>
                     <Select.Trigger className="bg-ui-bg-base" ref={ref}>
                       <Select.Value />

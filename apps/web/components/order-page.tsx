@@ -1,7 +1,7 @@
 // app/(checkout)/your-order/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -408,7 +408,7 @@ export default function OrderStatusPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const deliveryData = await retrieveDelivery(deliveryId);
+        const deliveryData = await retrieveDelivery(deliveryId) as any;
         
         if (!deliveryData) {
           setError("Order not found");
@@ -419,7 +419,7 @@ export default function OrderStatusPage() {
         
         if (deliveryData.driver_id) {
           try {
-            const driverData = await retrieveDriver(deliveryData.driver_id);
+            const driverData = await retrieveDriver(deliveryData.driver_id) as any;
             setDriver(driverData);
           } catch (err) {
             console.error("Failed to fetch driver:", err);
@@ -531,7 +531,7 @@ export default function OrderStatusPage() {
               <p className="text-xs text-muted-foreground">Order #{delivery.id.slice(-8)}</p>
               <h1 className="text-lg font-semibold text-foreground">Track Order</h1>
             </div>
-            <Badge variant={currentStatusConfig.variant} className="text-xs">
+            <Badge  className="text-xs">
               <CurrentStatusIcon className="h-3 w-3 mr-1" />
               {currentStatusConfig.shortLabel}
             </Badge>
@@ -555,7 +555,7 @@ export default function OrderStatusPage() {
                 Track your order from {delivery.company?.name || "Alayon Store"}
               </p>
             </div>
-            <Badge variant={currentStatusConfig.variant} className="w-fit text-sm py-1.5 px-4">
+            <Badge  className="w-fit text-sm py-1.5 px-4">
               <CurrentStatusIcon className="h-3.5 w-3.5 mr-1.5" />
               {currentStatusConfig.label}
             </Badge>

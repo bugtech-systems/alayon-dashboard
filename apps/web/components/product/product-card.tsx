@@ -7,8 +7,8 @@ import { formatPrice, getDefaultVariant, getLowestPrice } from '@/lib/medusa/uti
 import { useCart } from '@/lib/context/cart-context'
 import { Button } from '@/components/ui/button'
 
-export function ProductCard({ product, priority = false }) {
-  const { addToCart, isLoading } = useCart()
+export function ProductCard({ product, priority = false }: any) {
+  const { addToCart, isLoading } = useCart() as any
   
   // Get default variant (first available variant with inventory)
   const defaultVariant = getDefaultVariant(product)
@@ -17,9 +17,9 @@ export function ProductCard({ product, priority = false }) {
   const { lowestPrice, originalPrice, hasDiscount, discountPercentage } = getLowestPrice(product)
   
   // Check if product is in stock
-  const isInStock = product.variants?.some(variant => 
+  const isInStock = product.variants?.some((variant: any) => 
     variant.inventory_quantity > 0 || variant.allow_backorder
-  ) ?? !selectedVariant?.manage_inventory
+  ) ?? !defaultVariant?.manage_inventory
 
 
   
@@ -27,7 +27,7 @@ export function ProductCard({ product, priority = false }) {
   const productImage = product.images?.[0] || product.thumbnail
   const imageAlt = productImage?.alt || product.title
 
-  const handleQuickAdd = async (e) => {
+  const handleQuickAdd = async (e: any) => {
     e.preventDefault()
     e.stopPropagation()
     if (defaultVariant) {

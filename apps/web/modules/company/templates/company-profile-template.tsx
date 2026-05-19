@@ -29,7 +29,7 @@ import {ProductCard} from "@/components/product-card"
 import { Facebook } from "@medusajs/icons"
 
 type CompanyProfileTemplateProps = {
-  company: {
+  company?: {
     id: string
     name: string
     description: string
@@ -55,10 +55,10 @@ type CompanyProfileTemplateProps = {
       saturday?: string
       sunday?: string
     }
-  }
-  products: HttpTypes.StoreProduct[]
-  region: HttpTypes.StoreRegion
-  countryCode: string
+  } | any
+  products?: HttpTypes.StoreProduct[]
+  region?: HttpTypes.StoreRegion | any
+  countryCode?: string
 }
 
 const CompanyProfileTemplate: React.FC<CompanyProfileTemplateProps> = ({

@@ -15,3 +15,26 @@ export async function listCategories(): Promise<
   console.log(product_categories, 'PRODDS CATT')
   return product_categories as HttpTypes.StoreProductCategory[];
 }
+
+export const getCategoryByHandle = async (
+  categoryHandle: string[]
+): Promise<HttpTypes.StoreProductCategory> => {
+  const handle = `${categoryHandle.join("/")}`
+
+  const next = {
+    ...(await getCacheOptions("categories")),
+  }
+
+  return sdk.client
+    .fetch<HttpTypes.StoreProductCategoryListResponse>(
+      `/store/product-categories`,
+      {
+        query: {
+          fields: "*category_children, *products",
+          handle,
+        },
+        next,
+      }
+    )
+    .then(({ product_categories }) => product_categories[0])
+}

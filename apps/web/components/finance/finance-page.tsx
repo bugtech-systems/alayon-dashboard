@@ -10,8 +10,6 @@ import { IncomeBreakdown } from "./income-breakdown";
 import { OverviewKpis } from "./overview-kpis";
 import { QuickActions } from "./quick-actions";
 import { TransactionsOverviewCard } from "./transactions-overview-card";
-import { UpcomingTransactions } from "./upcoming-transactions";
-import { Wallet } from "./wallet";
 
 export default function FinancePage() {
   const formattedDate = format(new Date(), "EEEE, do MMMM yyyy");
@@ -69,12 +67,6 @@ export default function FinancePage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-            <div className="xl:col-span-4">
-              <Wallet />
-            </div>
-            <div className="xl:col-span-4">
-              <UpcomingTransactions />
-            </div>
             <div className="xl:col-span-4">
               <QuickActions />
             </div>

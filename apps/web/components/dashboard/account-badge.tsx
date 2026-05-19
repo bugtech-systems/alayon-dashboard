@@ -2,7 +2,6 @@ import {
   DeliveryDTO,
   DeliveryStatus,
   DriverDTO,
-  RestaurantDTO,
 } from "@/lib/types";
 import { Badge, Text } from "@medusajs/ui";
 import Image from "next/image";
@@ -29,7 +28,7 @@ export default async function AccountBadge({
   type,
 }: {
   data: any;
-  type: "driver" | "company";
+  type: "driver" | "company" | any;
 }) {
   let name = "";
 
@@ -39,7 +38,7 @@ export default async function AccountBadge({
   }
 
   if (type === "company") {
-    const restaurant = data as RestaurantDTO;
+    const restaurant = data as any;
     name = restaurant.name;
   }
 

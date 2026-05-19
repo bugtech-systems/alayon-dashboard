@@ -41,7 +41,7 @@ function getDefaultToDate(): string {
   return format(endOfDay(new Date()), "yyyy-MM-dd");
 }
 
-export function useURLFilters(options: UseURLFiltersOptions = {}) {
+export function useURLFilters(options: UseURLFiltersOptions | any = {}) {
   const { 
     defaultPage = 1, 
     defaultLimit = 10,

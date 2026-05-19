@@ -5,23 +5,18 @@ import { ChartAreaInteractive } from "@/components/chart-area-interactive"
 import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
-
 import { AnalyticsOverview } from "@/components/dashboard-overview"
 import { Suspense } from "react"
 import { ProposalSectionsTable } from "@/components/dashboard/proposal-sections-table/table"
 import { useURLFilters } from "@/hooks/useUrlFilters"
 import { batchTableConfig, transactionsTableConfig } from "@/components/configData"
 
-
-
 const dashboardCardsWidget = {
   id: "dashboard-cards",
   type: "kpi",
-
   webhook: {
     url: "/webhook/dashboard-cards",
     method: "GET",
-
     queryMap: {
       range: "range",
       from: "from",
@@ -33,31 +28,29 @@ const dashboardCardsWidget = {
   },
 }
 
-
 const chartWidget = {
   id: "sales-chart",
   type: "area",
-
   webhook: {
-  url: "/webhook/sales-chart",
-  queryMap: {
-    from: "from",
-    to: "to",
-    peddler: "peddler",
-    branch: "branch"
+    url: "/webhook/sales-chart",
+    queryMap: {
+      from: "from",
+      to: "to",
+      peddler: "peddler",
+      branch: "branch"
+    },
   },
-},
   config: {
     "total": {
-        "label": "Total Sales"
+      "label": "Total Sales"
     },
     "new_can": {
-        "label": "New Can",
-        "color": "var(--primary)"
+      "label": "New Can",
+      "color": "var(--primary)"
     },
     "refill": {
-        "label": "Refill",
-        "color": "var(--primary)"
+      "label": "Refill",
+      "color": "var(--primary)"
     }
   }
 }
@@ -65,7 +58,7 @@ const chartWidget = {
 const transactionWidget = {
   id: "transaction-table",
   webhook: {
-    url: "/webhook/get-tansactions",
+    url: "/webhook/get-transactions",
     method: "GET",
     queryMap: {
       page: "page",
@@ -81,7 +74,7 @@ const transactionWidget = {
       peddler: "peddler"
     },
   },
-};
+}
 
 const batchesWidget = {
   id: "batches-table",
@@ -102,7 +95,7 @@ const batchesWidget = {
       peddler: "peddler"
     },
   },
-};
+}
 
 // Tab configurations
 const TAB_CONFIGS = {
@@ -113,40 +106,36 @@ const TAB_CONFIGS = {
     config: transactionsTableConfig,
     widget: transactionWidget,
   },
-   batches: {
+  batches: {
     id: "batches",
     label: "Batches",
     value: "batches",
     config: batchTableConfig,
     widget: batchesWidget,
   },
-};
+}
 
-export default function Page() {
- const { filters, setFilters } = useURLFilters({ defaultPage: 1, defaultLimit: 10 });
+// Separate component that uses useURLFilters
+function DashboardContent() {
+  const { filters, setFilters } = useURLFilters({ defaultPage: 1, defaultLimit: 10 })
   
   // Get current tab from URL
-  const currentTab = filters.tab || "transactions";
+  const currentTab = filters.tab || "transactions"
   
   // Get current configuration based on selected tab
-  const currentConfig = TAB_CONFIGS[currentTab as keyof typeof TAB_CONFIGS] || TAB_CONFIGS.transactions;
-
+  const currentConfig = TAB_CONFIGS[currentTab as keyof typeof TAB_CONFIGS] || TAB_CONFIGS.transactions
 
   const handleRowClick = (row: any) => {
-    console.log("Row clicked:", row);
-    // You can add navigation or modal logic here
-    // Example: router.push(`/draws/${row.id}`)
-  };
+    console.log("Row clicked:", row)
+  }
 
   // Tab configuration for the DynamicDataTable
   const tabsConfig = [
     { id: "transactions", label: "Sales", value: "transactions" },
     { id: "batches", label: "Purchases", value: "batches" }
-  ];
-
+  ]
 
   return (
-      <Suspense>
     <SidebarProvider
       style={
         {
@@ -155,39 +144,55 @@ export default function Page() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset"  />
+      <AppSidebar variant="inset" />
       <SidebarInset>
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
-
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                    {/* <DashboardFiltersBar /> */}
-              <AnalyticsOverview/>
-               <SectionCards
-                widget={dashboardCardsWidget}
-              
-              />
+              <AnalyticsOverview />
+              <SectionCards widget={dashboardCardsWidget} />
               <div className="px-4 lg:px-6">
-                <ChartAreaInteractive widget={chartWidget}/>
+                <ChartAreaInteractive widget={chartWidget} />
               </div>
-                            <div className="px-4 lg:px-6">
-              {/* <DataTable /> */}
-                    <ProposalSectionsTable 
-                     key={currentTab} // Force re-render when tab changes
-                               config={currentConfig.config}
-                               widgetConfig={currentConfig.widget}
-                               tabsConfig={tabsConfig}
-                               onRowClick={handleRowClick}
-                    />
-                                  </div>
-
+              <div className="px-4 lg:px-6">
+                <ProposalSectionsTable 
+                  key={currentTab}
+                  config={currentConfig.config}
+                  widgetConfig={currentConfig.widget}
+                  tabsConfig={tabsConfig}
+                  onRowClick={handleRowClick}
+                />
+              </div>
             </div>
           </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
-    </Suspense>
   )
 }
 
+// Loading skeleton
+function DashboardSkeleton() {
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="animate-pulse space-y-4 w-full max-w-7xl mx-auto p-4">
+        <div className="h-12 bg-gray-200 rounded w-1/4"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+          ))}
+        </div>
+        <div className="h-96 bg-gray-200 rounded-lg"></div>
+      </div>
+    </div>
+  )
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent />
+    </Suspense>
+  )
+}

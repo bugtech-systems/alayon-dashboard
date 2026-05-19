@@ -12,8 +12,7 @@ type ProfileBadgeProps = {
 };
 
 export function ProfileBadge() {
-  const { user, logout, loading } = useMedusaAuth()
-  const router = useRouter()
+  const { user, logout, loading } = useMedusaAuth() as any;
 
 
 console.log(user, 'USSER')

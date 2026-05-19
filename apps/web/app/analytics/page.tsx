@@ -85,9 +85,6 @@ const transactionWidget = {
   },
 };
 
-
-
-
 const batchesWidget = {
   id: "batches-table",
   webhook: {
@@ -109,7 +106,6 @@ const batchesWidget = {
   },
 };
 
-
 // Tab configurations
 const TAB_CONFIGS = {
   transactions: {
@@ -128,9 +124,9 @@ const TAB_CONFIGS = {
   }
 };
 
-
-export default function Page() {
- const { filters, setFilters } = useURLFilters() as any;
+// Separate component that uses useURLFilters
+function DashboardContent() {
+  const { filters, setFilters } = useURLFilters() as any;
   
   // Get current tab from URL
   const currentTab = filters.tab || "transactions";
@@ -140,8 +136,6 @@ export default function Page() {
 
   const handleRowClick = (row: any) => {
     console.log("Row clicked:", row);
-    // You can add navigation or modal logic here
-    // Example: router.push(`/draws/${row.id}`)
   };
 
   // Tab configuration for the DynamicDataTable
@@ -150,7 +144,68 @@ export default function Page() {
     { id: "batches", label: "Batches", value: "batches" }
   ];
 
+  return (
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="px-4 lg:px-6 flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <AnalyticsOverview />
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+            <div className="flex flex-col gap-4 lg:col-span-2">
+              <CashFlowOverview />
+            </div>
+            <BalanceDistributionCard />
+          </div>
+          <div className="px-4 lg:px-6">
+            <DynamicDataTable
+              key={currentTab}
+              config={currentConfig.config}
+              widgetConfig={currentConfig.widget}
+              tabsConfig={tabsConfig}
+              onRowClick={handleRowClick}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
+// Loading skeleton component
+function DashboardSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="px-4 lg:px-6 flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          {/* Analytics Overview Skeleton */}
+          <div className="animate-pulse">
+            <div className="h-32 bg-gray-200 rounded-lg mb-4"></div>
+          </div>
+          
+          {/* Cards Skeleton */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <div className="animate-pulse">
+                <div className="h-64 bg-gray-200 rounded-lg"></div>
+              </div>
+            </div>
+            <div className="animate-pulse">
+              <div className="h-64 bg-gray-200 rounded-lg"></div>
+            </div>
+          </div>
+          
+          {/* Table Skeleton */}
+          <div className="px-4 lg:px-6">
+            <div className="animate-pulse">
+              <div className="h-96 bg-gray-200 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Page() {
   return (
     <SidebarProvider
       style={
@@ -160,39 +215,13 @@ export default function Page() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset"  />
+      <AppSidebar variant="inset" />
       <SidebarInset>
-      <Suspense>
-
-        <SiteHeader 
-        pageTitle="Analytics"
-        />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-              <div className="px-4 lg:px-6 flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                 <AnalyticsOverview />
-                 <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-                   <div className="flex flex-col gap-4 lg:col-span-2">
-                           <CashFlowOverview />
-                   </div>
-                         <BalanceDistributionCard />
-                 </div>
-                           <div className="px-4 lg:px-6">
-                             <DynamicDataTable
-                               key={currentTab} // Force re-render when tab changes
-                               config={currentConfig.config}
-                               widgetConfig={currentConfig.widget}
-                               tabsConfig={tabsConfig}
-                               onRowClick={handleRowClick}
-                             />
-                           </div>
-               </div>
-          </div>
-        </div>
-    </Suspense>
-
+        <SiteHeader pageTitle="Analytics" />
+        <Suspense fallback={<DashboardSkeleton />}>
+          <DashboardContent />
+        </Suspense>
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }
-

@@ -16,14 +16,14 @@ const slides = [
     image: '/images/hero-model-2.jpeg',
     alt: 'Black hoodie',
   },
-]
+] as any
 
 export function HeroSection() {
-  const [currentSlide, setCurrentSlide] = useState(0)
+  const [currentSlide, setCurrentSlide] = useState(0) as any
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length)
+      setCurrentSlide((prev: any) => (prev + 1) % slides.length)
     }, 5000)
     return () => clearInterval(timer)
   }, [])
@@ -106,7 +106,7 @@ export function HeroSection() {
           transition={{ delay: 0.6 }}
           className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-3"
         >
-          {slides.map((_, i) => (
+          {slides.map((_: any, i: any) => (
             <button
               key={i}
               onClick={() => setCurrentSlide(i)}

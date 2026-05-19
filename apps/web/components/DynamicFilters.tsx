@@ -167,7 +167,7 @@ export function DynamicFilters({
   // Refs to prevent infinite loops
   const isUpdatingFromURL = useRef(false);
   const isUpdatingFromLocal = useRef(false);
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const debounceTimerRef = useRef<NodeJS.Timeout | any>(1000);
   
   // Generate filters from table columns
   const filtersConfig = useMemo(() => {
@@ -180,7 +180,7 @@ export function DynamicFilters({
   // Initialize local filters from URL only once
   const [localFilters, setLocalFilters] = useState<Record<string, any>>(() => {
     const urlFilters: Record<string, any> = {};
-    filtersConfig.forEach((filter) => {
+    filtersConfig.forEach((filter: any) => {
       const urlValue = searchParams.get(filter.field);
       if (urlValue !== null && urlValue !== "") {
         if (filter.type === "number") {
@@ -230,7 +230,7 @@ export function DynamicFilters({
     isUpdatingFromURL.current = true;
     
     const newUrlFilters: Record<string, any> = {};
-    filtersConfig.forEach((filter) => {
+    filtersConfig.forEach((filter: any) => {
       const urlValue = searchParams.get(filter.field);
       if (urlValue !== null && urlValue !== "") {
         if (filter.type === "number") {
@@ -511,7 +511,7 @@ export function DynamicFilters({
     }
   };
 
-  const getDisplayValue = (filter: FilterFieldConfig, value: any): string => {
+  const getDisplayValue = (filter: FilterFieldConfig | any, value: any): string => {
     if (!value) return "";
     
     if (filter.type === "daterange" && value.from && value.to) {
@@ -527,7 +527,7 @@ export function DynamicFilters({
     }
     
     if (filter.type === "select" && filter.options) {
-      const option = filter.options.find(opt => String(opt.value) === String(value));
+      const option = filter.options.find((opt: any) => String(opt.value) === String(value));
       return option?.label || String(value);
     }
     
@@ -543,7 +543,7 @@ export function DynamicFilters({
   };
 
   const groupedFilters = useMemo(() => {
-    const groups: Record<string, FilterFieldConfig[]> = {
+    const groups: Record<string, FilterFieldConfig[]> | any = {
       Basic: [],
       Other: [],
     };
@@ -593,14 +593,14 @@ export function DynamicFilters({
         {/* Scrollable Content */}
         <ScrollArea className="flex-1 px-4">
           <div className="py-4 space-y-6">
-            {Object.entries(groupedFilters).map(([groupName, filters]) => (
+            {Object.entries(groupedFilters).map(([groupName, filters]: any) => (
               filters.length > 0 && (
                 <div key={groupName} className="space-y-3">
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {groupName}
                   </h3>
                   <div className="space-y-4">
-                    {filters.map((filter) => (
+                    {filters.map((filter: any) => (
                       <div key={filter.id} className="space-y-1.5">
                         <Label className="text-xs font-medium flex items-center gap-1.5">
                           {getFilterIcon(filter.type)}
@@ -642,14 +642,14 @@ export function DynamicFilters({
     <>
       <ScrollArea className="h-[calc(90vh-200px)] px-1">
         <div className="space-y-8 py-4">
-          {Object.entries(groupedFilters).map(([groupName, filters]) => (
+          {Object.entries(groupedFilters).map(([groupName, filters]: any) => (
             filters.length > 0 && (
               <div key={groupName} className="space-y-4">
                 <h3 className="text-sm font-semibold text-muted-foreground border-b pb-2">
                   {groupName}
                 </h3>
                 <div className="space-y-6">
-                  {filters.map((filter) => (
+                  {filters.map((filter: any) => (
                     <div key={filter.id} className="space-y-2">
                       <Label className="text-sm font-semibold flex items-center gap-2">
                         {getFilterIcon(filter.type)}

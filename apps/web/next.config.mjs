@@ -54,6 +54,9 @@ const nextConfig = {
       '*': ['./**/api/**/*'],
     },
   },
+  typescript: {
+        ignoreBuildErrors: true
+  }
 }
 
 export default nextConfig

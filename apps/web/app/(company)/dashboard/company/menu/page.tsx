@@ -8,9 +8,17 @@ import {
 import { ProductDTO, ProductVariantDTO } from "@medusajs/types";
 import { Heading, Table, Text } from "@medusajs/ui";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 
 export default async function MenuPage() {
-  const {user, company} = (await retrieveUser()) as any;
+  const userData = (await retrieveUser()) as any;
+  
+  if(!userData){
+      redirect('/login')
+  }
+
+  let { company} = userData;
+
   const companyId = company?.id;
 
 console.log(companyId, 'COMPP')

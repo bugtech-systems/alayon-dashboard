@@ -32,7 +32,7 @@ export function MapLocationPicker({ onLocationSelect, initialLocation }: MapLoca
       try {
         // Import Leaflet dynamically
         const L = await import('leaflet');
-        await import('leaflet/dist/leaflet.css');
+       
         
         // Fix Leaflet icon issue
         delete (L.Icon.Default.prototype as any)._getIconUrl;

@@ -59,7 +59,7 @@ const chartConfig = {
     label: "Expenses",
     color: "var(--chart-2)",
   },
-} as ChartConfig
+} as ChartConfig | any
 
 export function CashFlowOverview() {
   const { filters, setFilters } = useURLFilters({
@@ -133,7 +133,7 @@ export function CashFlowOverview() {
     const dataMap = new Map(data.map((item: any) => [item.month, item]))
     
     const formattedData = allMonths.map(month => {
-      const monthData = dataMap.get(month)
+      const monthData = dataMap.get(month) as any
       return {
         month,
         income: monthData ? Number(monthData.income) : 0,

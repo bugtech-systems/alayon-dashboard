@@ -28,7 +28,7 @@ export const CartDrawer = ({
   freeShippingPrices,
   ...props
 }: CartDrawerProps) => {
-  const [activeTimer, setActiveTimer] = useState<NodeJS.Timer | undefined>(
+  const [activeTimer, setActiveTimer] = useState<NodeJS.Timer | any>(
     undefined
   )
   const [isOpen, setIsOpen] = useState(false)

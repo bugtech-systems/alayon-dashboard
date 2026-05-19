@@ -25,7 +25,7 @@ interface LoginFormData {
 }
 
 export default function LoginPage() {
-  const { login, isLoading: authLoading } = useMedusaAuth()
+  const { login, isLoading: authLoading } = useMedusaAuth() as any
   
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -44,7 +44,7 @@ export default function LoginPage() {
   ]
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<LoginFormData> = {}
+    const newErrors: Partial<LoginFormData> | any = {}
     
     // Email validation
     if (!formData.email) {

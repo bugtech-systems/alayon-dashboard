@@ -157,7 +157,7 @@ export function SignupForm({
       </div>
       
       {state?.message && (
-        <Badge className="justify-center text-center" variant="red">
+        <Badge className="justify-center text-center" >
           {state.message}
         </Badge>
       )}

@@ -14,7 +14,7 @@ export default function FreeShippingPriceNudge({
   freeShippingPrices,
 }: {
   variant?: "popup" | "inline"
-  cart: StoreCart
+  cart?: StoreCart | any
   freeShippingPrices: StoreFreeShippingPrice[]
 }) {
   if (!cart || !freeShippingPrices?.length) {

@@ -73,7 +73,7 @@ export function DynamicDataTable({
   const limit = filters.limit || config.defaultPageSize || 10;
   
   // Sorting state
-  const [sorting, setSorting] = React.useState<SortingState>(() => {
+  const [sorting, setSorting] = React.useState<SortingState | any>(() => {
     if (filters.sort_by) {
       return [{ id: filters.sort_by, desc: filters.sort_order === "desc" }];
     }
@@ -110,8 +110,6 @@ export function DynamicDataTable({
     widget: widgetConfig,
     filters: queryFilters,
     enabled: true,
-    staleTime: 30000,
-    keepPreviousData: true,
   });
 
 
@@ -132,7 +130,7 @@ export function DynamicDataTable({
 
   // Handle sorting change
   const handleSortingChange = React.useCallback((updater: any) => {
-    setSorting((prev) => {
+    setSorting((prev: any) => {
       const newSorting = typeof updater === "function" ? updater(prev) : updater;
       if (newSorting.length > 0) {
         setFilters({ sort_by: newSorting[0].id, sort_order: newSorting[0].desc ? "desc" : "asc", page: 1 });
@@ -175,7 +173,7 @@ export function DynamicDataTable({
         return <span className="text-sm">{col.header}</span>;
       },
       cell: ({ row, getValue }) => {
-        const value = getValue();
+        const value = getValue() as any;
         const originalRow = row.original;
 
         if (col.cellRenderer) {

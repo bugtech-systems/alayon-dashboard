@@ -65,7 +65,7 @@ export function AnalyticsOverview() {
   const dateRangeFrom = filters.from ? new Date(filters.from) : subDays(startOfDay(new Date()), 29);
   const dateRangeTo = filters.to ? new Date(filters.to) : startOfDay(new Date());
 
-  const [selectedCoordinatorState, setSelectedCoordinatorState] = React.useState({id: selectedCoordinator});
+  const [selectedCoordinatorState, setSelectedCoordinatorState] = React.useState({id: selectedCoordinator}) as any;
   const [selectedTellerState, setSelectedTellerState] = React.useState(selectedTeller);
   const [dateRange, setDateRange] = React.useState<{ from: Date; to: Date }>({
     from: dateRangeFrom,
@@ -79,7 +79,6 @@ export function AnalyticsOverview() {
     widget: coordinatorWidget,
     filters: {},
     enabled: true,
-    staleTime: 30000,
   });
 
   // Fetch tellers filtered by selected coordinator
@@ -90,7 +89,6 @@ export function AnalyticsOverview() {
       search: tellerSearch 
     },
     enabled: true,
-    staleTime: 30000,
   });
 
   const coordinators = React.useMemo(() => {
@@ -233,7 +231,7 @@ function SummaryRow({
   dateRange, 
   selectedFilters,
   options
-}) {
+}: any) {
   const revenueChartConfig = {
     revenue: {
       label: "Revenue",
@@ -241,7 +239,7 @@ function SummaryRow({
     },
   } satisfies ChartConfig;
 
-  const revenueValues = revenueSeries.map((point) => point.revenue);
+  const revenueValues = revenueSeries.map((point: any) => point.revenue);
   const minRevenue = Math.min(...revenueValues);
   const maxRevenue = Math.max(...revenueValues);
   const midpoint = (minRevenue + maxRevenue) / 2;
@@ -365,7 +363,7 @@ function FiltersPopover({
   selectedFilters,
   onToggle,
   options = []
-}) {
+}: any) {
   const [open, setOpen] = React.useState(false);
   const activeCount = selectedFilters.length;
 
@@ -390,7 +388,7 @@ function FiltersPopover({
               </Badge>
             </div>
             <div className="space-y-3">
-              {options.map((item) => (
+              {options.map((item: any) => (
                 <FilterToggle
                   key={item.id}
                   id={item.id}
@@ -434,11 +432,11 @@ function FilterToggle({
   );
 }
 
-function summarizeFilterState(options, selectedFilters) {
+function summarizeFilterState(options: any, selectedFilters: any) {
   if (selectedFilters.length === 0) {
     return "All deals";
   }
-  return options.filter((item) => selectedFilters.includes(item.id))
-    .map((item) => item.name)
+  return options.filter((item: any) => selectedFilters.includes(item.id))
+    .map((item: any) => item.name)
     .join(" · ");
 }

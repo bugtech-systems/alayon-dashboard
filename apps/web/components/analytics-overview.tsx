@@ -208,7 +208,7 @@ export function AnalyticsOverview() {
   }
 
   const handleBranch = (value: string) => {
-    let newBranch = branches.find(a => a?.id == value)
+    let newBranch = branches.find((a: any) => a?.id == value)
     setSelectedBranch(newBranch)
     clearFilterToggle()
     setFilters({
@@ -405,8 +405,8 @@ function RevenueSummaryRow({
   invMetrics
 }: { 
   revenueData: any[];
-  revenueSummary: RevenueSummary;
-  dateRange: DateRange;
+  revenueSummary: RevenueSummary | any;
+  dateRange: DateRange | any;
   invMetrics: any;
 }) {
   const revenueChartConfig = {
@@ -490,7 +490,7 @@ function RevenueSummaryRow({
           <CardDescription className="text-xs">Inventory Details Per Batch/s</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-0">
-          { invMetrics.map((metric, index) => (
+          { invMetrics.map((metric: any, index: any) => (
             <InventoryMetricCard
               key={index}
               label={metric.label}
