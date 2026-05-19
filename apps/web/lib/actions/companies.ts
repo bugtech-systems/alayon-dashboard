@@ -130,8 +130,7 @@ export const retrieveCompany = async (companyId: string) => {
           "",
       },
       method: "GET",
-      headers,
-      next,
+      headers
     }
   )
   console.log(company, 'COM<<P RETT')
