@@ -18,17 +18,15 @@ import {
   Shield, 
   Heart, 
   Share2,
-  Facebook,
-  Instagram,
-  Twitter,
   Globe,
   Briefcase,
   CheckCircle,
   Star,
-  Building2
+  Building2,
+  Package
 } from "lucide-react"
-import { cn } from "@/lib/utils"
-import ProductCard from "@/modules/products/components/product-card"
+import {ProductCard} from "@/components/product-card"
+import { Facebook } from "@medusajs/icons"
 
 type CompanyProfileTemplateProps = {
   company: {
@@ -36,7 +34,7 @@ type CompanyProfileTemplateProps = {
     name: string
     description: string
     long_description?: string
-    logo?: string
+    logo_url?: string
     cover_image?: string
     established_year?: number
     employees?: string
@@ -95,9 +93,9 @@ const CompanyProfileTemplate: React.FC<CompanyProfileTemplateProps> = ({
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Cover Image Section */}
       <div className="relative h-64 md:h-96 w-full bg-gradient-to-r from-primary/20 to-primary/10 overflow-hidden">
-        {company.cover_image ? (
+        {company.logo_url ? (
           <Image
-            src={company.cover_image}
+            src={company.logo_url}
             alt={`${company.name} cover`}
             fill
             className="object-cover"
@@ -110,29 +108,6 @@ const CompanyProfileTemplate: React.FC<CompanyProfileTemplateProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
         
         {/* Company Logo Floating */}
-        <div className="absolute -bottom-12 left-4 md:left-8">
-          <div className="relative">
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl bg-white shadow-xl p-2 border-4 border-white overflow-hidden">
-              {company.logo ? (
-                <Image
-                  src={company.logo}
-                  alt={`${company.name} logo`}
-                  width={120}
-                  height={120}
-                  className="object-contain w-full h-full"
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                  <Building2 className="h-12 w-12 text-primary/60" />
-                </div>
-              )}
-            </div>
-            {/* Verified Badge */}
-            <div className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-1 shadow-lg">
-              <CheckCircle className="h-4 w-4 text-white" />
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="container mx-auto px-4 pt-16 pb-8 max-w-7xl">
@@ -334,18 +309,8 @@ const CompanyProfileTemplate: React.FC<CompanyProfileTemplateProps> = ({
                         <Facebook className="h-5 w-5 text-[#1877f2]" />
                       </a>
                     )}
-                    {company.social_media.instagram && (
-                      <a href={company.social_media.instagram} target="_blank" rel="noopener noreferrer"
-                         className="p-2 rounded-full bg-gray-100 hover:bg-primary/10 transition-colors">
-                        <Instagram className="h-5 w-5 text-[#e4405f]" />
-                      </a>
-                    )}
-                    {company.social_media.twitter && (
-                      <a href={company.social_media.twitter} target="_blank" rel="noopener noreferrer"
-                         className="p-2 rounded-full bg-gray-100 hover:bg-primary/10 transition-colors">
-                        <Twitter className="h-5 w-5 text-[#1da1f2]" />
-                      </a>
-                    )}
+                   
+                   
                   </div>
                 </CardContent>
               </Card>

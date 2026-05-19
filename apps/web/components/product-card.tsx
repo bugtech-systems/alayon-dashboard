@@ -296,7 +296,6 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
   const hoverImage = useMemo(() => getHoverImage(product), [product]);
   const hasVariants = product.variants?.length > 1;
   const company = Array.isArray(product.company) ? product.company[0] : product.company;
-  console.log(company, product.company, 'commppp', product)
   // Determine what price to display
   const displayPrice = useMemo(() => {
     if (selectedVariant) {

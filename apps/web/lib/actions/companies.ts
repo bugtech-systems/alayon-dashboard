@@ -10,10 +10,7 @@ import { StoreCompaniesResponse, StoreCompanyResponse, StoreCreateCompany, Store
 import { track } from "@vercel/analytics";
 import { getCacheOptions } from "../data/cookies";
 
-const BACKEND_URL =
-  process.env.BACKEND_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  "http://localhost:9000";
+
 const FRONTEND_URL =
   (process.env.NEXT_PUBLIC_VERCEL_URL &&
     `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`) ||
@@ -130,14 +127,14 @@ export const retrieveCompany = async (companyId: string) => {
     {
       query: {
         fields:
-          "+spending_limit_reset_frequency,*employees.customer,*approval_settings,*product",
+          "",
       },
       method: "GET",
       headers,
       next,
     }
   )
-
+  console.log(company, 'COM<<P RETT')
   return company
 }
 

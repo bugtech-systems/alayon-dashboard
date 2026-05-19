@@ -179,8 +179,6 @@ export const updateApprovalSettings = async (
 export const listCompanies = async (filter) => {
    const headers = {
     ...(await getAuthHeaders()),
-    "Content-Type": "application/json",
-    // Accept: "plain/text",
   }
 
   const next = {
@@ -195,6 +193,6 @@ export const listCompanies = async (filter) => {
       headers,
       next
     }) as any;
-    
+      console.log(companies)
      return companies;
 }

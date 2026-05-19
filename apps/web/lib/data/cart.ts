@@ -39,7 +39,6 @@ export async function createDelivery(cartId: string, company_id: any) {
 
 export async function retrieveCart(id?: string) {
   const cartId = id || (await getCartId())
-    console.log(cartId, await getCartId(), 'aaaccc')
   if (!cartId) {
     return null
   }

@@ -17,6 +17,7 @@ import {
 } from "@/types"
 import { track } from "@vercel/analytics/server"
 import { revalidateTag } from "next/cache"
+import { n8nFetcher } from "@/hooks/useN8nQuery"
 
 export const retrieveCompany = async (companyId: string) => {
   const headers = {
@@ -175,3 +176,13 @@ export const updateApprovalSettings = async (
   const cacheTag = await getCacheTag("companies")
   revalidateTag(cacheTag, "max")
 }
+
+export const getCompanyProducts = async (companyId: string) => {
+
+        const response = await n8nFetcher({endpoint: `/webhook/get-company-products?company_id=${companyId}`})
+
+        console.log(response,'rr')
+        return response;
+     
+};
+

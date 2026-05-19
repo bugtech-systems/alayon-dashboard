@@ -50,18 +50,17 @@ export async function signup(prevState: FormState, data: FormData) {
   try {
 
 
-    const token = await createAuthUser({
-      email,
-      password,
-      actor_type,
-      provider: "emailpass",
-    }).catch((error) => {
-      throw new Error("Error creating auth user");
-    });
+    // const token = await createAuthUser({
+    //   email,
+    //   password,
+    //   actor_type,
+    //   provider: "emailpass",
+    // }).catch((error) => {
+    //   throw new Error("Error creating auth user");
+    // });
 
 
-    console.log(token, 'TTTOOK')
-    createSession(token);
+
     revalidateTag('users', 'max');
 
     const createUserData: CreateUserType = {
@@ -70,45 +69,37 @@ export async function signup(prevState: FormState, data: FormData) {
       last_name,
       phone,
       actor_type,
-      token,
     };
 
-    if (actor_type === "company" && company_id) {
       createUserData.company_id = company_id;
       
     let customer = await n8nFetcher({
-      endpoint: "/webhook/find-create-customer",
+      endpoint: "/webhook/register",
       method: "POST",
       body: { 
-      email,
-      first_name,
-      last_name,
-      phone,
-      password, metadata: {company_id, actor_type}}
+      ...createUserData,
+      password, 
+      metadata: {company_id, actor_type}}
     })
 
+    console.log(customer, 'CUSTTOM')
 
-          console.log(customer, 'CUSTTO')
+    // console.log(createUserData, 'CREATE USER', token, company_id, 'siiignup')
 
+    // await createUser(createUserData).catch((error) => {
+    //   throw new Error("Error creating user");
+    // });
 
-    }
-
-    console.log(createUserData, 'CREATE USER', token, company_id, 'siiignup')
-
-    await createUser(createUserData).catch((error) => {
-      throw new Error("Error creating user");
-    });
-
-    const newToken = await getToken({
-      email,
-      password,
-      actor_type,
-      provider: "emailpass",
-    });
+    // const newToken = await getToken({
+    //   email,
+    //   password,
+    //   actor_type,
+    //   provider: "emailpass",
+    // });
 
 
-    console.log(newToken, 'TOKKE')
-    createSession(newToken);
+    // console.log(newToken, 'TOKKE')
+    createSession(customer?.token);
     revalidateTag("users", "max");
   } catch (error) {
     return {

@@ -60,7 +60,6 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   if (!product) {
     notFound()
   }
-console.log(product, 'PROOD')
   return {
     title: `${product.title} | Medusa Store`,
     description: `${product.title}`,
