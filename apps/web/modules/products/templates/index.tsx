@@ -27,7 +27,8 @@ import {
   Award,
   Mail,
   Phone,
-  ExternalLink
+  ExternalLink,
+  ExternalLinkIcon
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -76,6 +77,7 @@ const getCompanyFromProduct = (product: any): Company | null => {
   if(!company) return null
 
   return {
+    ...company,
     id: company.id as string || "company_123",
     name: company.name as string || "The Urban Collective",
     slug: company.id as string || "urban-collective",
@@ -134,12 +136,17 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             <BreadcrumbItem>
               <BreadcrumbLink href="/catalog">Catalog</BreadcrumbLink>
             </BreadcrumbItem>
-            <BreadcrumbSeparator />
+            {company && 
+            <>
+                <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbLink href={`/catalog?company=${company.slug}`}>
-                {company.name}
+              <BreadcrumbLink href={`/catalog?company=${company?.handle}`}>
+                {company?.name}
               </BreadcrumbLink>
             </BreadcrumbItem>
+            </>
+            }
+        
             <BreadcrumbSeparator />
             <BreadcrumbItem>
               <BreadcrumbPage className="line-clamp-1 max-w-[200px]">
@@ -238,7 +245,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             <div>
               <h2 className="text-xl font-semibold text-gray-900">You May Also Like</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                More from {company.name} and other top merchants
+                More from {company?.name} and other top merchants
               </p>
             </div>
             <div className="h-px flex-1 bg-gray-200 ml-4 hidden md:block" />
@@ -251,14 +258,15 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
           </div>
         </div>
     {/* Company Info Section - Clickable Card */}
+    {company && 
         <div className="mb-10">
-          <Link href={`/company/${company.slug}`}>
+          <Link href={`/${company?.handle}`}>
             <Card className="border-2 border-primary/20 shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer group overflow-hidden">
               {/* Company Cover Image */}
-              {company.coverImage && (
+              {company?.coverImage && (
                 <div className="relative h-32 md:h-40 bg-gradient-to-r from-primary/20 to-purple-500/20">
                   <Image
-                    src={company.coverImage}
+                    src={company?.coverImage}
                     alt={`${company.name} cover`}
                     fill
                     className="object-cover"
@@ -272,9 +280,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                 <div className="flex items-start gap-4">
                   <div className="relative -mt-12">
                     <div className="h-20 w-20 rounded-xl bg-white shadow-lg border-2 border-white overflow-hidden">
-                      {company.logo ? (
+                      {company?.logo_url ? (
                         <Image
-                          src={company.logo}
+                          src={company.logo_url}
                           alt={company.name}
                           width={80}
                           height={80}
@@ -291,15 +299,15 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   <div className="flex-1 pt-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-xl font-semibold group-hover:text-primary transition-colors">
-                        {company.name}
+                        {company?.name}
                       </h3>
-                      {company.isVerified && (
+                      {company?.isVerified && (
                         <Badge variant="secondary" className="bg-blue-100 text-blue-700">
                           <Award className="h-3 w-3 mr-1" />
                           Verified Merchant
                         </Badge>
                       )}
-                      <ExternalLink className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                      <ExternalLink href="/bellybytes" className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
                     </div>
                     
                     {/* Rating */}
@@ -310,24 +318,24 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                             key={i}
                             className={cn(
                               "h-3.5 w-3.5",
-                              i < Math.floor(company.rating)
+                              i < Math.floor(company?.rating)
                                 ? "fill-yellow-400 text-yellow-400"
-                                : i < company.rating
+                                : i < company?.rating
                                 ? "fill-yellow-400 text-yellow-400 opacity-50"
                                 : "text-gray-300"
                             )}
                           />
                         ))}
                       </div>
-                      <span className="text-sm font-medium">{company.rating}</span>
+                      <span className="text-sm font-medium">{company?.rating}</span>
                       <span className="text-xs text-muted-foreground">
-                        ({company.totalReviews.toLocaleString()} reviews)
+                        ({company?.totalReviews.toLocaleString()} reviews)
                       </span>
                     </div>
                     
                     {/* Badges */}
                     <div className="flex gap-2 mt-2 flex-wrap">
-                      {company.badges?.map((badge, index) => (
+                      {company?.badges?.map((badge, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
                           {badge}
                         </Badge>
@@ -339,7 +347,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                 {/* Company Description */}
                 <div className="mt-4">
                   <p className="text-sm text-muted-foreground line-clamp-2">
-                    {company.description}
+                    {company?.description}
                   </p>
                 </div>
                 
@@ -347,19 +355,19 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{company.location}</span>
+                    <span className="text-xs text-muted-foreground">{company?.location}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Since {company.foundedYear}</span>
+                    <span className="text-xs text-muted-foreground">Since {company?.foundedYear}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Package className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{company.productsCount} Products</span>
+                    <span className="text-xs text-muted-foreground">{company?.productsCount} Products</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground truncate">{company.email}</span>
+                    <span className="text-xs text-muted-foreground truncate">{company?.email}</span>
                   </div>
                 </div>
                 
@@ -371,14 +379,14 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                     className="text-primary group-hover:bg-primary/10"
                   >
                     View Company Profile
-                    <ExternalLink className="h-3 w-3 ml-1" />
+                    <ExternalLinkIcon className="h-3 w-3 ml-1"/>
                   </Button>
                 </div>
               </CardContent>
             </Card>
           </Link>
         </div>
-
+}
         {/* Wholesale Banner for Retail Customers */}
         {!product.metadata?.wholesale_only && (
           <div className="mt-10 p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/20">
@@ -389,11 +397,11 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Interested in bulk orders?</p>
-                  <p className="text-xs text-muted-foreground">Contact {company.name} directly for wholesale pricing</p>
+                  <p className="text-xs text-muted-foreground">Contact {company?.name} directly for wholesale pricing</p>
                 </div>
               </div>
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/company/${company.slug}#contact`}>
+                <Link href={`/${company?.handle}#contact`}>
                   Contact Merchant →
                 </Link>
               </Button>
