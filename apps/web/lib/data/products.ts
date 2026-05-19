@@ -12,7 +12,7 @@ export const getProductsById = async ({
   regionId,
 }: {
   ids: string[]
-  regionId: string
+  regionId?: string
 }) => {
   const headers = {
     ...(await getAuthHeaders()),
@@ -62,7 +62,6 @@ export const getProductByHandle = async (handle: string, regionId: string) => {
       next,
     })
     .then(({ products }) => products[0])
-
 }
 
 export const listProducts = async ({
@@ -128,6 +127,8 @@ export const listProducts = async ({
       }
     })
 }
+
+
 
 /**
  * This will fetch 100 products to the Next.js cache and sort them based on the sortBy parameter.
