@@ -156,8 +156,7 @@ function SearchModal() {
 }
 
 export async function NavigationHeader() {
-  const customer = await retrieveCustomer().catch(() => null)
-  console.log(customer, 'CUST NAV')
+
   return (
     <>
       {/* Announcement Bar */}
@@ -226,7 +225,7 @@ export async function NavigationHeader() {
 
               {/* Account Button */}
               <Suspense fallback={<SkeletonAccountButton />}>
-                <AccountButton customer={customer} />
+                <AccountButton />
               </Suspense>
 
               {/* Cart Button */}

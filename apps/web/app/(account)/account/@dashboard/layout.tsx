@@ -1,3 +1,4 @@
+import { CheckoutNav } from "@/components/layout/checkout-nav"
 import { retrieveCustomer } from "@/lib/data/customer"
 import AccountLayout from "@/modules/account/templates/account-layout"
 import Image from "next/image"
@@ -9,7 +10,10 @@ export default async function AccountPageLayout({
 }) {
   const customer = await retrieveCustomer().catch(() => null)
   return (
-    <div className="flex flex-col gap-2 p-2">
+    <>
+        <CheckoutNav/>
+        <div className="flex flex-col gap-2 p-2">
+      
       {/* <Image
         src="/account-block.jpg"
         alt="Login banner background"
@@ -21,5 +25,7 @@ export default async function AccountPageLayout({
       /> */}
       <AccountLayout customer={customer}>{children}</AccountLayout>
     </div>
+    </>
+
   )
 }

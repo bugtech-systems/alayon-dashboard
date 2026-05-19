@@ -66,14 +66,14 @@ const CompanyProfileTemplate: React.FC<CompanyProfileTemplateProps> = ({
   products,
   region,
   countryCode,
-}) => {
+}: any) => {
   if (!company || !company.id) {
     return notFound()
   }
 
   // Featured products (first 4 or marked as featured)
   const featuredProducts = products
-    .filter(p => p.metadata?.featured === "true" || p.tags?.some(t => t.value === "featured"))
+    .filter(p => p.metadata?.featured === "true" || p.tags?.some((t: any) => t.value === "featured"))
     .slice(0, 4)
   
   const allProducts = products
@@ -329,12 +329,12 @@ const CompanyProfileTemplate: React.FC<CompanyProfileTemplateProps> = ({
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {featuredProducts.map((product) => (
+                  {featuredProducts.map((product: any, index: any) => (
                     <ProductCard
+                      index={index}
                       key={product.id}
                       product={product}
-                      region={region}
-                      countryCode={countryCode}
+                      regionId={region?.id}
                     />
                   ))}
                 </div>
@@ -358,12 +358,12 @@ const CompanyProfileTemplate: React.FC<CompanyProfileTemplateProps> = ({
                   )}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {(hasMoreProducts ? allProducts.slice(0, 8) : allProducts).map((product) => (
+                  {(hasMoreProducts ? allProducts.slice(0, 8) : allProducts).map((product, index: any) => (
                     <ProductCard
+                      index={index}
                       key={product.id}
                       product={product}
-                      region={region}
-                      countryCode={countryCode}
+                      regionId={region?.id}
                     />
                   ))}
                 </div>

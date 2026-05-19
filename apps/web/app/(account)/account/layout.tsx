@@ -44,7 +44,7 @@ export default async function AccountPageLayout({
 
   return (
     <>
-      <NavigationHeader />
+      {/* <NavigationHeader /> */}
       <AccountContent>
         {content}
       </AccountContent>

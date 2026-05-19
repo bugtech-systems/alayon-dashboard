@@ -396,6 +396,9 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
     "out-of-stock": "text-red-600 bg-red-50",
     "pre-order": "text-blue-600 bg-blue-50",
   };
+
+
+  console.log(isAdding, !selectedVariant, !regionId, 'ISS', regionId, 'wwwrw')
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

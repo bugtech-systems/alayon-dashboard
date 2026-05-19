@@ -1,8 +1,6 @@
 import { retrieveCompany } from "@/lib/actions";
 import { getRegion } from "@/lib/actions/regions";
-import { getCompanyProducts } from "@/lib/data";
 import { getProductsById,  } from "@/lib/data/products";
-import { getProductById } from "@/lib/medusa/client";
 import CompanyProfileTemplate from "@/modules/company/templates/company-profile-template"
 import { NavigationHeader } from "@/modules/layout/templates/nav";
 
@@ -14,7 +12,7 @@ export default async function CompanyPage({ params }: { params: { id: string; co
   const ids = company?.products ? company?.products.map((a: any) => a.id) : [];
   const products = await getProductsById({ids, regionId: region?.id});
   // const products = [];
-  console.log(company, products,  ids, 'COMMPA')
+  console.log(company, products,  ids, 'COMMPA', region, 'reeegfgg')
   return (
     <>
      <NavigationHeader/>
