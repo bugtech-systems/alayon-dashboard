@@ -11,9 +11,7 @@ export const metadata = {
 };
 
 export default async function CatalogPage() {
-  const cart = await retrieveCart()
   const region = await getRegion('ph');
-console.log(region, 'REEGE')
   return (
           <>
     <main className="min-h-screen bg-gray-50">

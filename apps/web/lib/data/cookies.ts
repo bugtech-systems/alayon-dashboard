@@ -89,10 +89,34 @@ export const getCartId = async () => {
   return cookies.get("_medusa_cart_id")?.value
 }
 
+export const getCachedId = async () => {
+  const cookies = await nextCookies()
+
+  return cookies.get("_medusa_cache_id")?.value
+}
+
 export const setCartId = async (cartId: string) => {
   const cookies = await nextCookies()
 
   cookies.set("_medusa_cart_id", cartId, {
+    maxAge: 60 * 60 * 24 * 7,
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+  })
+}
+
+export const getCompanyId = async () => {
+  const cookies = await nextCookies()
+
+   return cookies.get("_medusa_company_id")?.value
+
+}
+
+export const setCompanyId = async (companyId: string) => {
+  const cookies = await nextCookies()
+
+  cookies.set("_medusa_company_id", companyId, {
     maxAge: 60 * 60 * 24 * 7,
     httpOnly: true,
     sameSite: "strict",

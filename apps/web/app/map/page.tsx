@@ -1,25 +1,10 @@
 'use client'
 import { AppSidebar } from "@/components/app-sidebar"
-import { SectionCards } from "@/components/section-cards"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar"
-import { AnalyticsOverview } from "@/components/analytics-overview"
 import { Suspense } from "react"
-import { DynamicDataTable } from "@/components/DynamicDataTable";
-import { bettingsTableConfig, customerTableConfig, usersTableConfig } from "@/components/configData";
 import { RiderMap } from "@/components/rider/RiderMap"
 
-const customers = {
-  id: "customers-table",
-  webhook: {
-    url: "/webhook/get-customers",
-    method: "GET",
-    queryMap: {
-      page: "page",
-      limit: "limit"
-    },
-  },
-};
 
 
 

@@ -12,7 +12,6 @@ import { HttpTypes } from "@medusajs/types"
 import { clx, Input } from "@medusajs/ui"
 import { startTransition, useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Minus, Plus, Trash2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -36,7 +35,7 @@ const ItemFull = ({
   const [error, setError] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(item.quantity.toString())
 
-  const { handleDeleteItem, handleUpdateCartQuantity } = useCart()
+  const { handleDeleteItem, handleUpdateCartQuantity, company } = useCart()
 
   const changeQuantity = async (newQuantity: number) => {
     if (newQuantity === item.quantity) return
@@ -95,7 +94,6 @@ const ItemFull = ({
   const maxQuantity = item.variant?.inventory_quantity ?? 100
   const isLowStock = item.variant?.inventory_quantity && item.variant.inventory_quantity <= 10
   const isOutOfStock = item.variant?.inventory_quantity === 0
-
   // Compact variant for cart drawer
   if (variant === "compact") {
     return (

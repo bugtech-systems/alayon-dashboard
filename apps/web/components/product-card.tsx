@@ -398,7 +398,6 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
   };
 
 
-  console.log(isAdding, !selectedVariant, !regionId, 'ISS', regionId, 'wwwrw')
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -481,7 +480,7 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
         )}
         
         {/* Quick Actions - Appears on hover */}
-        {isInStock && (
+        {/* {isInStock && (
           <div className={cn(
             "absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 to-transparent transition-all duration-300",
             isHovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
@@ -504,7 +503,7 @@ export function ProductCard({ product, index, priority = false, regionId }: Prod
               </Button>
             </div>
           </div>
-        )}
+        )} */}
         
         {/* Loading Skeleton */}
         {!imageLoaded && (

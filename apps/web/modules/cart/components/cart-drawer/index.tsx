@@ -14,7 +14,7 @@ import FreeShippingPriceNudge from "@/modules/shipping/components/free-shipping-
 import { B2BCustomer } from "@/types"
 import { StoreFreeShippingPrice } from "@/types/shipping-option/http"
 import { usePathname } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import {
   Drawer,
   DrawerContent,
@@ -42,7 +42,6 @@ import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 type CartDrawerProps = {
-  customer: B2BCustomer | null
   freeShippingPrices: StoreFreeShippingPrice[]
 }
 
@@ -91,7 +90,6 @@ const getTaxRate = (cart: any): number | null => {
 }
 
 const CartDrawer = ({
-  customer,
   freeShippingPrices,
   ...props
 }: CartDrawerProps) => {
@@ -103,15 +101,22 @@ const CartDrawer = ({
   const open = () => setIsOpen(true)
   const close = () => setIsOpen(false)
 
-  const { cart } = useCart()
+  const { cart, isUpdatingCart } = useCart()
 
-  const items = cart?.items || []
+  // Stable items with preserved order - use useMemo with cart items as dependency
+  const items = useMemo(() => {
+    if (!cart?.items) return []
+    // Return items as-is without reordering
+    return cart.items
+  }, [cart?.items])
+
   const promotions = cart?.promotions || []
 
-  const totalItems =
-    items?.reduce((acc, item) => {
+  const totalItems = useMemo(() => {
+    return items?.reduce((acc, item) => {
       return acc + item.quantity
     }, 0) || 0
+  }, [items])
 
   // Calculate various totals
   const subtotal = useMemo(() => cart?.item_subtotal ?? 0, [cart])
@@ -124,20 +129,14 @@ const CartDrawer = ({
   // Check if taxes are included in prices (Medusa setting)
   const taxesIncluded = cart?.region?.automatic_taxes ? true : false
 
-  const spendLimitExceeded = useMemo(
-    () => checkSpendingLimit(cart, customer),
-    [cart, customer]
-  )
-
   const itemRef = useRef<number>(totalItems || 0)
 
-  const timedOpen = () => {
+  const timedOpen = useCallback(() => {
     if (isOpen) {
       return
     }
-
     open()
-  }
+  }, [isOpen])
 
   useEffect(() => {
     return () => {
@@ -149,11 +148,11 @@ const CartDrawer = ({
 
   const pathname = usePathname()
 
-  const cancelTimer = () => {
+  const cancelTimer = useCallback(() => {
     if (activeTimer) {
       clearTimeout(activeTimer)
     }
-  }
+  }, [activeTimer])
 
   useEffect(() => {
     if (
@@ -164,23 +163,39 @@ const CartDrawer = ({
       timedOpen()
       return
     }
-  }, [totalItems, itemRef.current, pathname])
+  }, [totalItems, pathname, timedOpen])
 
   useEffect(() => {
     cancelTimer()
     close()
-  }, [pathname])
+  }, [pathname, cancelTimer])
 
   const checkoutStep = cart ? getCheckoutStep(cart) : undefined
   const checkoutPath = checkoutStep
-      ? `/checkout?step=${checkoutStep}`
-      : "/checkout"
+      ? `/checkout?step=${checkoutStep}&cart_id=${cart?.id}`
+      : `/checkout?cart_id=${cart?.id}`
 
   // Check if free shipping is applicable
-  const hasFreeShipping = freeShippingPrices?.some(
-    (price) => subtotal >= price.min_cart_value
-  )
+  const hasFreeShipping = useMemo(() => {
+    return freeShippingPrices?.some(
+      (price) => subtotal >= price.min_cart_value
+    )
+  }, [freeShippingPrices, subtotal])
 
+  // Update itemRef after totalItems changes
+  useEffect(() => {
+    itemRef.current = totalItems
+  }, [totalItems])
+
+  // Key for forcing re-render of ItemsTemplate when updating cart
+  // but without changing order
+  const itemsKey = useMemo(() => {
+    if (!items) return 'empty'
+    // Create a stable key based on item IDs and quantities, but preserve order
+    return items.map(item => `${item.id}-${item.quantity}`).join(',')
+  }, [items])
+
+  
   return (
     <Drawer open={isOpen} onOpenChange={setIsOpen} direction="right">
       <DrawerTrigger asChild>
@@ -188,19 +203,13 @@ const CartDrawer = ({
           className={cn(
             "relative inline-flex w-fit items-center justify-center gap-1.5 px-2.5 py-1 rounded-full transition-all duration-200",
             "hover:bg-gray-100 active:scale-95",
-            "focus:outline-none focus:ring-2 focus:ring-primary/20"
+            "focus:outline-none focus:ring-2 focus:ring-primary/20",
+            isUpdatingCart && "opacity-70 cursor-wait"
           )}
           onMouseEnter={cancelTimer}
+          disabled={isUpdatingCart}
         >
           <ShoppingCart className="h-3.5 w-3.5" />
-          <span className="text-xs font-medium hidden sm:inline-block">
-            {cart && items && items.length > 0
-              ? convertToLocale({
-                  amount: totalWithTax,
-                  currency_code: cart.currency_code,
-                })
-              : "Cart"}
-          </span>
           {totalItems > 0 && (
             <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
               {totalItems > 99 ? "99+" : totalItems}
@@ -222,6 +231,11 @@ const CartDrawer = ({
               ) : (
                 "Your Cart"
               )}
+              {isUpdatingCart && (
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  Updating...
+                </span>
+              )}
             </DrawerTitle>
             <DrawerDescription className="sr-only">
               Your shopping cart with {totalItems} items
@@ -230,6 +244,7 @@ const CartDrawer = ({
           <button
             onClick={() => setIsOpen(false)}
             className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+            disabled={isUpdatingCart}
           >
             <X className="h-4 w-4" />
           </button>
@@ -259,10 +274,11 @@ const CartDrawer = ({
             )}
 
             {/* Cart Items - Using compact variant for smaller display */}
-            {cart && cart.items && cart.items.length > 0 ? (
+            {items.length > 0 ? (
               <>
                 <ItemsTemplate
-                  cart={cart}
+                  key={itemsKey}
+                  cart={{ ...cart, items }}
                   showBorders={false}
                   showTotal={false}
                   variant="compact"
@@ -395,16 +411,6 @@ const CartDrawer = ({
                     </div>
                   )}
                 </div>
-
-                {/* Spending Limit Warning */}
-                {spendLimitExceeded && (
-                  <Alert variant="destructive" className="bg-red-50 border-red-200 py-2 mt-2">
-                    <AlertCircle className="h-3 w-3 text-red-600" />
-                    <AlertDescription className="text-xs text-red-800">
-                      This order exceeds your spending limit. Please contact your manager for approval.
-                    </AlertDescription>
-                  </Alert>
-                )}
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -426,30 +432,27 @@ const CartDrawer = ({
         </ScrollArea>
 
         {/* Footer with Actions */}
-        {cart && cart.items && cart.items.length > 0 && (
+        {items.length > 0 && (
           <DrawerFooter className="border-t bg-gray-50/50 p-3 space-y-2 sticky bottom-0 bg-white">
             <div className="space-y-2">
-              <LocalizedClientLink href="/cart">
-                <Button variant="outline" className="w-full text-sm h-9">
+              <LocalizedClientLink href={`/cart?cart_id=${cart?.id}`}>
+                <Button 
+                  variant="outline" 
+                  className="w-full text-sm h-9"
+                  disabled={isUpdatingCart}
+                >
                   View Cart ({totalItems})
                 </Button>
               </LocalizedClientLink>
               <LocalizedClientLink href={checkoutPath}>
                 <Button
                   className="w-full gap-1.5 text-sm h-9"
-                  disabled={totalItems === 0 || spendLimitExceeded}
+                  disabled={totalItems === 0 || isUpdatingCart}
                 >
-                  {spendLimitExceeded ? (
-                    <>
-                      <Lock className="h-3.5 w-3.5" />
-                      Limit Exceeded
-                    </>
-                  ) : (
-                    <>
-                      <Wallet className="h-3.5 w-3.5" />
-                      Proceed to Checkout
-                    </>
-                  )}
+                  <>
+                    <Wallet className="h-3.5 w-3.5" />
+                    Proceed to Checkout
+                  </>
                 </Button>
               </LocalizedClientLink>
             </div>

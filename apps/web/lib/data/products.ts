@@ -10,9 +10,11 @@ import { HttpTypes } from "@medusajs/types"
 export const getProductsById = async ({
   ids,
   regionId,
+  company
 }: {
   ids: string[]
   regionId?: string
+  company?: any
 }) => {
   const headers = {
     ...(await getAuthHeaders()),
@@ -30,7 +32,7 @@ export const getProductsById = async ({
         id: ids,
         region_id: regionId,
         fields:
-          "*variants,*variants.calculated_price,*variants.inventory_quantity",
+          "*variants,*variants.calculated_price,*variants.inventory_quantity,*company",
       },
       headers,
       next,
@@ -38,7 +40,7 @@ export const getProductsById = async ({
     .then(({ products }) => products)
 }
 
-export const getProductByHandle = async (handle: string, regionId: string) => {
+export const getProductByHandle = async (handle: string, regionId?: string) => {
   let region = await getRegion('ph'); 
 
   const headers = {

@@ -23,10 +23,9 @@ export async function generateStaticParams() {
     }
 
     const { products } = await sdk.store.product.list(
-      { fields: "handle" },
+      { fields: "handle,company" },
       { next: { tags: ["products"] }, ...(await getAuthHeaders()) }
     )
-
     return countryCodes
       .map((countryCode) =>
         products.map((product) => ({
@@ -78,6 +77,7 @@ export default async function ProductPage(props: Props) {
     notFound()
   }
 
+  
   const pricedProduct = await getProductByHandle(params.handle, region.id)
 
   if (!pricedProduct) {

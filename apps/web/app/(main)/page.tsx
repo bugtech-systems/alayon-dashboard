@@ -16,13 +16,11 @@ export default async function Home(props: {
 }) {
   const params = await props.params
 
-  const { countryCode } = params
-  const region = await getRegion('ph');
   return (
     <div className="flex flex-col gap-y-2 m-2">
       <HeroSection />
       <Suspense fallback={<SkeletonFeaturedProducts />}>
-        <FeaturedProducts countryCode={countryCode} />
+        <FeaturedProducts countryCode={"ph"} />
       </Suspense>
     </div>
   )

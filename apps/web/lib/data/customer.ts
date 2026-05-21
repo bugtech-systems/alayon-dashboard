@@ -18,6 +18,7 @@ import {
   removeCartId,
   setAuthToken,
 } from "../medusa/data/cookies"
+import { n8nFetcher } from "@/hooks/useN8nQuery"
 
 export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
   const authHeaders = await getAuthHeaders()
@@ -156,6 +157,8 @@ export async function login(_currentState: unknown, formData: FormData) {
         const customer = await retrieveCustomer()
         const cart = await retrieveCart()
 
+        
+        console.log(customer, 'CUSTOMERR')
         if (customer?.employee?.company_id) {
           await updateCart({
             metadata: {
@@ -252,7 +255,7 @@ export async function register(_currentState: unknown, formData: FormData) {
 
 export async function transferCart() {
   const cartId = await getCartId()
-
+  console.log(cartId, 'CAAAAARTT')
   if (!cartId) {
     return
   }
@@ -266,6 +269,7 @@ export async function transferCart() {
   const cartCacheTag = await getCacheTag("carts")
 
   revalidateTag(cartCacheTag, "max")
+  return;
 }
 
 export const addCustomerAddress = async (
@@ -353,4 +357,10 @@ export const updateCustomerAddress = async (
     .catch((err) => {
       return { success: false, error: err.toString() }
     })
+}
+
+export const saveCustomerToList = async (phone: any) => {
+    let newCustomer = await n8nFetcher({endpoint: '/webhook/customer-phone', method: "POST", body: {phone}})
+    console.log(newCustomer, 'CUSTOMER')
+    return newCustomer
 }

@@ -11,7 +11,7 @@ import { Package, ShoppingBag } from "lucide-react"
 import { useMemo } from "react"
 
 type ItemsTemplateProps = {
-  cart: B2BCart
+  cart: B2BCart | any
   showBorders?: boolean
   showTotal?: boolean
   variant?: "default" | "compact"

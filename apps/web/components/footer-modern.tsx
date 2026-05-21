@@ -3,17 +3,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Phone, Mail, MapPin, MessageCircle, Send } from "lucide-react";
+import { Phone, Mail, MessageCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { Facebook } from "@medusajs/icons";
+import { saveCustomerToList } from "@/lib/data/customer";
 
 export function FooterModern() {
   const [mobileNumber, setMobileNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
+  const [errorMessage, setErrorMessage] = useState("");
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -24,12 +24,15 @@ export function FooterModern() {
       return;
     }
 
+    let {success, message} = await saveCustomerToList(mobileNumber);
+    if(!success){
+      setErrorMessage(message)
+      setIsSubmitting(false);
+      return
+    }
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    console.log("Subscribed:", mobileNumber);
     setIsSuccess(true);
     setMobileNumber("");
-    setTimeout(() => setIsSuccess(false), 3000);
     setIsSubmitting(false);
   };
 
@@ -68,9 +71,9 @@ export function FooterModern() {
               </Button>
             </form>
             
-            {isSuccess && (
+            {isSuccess && (!errorMessage ? (
               <p className="text-sm text-green-600">Thanks for subscribing! Check your SMS.</p>
-            )}
+            ) : <p className="text-sm text-red-600">{errorMessage}</p>)}
           </div>
 
           {/* Right Column - Quick Links */}

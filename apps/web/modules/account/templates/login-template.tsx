@@ -53,7 +53,7 @@ const LoginTemplate = () => {
 
   return (
     <div className="grid grid-cols-1 small:grid-cols-2 ">
-      <div className="flex justify-center items-center bg-neutral-100 p-6 small:p-0 h-full">
+      <div className="flex justify-center items-center bg-neutral-100 small:p-0 h-full">
         {currentView === LOGIN_VIEW.LOG_IN ? (
           <Login setCurrentView={updateView} />
         ) : (

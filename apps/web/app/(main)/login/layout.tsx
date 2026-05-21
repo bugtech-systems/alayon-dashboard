@@ -3,6 +3,7 @@ import { retrieveCustomer } from "@/lib/data/customer"
 import { listCartFreeShippingPrices } from "@/lib/data/fulfillment"
 import { getBaseURL } from "@/lib/util/env"
 import CartMismatchBanner from "@/modules/layout/components/cart-mismatch-banner"
+import { LoginNavigationHeader } from "@/modules/layout/templates/login-nav"
 import { NavigationHeader } from "@/modules/layout/templates/nav"
 import FreeShippingPriceNudge from "@/modules/shipping/components/free-shipping-price-nudge"
 import { StoreFreeShippingPrice } from "@/types/shipping-option/http"
@@ -22,9 +23,13 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
     freeShippingPrices = await listCartFreeShippingPrices(cart.id)
   }
 
+
   return (
     <>
-
+    <LoginNavigationHeader/>
+      {customer && cart && (
+        <CartMismatchBanner customer={customer} cart={cart} />
+      )}
       {props.children}
       {/* <Footer /> */}
       {cart && freeShippingPrices && (

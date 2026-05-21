@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { getProductByHandle } from "@/lib/data/products"
 
 // Navigation items
 const navigation = [
@@ -155,7 +156,8 @@ function SearchModal() {
   )
 }
 
-export async function NavigationHeader() {
+export async function StoreNavigationHeader({company}: any) {
+
 
   return (
     <>
@@ -202,7 +204,7 @@ export async function NavigationHeader() {
             </div>
 
             {/* Right section - Actions */}
-            <div className="flex items-center gap-1 lg:gap-2">
+            <div className="flex items-center gap-1 lg:gap-2 mx-3">
               {/* Desktop Search */}
 
 
@@ -224,14 +226,14 @@ export async function NavigationHeader() {
               )} */}
 
               {/* Account Button */}
-              <Suspense fallback={<SkeletonAccountButton />}>
+              {/* <Suspense fallback={<SkeletonAccountButton />}>
                 <AccountButton />
-              </Suspense>
+              </Suspense> */}
 
               {/* Cart Button */}
-              {/* <Suspense fallback={<SkeletonCartButton />}>
-                <CartButton />
-              </Suspense> */}
+            <Suspense fallback={<SkeletonCartButton />}>
+                <CartButton company={company} />
+              </Suspense> 
             </div>
           </div>
         </header>

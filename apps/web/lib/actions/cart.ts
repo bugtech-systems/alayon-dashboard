@@ -18,9 +18,12 @@ import {
 } from "@/lib/medusa/data/cookies"
 import { retrieveCustomer } from "./customer"
 import { getRegion } from "./regions"
+import { getCachedId } from "../data/cookies"
 
 export async function retrieveCart(id?: string) {
   const cartId = id || (await getCartId())
+  
+
 
   if (!cartId) {
     return null
@@ -160,11 +163,14 @@ export async function getOrSetCart(countryCode: string) {
 export async function addToCartBulk({
   lineItems,
   countryCode,
+  companyId
 }: {
   lineItems: HttpTypes.StoreAddCartLineItem[]
   countryCode: string
+  companyId?: any
 }) {
   const cart = await getOrSetCart(countryCode)
+  const session_id = await getCachedId()
 
   if (!cart) {
     throw new Error("Error retrieving or creating cart")
@@ -185,7 +191,7 @@ export async function addToCartBulk({
     {
       method: "POST",
       headers,
-      body: JSON.stringify({ line_items: lineItems }),
+      body: JSON.stringify({ line_items: lineItems, companyId, session_id }),
     }
   )
     .then(async () => {

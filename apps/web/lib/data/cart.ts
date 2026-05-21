@@ -10,11 +10,14 @@ import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import {
   getAuthHeaders,
+  getCachedId,
   getCacheOptions,
   getCacheTag,
   getCartId,
+  getCompanyId,
   removeCartId,
   setCartId,
+  setCompanyId,
 } from "@/lib/data/cookies"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { getRegion } from "@/lib/data/regions"
@@ -38,7 +41,7 @@ export async function createDelivery(cartId: string, company_id: any) {
 }
 
 export async function retrieveCart(id?: string) {
-  const cartId = id || (await getCartId())
+  const cartId = (id || (await getCartId()))
   if (!cartId) {
     return null
   }
@@ -70,10 +73,48 @@ export async function retrieveCart(id?: string) {
     })
 }
 
-export async function getOrSetCart(countryCode: string = 'ph', companyId?: string) {
-  let cart = await retrieveCart()
-  const region = await getRegion(countryCode)
+export async function retrieveCompanyCart(id?: string) {
+  const cachedId = await getCachedId()
 
+  if (!id) {
+    return null
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const next = {
+    ...(await getCacheOptions("carts")),
+  }
+
+  let company = await sdk.client
+    .fetch<HttpTypes.StoreCartResponse>(`/store/carts?company_id=${id}&session_id=${cachedId}`, {
+      credentials: "include",
+      method: "GET",
+      query: {
+        fields:
+          "*items, *region, *items.product, *items.variant, +items.thumbnail, +items.metadata, *promotions, *company, *company.approval_settings, *customer, *approvals, +completed_at, *approval_status",
+      },
+      headers,
+      next,
+    })
+    .then(({ cart }) => {
+      return cart as B2BCart
+    })
+    .catch(() => {
+      return null
+    })
+
+
+    return company
+}
+
+export async function getOrSetCart(countryCode: string = 'ph', companyId?: string) {
+  let cart = await companyId ? await retrieveCompanyCart(companyId) : await retrieveCart();
+  console.log(cart, 'cccccccrrrtt')
+  const region = await getRegion('ph')
+  const session_id = await getCachedId()
   if (!region) {
     throw new Error(`Region not found for country code: ${countryCode}`)
   }
@@ -87,18 +128,21 @@ export async function getOrSetCart(countryCode: string = 'ph', companyId?: strin
       region_id: region.id,
       metadata: {
         company_id: companyId,
+        session_id
       },
     }
 
     const cartResp = await sdk.store.cart.create(body, {}, headers)
     console.log(cartResp, 'carrt resp')
-    setCartId(cartResp.cart.id)
 
     const cartCacheTag = await getCacheTag("carts")
     revalidateTag(cartCacheTag, "max")
 
     cart = await retrieveCart()
   }
+
+  console.log(cart, 'CAAAAARTTTT')
+    setCartId(cart?.id)
 
   if (cart && cart?.region_id !== region.id) {
     await sdk.store.cart.update(cart.id, { region_id: region.id }, {}, headers)
@@ -183,12 +227,15 @@ export async function addToCartBulk({
   companyId?: string
 }) {
   console.log(countryCode, lineItems, 'llssns', companyId)
+  if(companyId){
+  await setCompanyId(companyId)
+  }
   const cart = await getOrSetCart(countryCode, companyId)
-
+  console.log(cart, 'GETTTS SEEET')
   if (!cart) {
     throw new Error("Error retrieving or creating cart")
   }
-
+  
   const headers = {
     "Content-Type": "application/json",
     ...(await getAuthHeaders()),
@@ -221,17 +268,24 @@ export async function addToCartBulk({
 export async function updateLineItem({
   lineId,
   data,
+  company
 }: {
   lineId: string
   data: HttpTypes.StoreUpdateCartLineItem
+  company?: any
 }) {
+
+  console.log(company,'UPDADATE LINE')
   if (!lineId) {
     throw new Error("Missing lineItem ID when updating line item")
   }
 
-  const cartId = await getCartId()
 
-  if (!cartId) {
+
+  const cart = await getOrSetCart('ph', company?.id)
+  console.log(cart, company, 'compaaanyyy iddd')
+
+  if (!cart?.id) {
     throw new Error("Missing cart ID when updating line item")
   }
 
@@ -239,8 +293,10 @@ export async function updateLineItem({
     ...(await getAuthHeaders()),
   }
 
+  await setCartId(cart?.id)
+  await setCompanyId(company?.id)
   await sdk.store.cart
-    .updateLineItem(cartId, lineId, data, {}, headers)
+    .updateLineItem(cart?.id, lineId, data, {}, headers)
     .then(async () => {
       const fullfillmentCacheTag = await getCacheTag("fulfillment")
       revalidateTag(fullfillmentCacheTag, "max")

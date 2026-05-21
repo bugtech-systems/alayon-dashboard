@@ -60,14 +60,11 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
         if(res.user || res.customer || res.company || res.driver){
         setUser({...(res.user || res.customer || res.company || res.driver), actor_type: res.actor_type})
         }
-        if(res.company){
-         setCompany(res.company)     
-        }
+
         // fetchSession(res?.user?.id)
       
     } catch {
       setUser(null)
-      setCompany(null)
     } finally {
       setLoading(false)
     }

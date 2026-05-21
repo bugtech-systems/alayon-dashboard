@@ -10,8 +10,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose 
 import { cn } from "@/lib/utils";
 import { LocationDialog } from "@/components/location/LocationDialog";
 import { useLocation } from "@/lib/context/LocationContext";
-import CartButton from "@/components/cart/cart-button";
-import SkeletonCartButton from "@/modules/skeletons/components/skeleton-cart-button";
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -203,9 +201,9 @@ export function NavigationHeader() {
               </Button>
 
               {/* Cart Button with Badge */}
-           <Suspense fallback={<SkeletonCartButton />}>
+           {/* <Suspense fallback={<SkeletonCartButton />}>
               <CartButton />
-            </Suspense>
+            </Suspense> */}
               {/* <Button 
                 variant="ghost" 
                 size="icon" 

@@ -155,26 +155,17 @@ function SearchModal() {
   )
 }
 
-export async function NavigationHeader() {
+export async function LoginNavigationHeader() {
 
   return (
     <>
       {/* Announcement Bar */}
-      <div className="bg-primary text-primary-foreground py-3 text-center text-sm">
-        <p>Welcome to our store</p>
-      </div>
+
 
       {/* Main Header */}
       <div className="sticky top-0 z-50 w-full bg-white border-b border-gray-100 shadow-sm">
-        <header className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            {/* Left section - Mobile menu */}
-            <div className="flex items-center gap-2 lg:hidden">
-              <MobileMenu />
-            </div>
-
-            {/* Logo */}
-            <div className="flex lg:flex-1">
+        <header className="flex justify-between items-center container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex lg:flex-1">
               <LocalizedClientLink 
                 href="/" 
                 className="text-xl font-semibold hover:opacity-80 transition-opacity"
@@ -182,58 +173,12 @@ export async function NavigationHeader() {
                 Alayon
               </LocalizedClientLink>
             </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex lg:items-center lg:gap-x-8">
-              {navigation.map((item) => (
-                <LocalizedClientLink
-                  key={item.name}
-                  href={item.href}
-                  className="text-sm font-medium transition-colors hover:text-primary text-muted-foreground relative py-2"
-                >
-                  {item.name}
-                </LocalizedClientLink>
-              ))}
-              
-              {/* Mega Menu */}
-              {/* <Suspense fallback={<SkeletonMegaMenu />}>
-                <MegaMenuWrapper />
-              </Suspense> */}
-            </div>
-
-            {/* Right section - Actions */}
-            <div className="flex items-center gap-1 lg:gap-2">
-              {/* Desktop Search */}
-
-
-              {/* Quote Button */}
-              {/* {customer && cart?.items && cart.items.length > 0 ? (
-                <RequestQuoteConfirmation>
-                  <button className="flex gap-1.5 items-center rounded-2xl bg-none shadow-none border-none hover:bg-neutral-100 px-2 py-1">
-                    <FilePlus className="h-5 w-5" />
-                    <span className="hidden lg:inline-block text-sm">Quote</span>
-                  </button>
-                </RequestQuoteConfirmation>
-              ) : (
-                <RequestQuotePrompt>
-                  <button className="flex gap-1.5 items-center rounded-2xl bg-none shadow-none border-none hover:bg-neutral-100 px-2 py-1">
-                    <FilePlus className="h-5 w-5" />
-                    <span className="hidden lg:inline-block text-sm">Quote</span>
-                  </button>
-                </RequestQuotePrompt>
-              )} */}
-
-              {/* Account Button */}
-              <Suspense fallback={<SkeletonAccountButton />}>
-                <AccountButton />
-              </Suspense>
-
-              {/* Cart Button */}
-              {/* <Suspense fallback={<SkeletonCartButton />}>
-                <CartButton />
-              </Suspense> */}
-            </div>
-          </div>
+      <div className="text-primary-foreground py-3 text-center text-sm">
+        <p className="text-primary ">Welcome to our store</p>
+      </div>
+      <div className="flex lg:flex-1">
+        <span></span>
+        </div>
         </header>
       </div>
     </>

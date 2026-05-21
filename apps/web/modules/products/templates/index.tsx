@@ -33,12 +33,11 @@ import {
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import Image from "next/image"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
 type ProductTemplateProps = {
-  product: HttpTypes.StoreProduct
+  product: HttpTypes.StoreProduct | any
   region: HttpTypes.StoreRegion
   countryCode: string
 }
@@ -119,8 +118,6 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
     ? new Date(product.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     : false
 
-    console.log(product?.company, 'prrod')
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
@@ -198,7 +195,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   <Suspense
                     fallback={<ProductActions product={product} region={region} />}
                   >
-                    <ProductActionsWrapper id={product.id} region={region} />
+                    <ProductActionsWrapper id={product.id} region={region} company={product?.company}/>
                   </Suspense>
                   
                   {/* Product Facts */}

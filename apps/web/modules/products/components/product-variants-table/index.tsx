@@ -10,9 +10,11 @@ import BulkTableQuantity from "../bulk-table-quantity"
 const ProductVariantsTable = ({
   product,
   region,
+  company
 }: {
   product: HttpTypes.StoreProduct
   region: HttpTypes.StoreRegion
+  company?: any
 }) => {
   const [isAdding, setIsAdding] = useState(false)
   const [lineItemsMap, setLineItemsMap] = useState<
@@ -32,16 +34,18 @@ const ProductVariantsTable = ({
 
   const handleQuantityChange = (variantId: string, quantity: number) => {
     setLineItemsMap((prev) => {
-      const newLineItems = new Map(prev)
+      const newLineItems = new Map(prev) as any
 
       if (!prev.get(variantId)) {
         newLineItems.set(variantId, {
+          company,
           ...product.variants?.find((v) => v.id === variantId)!,
           product,
           quantity,
         })
       } else {
         newLineItems.set(variantId, {
+          company,
           ...prev.get(variantId)!,
           quantity,
         })
@@ -56,6 +60,7 @@ const ProductVariantsTable = ({
 
     const lineItems = Array.from(lineItemsMap.entries()).map(
       ([variantId, { quantity, ...variant }]) => ({
+        company,
         productVariant: {
           ...variant,
         },
@@ -64,6 +69,7 @@ const ProductVariantsTable = ({
     )
 
     addToCartEventBus.emitCartAdd({
+      company,
       lineItems,
       regionId: region.id,
     })

@@ -43,6 +43,7 @@ export type AddToCartEventPayload = {
 const CartContext = createContext<
   | {
       cart: B2BCart | null
+      company?: any
       handleDeleteItem: (lineItem: string) => Promise<void>
       handleUpdateCartQuantity: (
         lineItem: string,
@@ -56,9 +57,11 @@ const CartContext = createContext<
 
 export function CartProvider({
   cart,
+  company,
   children,
 }: PropsWithChildren<{
   cart: B2BCart | null
+  company?: any
 }>) {
   const { countryCode } = useParams()
 
@@ -72,12 +75,12 @@ export function CartProvider({
 
   useEffect(() => {
     setIsUpdatingCart(false)
-  }, [cart])
+  }, [cart, company])
 
   const handleOptimisticAddToCart = useCallback(
-    async (payload: AddToCartEventPayload) => {
+    async (payload: AddToCartEventPayload | any) => {
       let prevCart = {} as B2BCart
-
+      
       if (
         cart?.approvals?.some(
           (approval) => approval.status === ApprovalStatusType.PENDING
@@ -91,84 +94,89 @@ export function CartProvider({
         setOptimisticCart((prev) => {
           prevCart = structuredClone(prev) as B2BCart
 
+          // Preserve existing items order
           const items = [...(prev?.items || [])]
-
           const lineItems = payload.lineItems
 
-          const newItems: StoreCartLineItem[] = [...items]
+          // Create a map for quick lookup of existing items by variant ID
+          const existingItemIndexMap = new Map<string, number>()
+          items.forEach((item, index) => {
+            if (item.variant?.id) {
+              existingItemIndexMap.set(item.variant.id, index)
+            }
+          })
 
+          // Update or add items while preserving order
           for (const lineItem of lineItems) {
-            const existingItemIndex = newItems.findIndex(
-              ({ variant }) => variant?.id === lineItem.productVariant.id
-            )
-
-            if (existingItemIndex > -1) {
-              const item = newItems[existingItemIndex]
-
-              newItems[existingItemIndex] = {
+            const existingIndex = existingItemIndexMap.get(lineItem.productVariant.id)
+            
+            if (existingIndex !== undefined) {
+              // Update existing item at its current position
+              const item = items[existingIndex]
+              items[existingIndex] = {
                 ...item,
                 quantity: item.quantity + lineItem.quantity,
                 total: (item.total || 0) + lineItem.quantity * item.unit_price,
                 original_total:
                   (item.original_total || 0) + lineItem.quantity * item.unit_price,
               }
+            } else {
+              // Add new item at the end (or beginning if you prefer)
+              const priceAmount =
+                lineItem.productVariant.calculated_price?.calculated_amount || 0
 
-              continue
+              const newItem: StoreCartLineItem = {
+                cart: (prev || {}) as StoreCart,
+                cart_id: prev?.id || "",
+                discount_tax_total: 0,
+                discount_total: 0,
+                id: generateOptimisticItemId(lineItem.productVariant.id),
+                is_discountable: false,
+                is_tax_inclusive: false,
+                item_subtotal: priceAmount * lineItem.quantity,
+                item_tax_total: 0,
+                item_total: priceAmount * lineItem.quantity,
+                original_subtotal: priceAmount * lineItem.quantity,
+                original_tax_total: 0,
+                original_total: priceAmount * lineItem.quantity,
+                product: lineItem.productVariant.product || undefined,
+                quantity: lineItem.quantity,
+                requires_shipping: true,
+                subtotal: priceAmount * lineItem.quantity,
+                tax_total: 0,
+                title: lineItem.productVariant.title || "",
+                total: priceAmount * lineItem.quantity,
+                thumbnail:
+                  lineItem.productVariant.product?.thumbnail || undefined,
+                unit_price: priceAmount,
+                variant: lineItem.productVariant || undefined,
+                // @ts-expect-error
+                created_at: new Date().toISOString(),
+              }
+
+              items.push(newItem)
+              existingItemIndexMap.set(lineItem.productVariant.id, items.length - 1)
             }
-
-            const priceAmount =
-              lineItem.productVariant.calculated_price?.calculated_amount || 0
-
-            const newItem: StoreCartLineItem = {
-              cart: (prev || {}) as StoreCart,
-              cart_id: prev?.id || "",
-              discount_tax_total: 0,
-              discount_total: 0,
-              id: generateOptimisticItemId(lineItem.productVariant.id),
-              is_discountable: false,
-              is_tax_inclusive: false,
-              item_subtotal: priceAmount * lineItem.quantity,
-              item_tax_total: 0,
-              item_total: priceAmount * lineItem.quantity,
-              original_subtotal: priceAmount * lineItem.quantity,
-              original_tax_total: 0,
-              original_total: priceAmount * lineItem.quantity,
-              product: lineItem.productVariant.product || undefined,
-              quantity: lineItem.quantity,
-              requires_shipping: true,
-              subtotal: priceAmount * lineItem.quantity,
-              tax_total: 0,
-              title: lineItem.productVariant.title || "",
-              total: priceAmount * lineItem.quantity,
-              thumbnail:
-                lineItem.productVariant.product?.thumbnail || undefined,
-              unit_price: priceAmount,
-              variant: lineItem.productVariant || undefined,
-              // @ts-expect-error
-              created_at: new Date().toISOString(),
-            }
-
-            newItems.push(newItem)
           }
 
-          const newTotal = calculateCartTotal(newItems)
+          const newTotal = calculateCartTotal(items)
 
           return {
             ...prev,
             item_subtotal: newTotal,
-            items: newItems,
+            items: items, // Preserves original order
           } as B2BCart
         })
 
         setIsUpdatingCart(true)
-
+        
         await addToCartBulk({
-          lineItems: payload.lineItems.map((lineItem) => ({
+          lineItems: payload.lineItems.map((lineItem: any) => ({
             variant_id: lineItem.productVariant.id,
             quantity: lineItem.quantity,
           })),
           countryCode: countryCode as string,
-          companyId: payload?.companyId
+          companyId: company?.id
         }).catch((e) => {
           if (e.message === "Cart is pending approval") {
             toast.error("Cart is locked for approval.")
@@ -179,7 +187,7 @@ export function CartProvider({
         })
       })
     },
-    [setOptimisticCart]
+    [setOptimisticCart, cart?.approvals, countryCode, company]
   )
 
   useEffect(() => {
@@ -199,6 +207,7 @@ export function CartProvider({
 
         prevCart = structuredClone(prev) as B2BCart
 
+        // Filter out item while preserving order of remaining items
         const optimisticItems = prev.items?.filter(({ id }) => id !== lineItem)
 
         const optimisticTotal = optimisticItems?.reduce(
@@ -209,7 +218,7 @@ export function CartProvider({
         return {
           ...prev,
           item_subtotal: optimisticTotal || 0,
-          items: optimisticItems,
+          items: optimisticItems, // Order preserved automatically with filter
         }
       })
     })
@@ -227,7 +236,7 @@ export function CartProvider({
     quantity: number
   ) => {
     const item = optimisticCart?.items?.find(({ id }) => id === lineItem)
-
+    
     if (!item) return
 
     let prevCart = {} as B2BCart
@@ -238,26 +247,21 @@ export function CartProvider({
 
         prevCart = structuredClone(prev) as B2BCart
 
-        const optimisticItems = prev.items?.reduce(
-          (acc: StoreCartLineItem[], item) => {
-            if (item.id === lineItem) {
-              const newQuantity = quantity === 0 ? 0 : quantity
-              const total = item.unit_price * newQuantity
+        // Update quantity while preserving order using map
+        const optimisticItems = prev.items?.map((item) => {
+          if (item.id === lineItem) {
+            const newQuantity = quantity === 0 ? 0 : quantity
+            const total = item.unit_price * newQuantity
 
-              return [
-                ...acc,
-                {
-                  ...item,
-                  quantity: newQuantity,
-                  total,
-                  original_total: total,
-                },
-              ]
+            return {
+              ...item,
+              quantity: newQuantity,
+              total,
+              original_total: total,
             }
-            return [...acc, item]
-          },
-          []
-        )
+          }
+          return item // Return unchanged items as-is
+        })
 
         const optimisticTotal = optimisticItems?.reduce(
           (acc, item) => acc + item.unit_price * item.quantity,
@@ -267,16 +271,18 @@ export function CartProvider({
         return {
           ...prev,
           item_subtotal: optimisticTotal || 0,
-          items: optimisticItems,
+          items: optimisticItems, // Order preserved with map
         }
       })
     })
-
+     
+    console.log(company, 'CCCOMPPP STAT')
     if (!isOptimisticItemId(lineItem)) {
       setIsUpdatingCart(true)
       await updateLineItem({
         lineId: lineItem,
         data: { quantity },
+        company: company
       }).catch((e) => {
         toast.error("Failed to update cart quantity")
         setOptimisticCart(prevCart)
@@ -302,16 +308,16 @@ export function CartProvider({
     })
   }
 
-  const sortedItems = useMemo(() => {
-    return optimisticCart?.items?.sort((a, b) => {
-      return (a.created_at ?? "") > (b.created_at ?? "") ? -1 : 1
-    })
+  // No need to sort items - they maintain their order naturally
+  const stableItems = useMemo(() => {
+    return optimisticCart?.items
   }, [optimisticCart])
 
   return (
     <CartContext.Provider
       value={{
-        cart: { ...optimisticCart, items: sortedItems } as B2BCart,
+        cart: { ...optimisticCart, items: stableItems } as B2BCart,
+        company,
         handleDeleteItem,
         handleUpdateCartQuantity,
         handleEmptyCart,
@@ -347,4 +353,3 @@ function calculateCartTotal(cartItems: StoreCartLineItem[]) {
     0
   )
 }
- 

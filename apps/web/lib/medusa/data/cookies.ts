@@ -80,6 +80,9 @@ export async function removeAuthToken() {
   try {
     const cookieStore = await nextCookies();
     cookieStore.delete("_medusa_jwt");
+    cookieStore.delete("_medusa_cache_id");
+    cookieStore.delete("_medusa_company_id");
+
         // Revalidate to clear cached data
 
     // Revalidate user cache
@@ -120,6 +123,12 @@ export const removeCartId = async () => {
   const cookies = await nextCookies()
 
   cookies.set("_medusa_cart_id", "", {
+    maxAge: -1,
+  })
+  cookies.set("_medusa_company_id", "", {
+    maxAge: -1,
+  })
+    cookies.set("_medusa_cached_id", "", {
     maxAge: -1,
   })
 }

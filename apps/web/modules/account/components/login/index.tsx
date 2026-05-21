@@ -3,184 +3,203 @@
 
 import { login } from "@/lib/data/customer"
 import { LOGIN_VIEW } from "@/modules/account/templates/login-template"
-import ErrorMessage from "@/modules/checkout/components/error-message"
-import { SubmitButton } from "@/modules/checkout/components/submit-button"
-import { useActionState } from "react"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Command } from "lucide-react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { z } from "zod"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Separator } from "@/components/ui/separator"
-import { Mail, Lock, LogIn, UserPlus, Eye, EyeOff } from "lucide-react"
-import { useState } from "react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 type Props = {
   setCurrentView: (view: LOGIN_VIEW) => void
 }
 
+const formSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  password: z.string().min(1, { message: "Password is required." }),
+  remember: z.boolean().optional(),
+})
+
+type FormData = z.infer<typeof formSchema>
+
 const Login = ({ setCurrentView }: Props) => {
-  const [message, formAction] = useActionState(login, null)
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const router = useRouter()
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      remember: false,
+    },
+  })
+
+  const onSubmit = async (data: FormData) => {
+    // Clear previous errors
+    setServerError(null)
+    setIsLoading(true)
+    
+    try {
+      const formData = new FormData()
+      formData.append("email", data.email)
+      formData.append("password", data.password)
+      if (data.remember) {
+        formData.append("remember_me", "true")
+      }
+      
+      const result = await login({}, formData)
+        console.log(result, 'LOGIN RESUl')
+      // Check if login was successful
+      if (result && String(result).toLowerCase().includes('error')) {
+        setServerError(result)
+      } else if (result && result.success) {
+        // Redirect to home page or dashboard on successful login
+        router.push("/")
+        router.refresh() // Refresh server components
+      }
+    } catch (error) {
+      console.error("Login error:", error)
+      setServerError("An unexpected error occurred. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <div className="w-full flex items-center justify-center min-h-[80vh] bg-gradient-to-b from-gray-50 to-white p-4">
-      <Card className="w-full max-w-md shadow-lg border-gray-200">
-        <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <LogIn className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">
-            Welcome Back
-          </CardTitle>
-          <CardDescription>
-            Log in to your account for faster checkout and exclusive offers
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          <form action={formAction} className="space-y-4">
-            {/* Email Field */}
+    <div className="flex h-dvh w-full">
+      <div className="hidden bg-primary lg:block lg:w-1/3">
+        <div className="flex h-full flex-col items-center justify-center p-12 text-center">
+          <div className="space-y-6">
+            <Command className="mx-auto size-12 text-primary-foreground" />
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">
-                Email Address
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  className="pl-9"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  data-testid="email-input"
-                />
-              </div>
+              <h1 className="font-light text-5xl text-primary-foreground">Alayon</h1>
+              <p className="text-primary-foreground/80 text-xl">Login to continue</p>
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Password Field */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </Label>
-                <button
-                  type="button"
-                  onClick={() => setCurrentView(LOGIN_VIEW.RESET_PASSWORD)}
-                  className="text-xs text-primary hover:underline"
-                  data-testid="forgot-password-button"
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="pl-9 pr-9"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  data-testid="password-input"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
+      <div className="flex w-full items-center justify-center bg-background p-8 lg:w-2/3">
+        <div className="w-full max-w-md space-y-10 py-24 lg:py-32">
+          <div className="space-y-4 text-center">
+            <div className="font-medium tracking-tight">Login</div>
+            <div className="mx-auto max-w-xl text-muted-foreground">
+              Welcome back. Enter your email and password, let&apos;s hope you remember them this time.
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+              <div className="space-y-4">
+                {/* Email Field */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="login-email" className="text-sm font-medium">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    disabled={isLoading}
+                    {...form.register("email")}
+                    aria-invalid={!!form.formState.errors.email}
+                    data-testid="email-input"
+                  />
+                  {form.formState.errors.email && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.email.message}
+                    </p>
                   )}
-                </button>
+                </div>
+
+                {/* Password Field */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="login-password" className="text-sm font-medium">
+                      Password
+                    </Label>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentView(LOGIN_VIEW.RESET_PASSWORD)}
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                      data-testid="forgot-password-button"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    disabled={isLoading}
+                    {...form.register("password")}
+                    aria-invalid={!!form.formState.errors.password}
+                    data-testid="password-input"
+                  />
+                  {form.formState.errors.password && (
+                    <p className="text-sm text-destructive">
+                      {form.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Remember Me Checkbox */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="login-remember"
+                    checked={form.watch("remember")}
+                    onCheckedChange={(checked) => form.setValue("remember", Boolean(checked))}
+                    disabled={isLoading}
+                    data-testid="remember-me-checkbox"
+                  />
+                  <Label
+                    htmlFor="login-remember"
+                    className="text-sm font-normal cursor-pointer text-muted-foreground"
+                  >
+                    Remember me for 30 days
+                  </Label>
+                </div>
+
+                {/* Server Error Message */}
+                {serverError && (
+                  <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive" data-testid="login-error-message">
+                    {serverError}
+                  </div>
+                )}
               </div>
-            </div>
 
-            {/* Remember Me Checkbox */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="remember_me" 
-                  name="remember_me"
-                  data-testid="remember-me-checkbox"
-                />
-                <Label
-                  htmlFor="remember_me"
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  Remember me
-                </Label>
-              </div>
-            </div>
+              <Button 
+                className="w-full" 
+                type="submit" 
+                disabled={isLoading}
+                data-testid="sign-in-button"
+              >
+                {isLoading ? "Logging in..." : "Login"}
+              </Button>
+            </form>
 
-            {/* Error Message */}
-            {message && (
-              <ErrorMessage 
-                error={message} 
-                data-testid="login-error-message"
-              />
-            )}
-
-            {/* Submit Button */}
-            <SubmitButton 
-              data-testid="sign-in-button" 
-              className="w-full"
-            >
-              <LogIn className="mr-2 h-4 w-4" />
-              Log In
-            </SubmitButton>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="w-full" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-muted-foreground">
-                New to our store?
-              </span>
-            </div>
+            <p className="text-center text-muted-foreground text-xs">
+              Don&apos;t have an account?{" "}
+              <button
+                type="button"
+                onClick={() => setCurrentView(LOGIN_VIEW.REGISTER)}
+                className="text-primary hover:underline transition-colors"
+                data-testid="register-button"
+              >
+                Register
+              </button>
+            </p>
           </div>
-
-          {/* Register Button */}
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setCurrentView(LOGIN_VIEW.REGISTER)}
-            className="w-full"
-            data-testid="register-button"
-          >
-            <UserPlus className="mr-2 h-4 w-4" />
-            Create New Account
-          </Button>
-        </CardContent>
-
-        <CardFooter className="flex flex-col space-y-2 text-center text-sm text-muted-foreground">
-          <div className="flex items-center gap-2 text-xs">
-            <span>By logging in, you agree to our</span>
-            <Link href="/terms" className="text-primary hover:underline">
-              Terms of Service
-            </Link>
-            <span>and</span>
-            <Link href="/privacy" className="text-primary hover:underline">
-              Privacy Policy
-            </Link>
-          </div>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

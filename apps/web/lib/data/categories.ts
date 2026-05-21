@@ -12,7 +12,6 @@ export async function listCategories(): Promise<
       ...(await getCacheHeaders("categories")),
     }
   );
-  console.log(product_categories, 'PRODDS CATT')
   return product_categories as HttpTypes.StoreProductCategory[];
 }
 

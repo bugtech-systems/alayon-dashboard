@@ -13,7 +13,6 @@ import { useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ShoppingBag, Package, TrendingUp, Truck } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 const CartTemplate = ({ customer }: { customer: B2BCustomer | null }) => {
   const { cart } = useCart()
@@ -86,7 +85,7 @@ const CartTemplate = ({ customer }: { customer: B2BCustomer | null }) => {
           {/* Left Column - Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {/* Sign In Prompt */}
-            {!customer && <SignInPrompt />}
+            {/* {!customer && <SignInPrompt />} */}
             
             {/* Approval Status Banner */}
             {cart?.approvals && cart.approvals.length > 0 && (
