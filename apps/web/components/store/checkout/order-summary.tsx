@@ -25,7 +25,7 @@ interface OrderSummaryProps {
 }
 
 export function OrderSummary({ showDetailedBreakdown = true, className, cart }: OrderSummaryProps) {
-  const [company, setCompany] = useState<any>(null);
+  const [company, setCompany] = useState<any>(cart?.company);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,6 +35,7 @@ export function OrderSummary({ showDetailedBreakdown = true, className, cart }: 
           const companyData = await retrieveCompany(
             cart.metadata.company_id as string
           );
+          console.log(companyData, 'wwdwa')
           setCompany(companyData);
         } catch (error) {
           console.error("Error fetching company:", error);

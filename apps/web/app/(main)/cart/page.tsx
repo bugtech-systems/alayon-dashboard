@@ -24,7 +24,6 @@ export default async function Cart({searchParams}: any) {
   const cart = await retrieveCart(cartId);
   const customer = await retrieveCustomer();
   const company = cart?.company;
-  console.log(cart, "CARRARTs")
   return (
     <CartProvider cart={cart} company={company}>
       <CartTemplate customer={customer} />

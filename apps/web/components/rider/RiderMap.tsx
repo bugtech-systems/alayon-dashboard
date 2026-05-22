@@ -557,7 +557,7 @@ export function RiderMap() {
   );
 
   return (
-    <div className="relative h-[90vh] w-full bg-background">
+    <div className="relative h-[85vh] w-full bg-background">
       {/* Map - Full screen */}
       <div className="absolute inset-0">
         <Map 

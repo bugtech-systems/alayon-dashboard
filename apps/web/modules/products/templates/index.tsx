@@ -81,7 +81,7 @@ const getCompanyFromProduct = (product: any): Company | null => {
     name: company.name as string || "The Urban Collective",
     slug: company.id as string || "urban-collective",
     logo: company.logo_url as string || "/images/default-company-logo.png",
-    coverImage: company.logo_url as string,
+    coverImage: company.banner_url as string,
     description: company.company_description as string || 
       "Premium lifestyle brand offering carefully curated products that blend functionality with aesthetic appeal. We're committed to sustainable practices and exceptional customer service.",
     rating: 4.8,
