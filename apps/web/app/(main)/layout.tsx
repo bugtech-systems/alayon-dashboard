@@ -1,3 +1,4 @@
+import { LocationProvider } from "@/lib/context/LocationContext"
 import { retrieveCart } from "@/lib/data/cart"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { listCartFreeShippingPrices } from "@/lib/data/fulfillment"
@@ -24,6 +25,7 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
 
   return (
     <>
+    <LocationProvider>
 
       {props.children}
       {/* <Footer /> */}
@@ -34,6 +36,7 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
           freeShippingPrices={freeShippingPrices}
         />
       )}
+      </LocationProvider>
     </>
   )
 }

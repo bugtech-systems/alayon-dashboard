@@ -33,6 +33,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) 
   useEffect(() => {
     // Check if location is already stored in localStorage
     const storedLocation = localStorage.getItem('userLocation');
+    console.log(storedLocation, 'STRRE')
     if (storedLocation) {
       setUserLocation(JSON.parse(storedLocation));
     } else {

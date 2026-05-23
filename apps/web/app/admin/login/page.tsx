@@ -266,7 +266,7 @@ export default function LoginPage() {
           <div className="border-t bg-gray-50 p-4 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}
-            <Link href="/signup">
+            <Link href="/admin/signup">
               <button
                 type="button"
                 className="text-primary hover:text-primary/80 font-medium transition-colors"

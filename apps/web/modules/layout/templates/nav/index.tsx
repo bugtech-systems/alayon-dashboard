@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { LocationDialogWrapper } from "@/components/location/location-dialog-wrapper"
 
 // Navigation items
 const navigation = [
@@ -159,6 +160,7 @@ export async function NavigationHeader() {
 
   return (
     <>
+    <LocationDialogWrapper/>
       {/* Announcement Bar */}
       <div className="bg-primary text-primary-foreground py-3 text-center text-sm">
         <p>Welcome to our store</p>

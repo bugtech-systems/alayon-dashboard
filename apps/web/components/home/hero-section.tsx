@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { LocationDialogWrapper } from '../location/location-dialog-wrapper'
 
 const slides = [
   {
@@ -30,6 +31,7 @@ export function HeroSection() {
 
   return (
     <section className="relative h-screen w-full overflow-hidden">
+
       {/* Background Images */}
       <AnimatePresence mode="wait">
         <motion.div

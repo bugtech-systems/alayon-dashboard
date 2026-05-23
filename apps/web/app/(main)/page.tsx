@@ -1,4 +1,5 @@
 import { HeroSection } from "@/components/home/hero-section"
+import { LocationDialogWrapper } from "@/components/location/location-dialog-wrapper"
 import { getRegion } from "@/lib/actions/regions"
 import FeaturedProducts from "@/modules/home/components/featured-products"
 import SkeletonFeaturedProducts from "@/modules/skeletons/templates/skeleton-featured-products"
@@ -14,7 +15,6 @@ export const metadata: Metadata = {
 export default async function Home(props: {
   params: Promise<{ countryCode: string }>
 }) {
-  const params = await props.params
 
   return (
     <div className="flex flex-col gap-y-2 m-2">
