@@ -4,4 +4,4 @@ export * from "./global"
 export * from "./quote"
 export * from "./product"
 export * from "./shipping-option"
-
+export * from "./dashboard-types"
