@@ -165,7 +165,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
 
     setBulkActionLoading(true);
     try {
-      const response = await n8nService.bulkDelete("deleteCustomers", selectedIds);
+      const response = await n8n.bulkDelete("deleteCustomers", selectedIds);
       
       if (response.success) {
         toast.success(`Successfully deleted ${selectedIds.length} customer(s)`);
@@ -190,7 +190,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
 
     setBulkActionLoading(true);
     try {
-      const response = await n8nService.bulkUpdate("updateCustomersStatus", {
+      const response = await n8n.bulkUpdate("updateCustomersStatus", {
         customerIds: selectedIds,
         status: selectedStatus,
       });
@@ -219,7 +219,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
 
     setBulkActionLoading(true);
     try {
-      const response = await n8nService.bulkUpdate("updateCustomersBilling", {
+      const response = await n8n.bulkUpdate("updateCustomersBilling", {
         customerIds: selectedIds,
         billingStatus: selectedBilling,
       });
@@ -276,7 +276,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
         params.sortOrder = sorting[0].desc ? "desc" : "asc";
       }
 
-      const response = await n8nService.getPaginated<RecentCustomerRow>("getCustomers", params.page, params.pageSize, {
+      const response = await n8n.getPaginated<RecentCustomerRow>("getCustomers", params.page, params.pageSize, {
         search: params.search,
         status: params.status,
         billing: params.billing,
