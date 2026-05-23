@@ -7,24 +7,27 @@ import { useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { n8n } from "@/lib/n8n-webhook-service";
-
+import { useCustomersExport } from "@/lib/hooks/useN8nQuery";
 import { RecentCustomersTable } from "./recent-customers-table/table";
-import type { RecentCustomerRow } from "./recent-customers-table/schema";
 
 interface SubscriberOverviewProps {
-  initialData?: RecentCustomerRow[];
+  initialData?: any[];
   initialTotal?: number;
   initialStats?: any;
+  isLoading?: boolean;
+  onRefresh?: () => void;
 }
 
 export function SubscriberOverview({ 
   initialData = [], 
   initialTotal = 0,
-  initialStats = null 
+  initialStats = null,
+  isLoading = false,
+  onRefresh 
 }: SubscriberOverviewProps) {
   const searchParams = useSearchParams();
   const [exporting, setExporting] = useState(false);
+  const exportMutation = useCustomersExport();
 
   const handleExport = async () => {
     setExporting(true);
@@ -35,12 +38,16 @@ export function SubscriberOverview({
       const companyId = searchParams.get("company_id");
       const search = searchParams.get("search");
       const status = searchParams.get("status");
+      const billing = searchParams.get("billing");
+      const joinedDate = searchParams.get("joinedDate");
       
       if (companyId) params.company_id = companyId;
       if (search) params.search = search;
       if (status && status !== "all") params.status = status;
+      if (billing && billing !== "all") params.billing = billing;
+      if (joinedDate && joinedDate !== "all") params.daysBack = joinedDate;
       
-      const response = await n8n.get("/webhook/export-customers", params);
+      const response = await exportMutation.mutateAsync(params);
       
       if (response.success && response.data) {
         // Create CSV blob and download
@@ -54,21 +61,11 @@ export function SubscriberOverview({
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-
-        // toast({
-        //   title: "Success",
-        //   description: "Customers exported successfully",
-        // });
       } else {
         throw new Error(response.error || "Export failed");
       }
     } catch (error) {
       console.error("Error exporting customers:", error);
-      // toast({
-      //   title: "Error",
-      //   description: "Failed to export customers. Please try again.",
-      //   variant: "destructive",
-      // });
     } finally {
       setExporting(false);
     }
@@ -91,15 +88,15 @@ export function SubscriberOverview({
           Recent customer records with plan, billing, status, and signup activity.
         </CardDescription>
         <CardAction>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
-            {exporting ? <Loader2 className="animate-spin" /> : <Download />}
-            {exporting ? "Exporting..." : "Export"}
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || exportMutation.isPending}>
+            {(exporting || exportMutation.isPending) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {(exporting || exportMutation.isPending) ? "Exporting..." : "Export"}
           </Button>
         </CardAction>
       </CardHeader>
 
       <CardContent className="pt-0">
-        <RecentCustomersTable initialData={initialData} initialTotal={initialTotal} />
+        <RecentCustomersTable />
       </CardContent>
     </Card>
   );

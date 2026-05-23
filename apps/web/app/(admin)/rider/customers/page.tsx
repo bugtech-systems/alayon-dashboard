@@ -1,84 +1,94 @@
 // app/customers/page.tsx
+"use client";
+
 import { Suspense } from "react";
 import { SubscriberOverview } from "@/components/subscriber-overview";
-import { n8n } from "@/lib/n8n-webhook-service";
+import { useCustomers, useCustomersStats } from "@/lib/hooks/useN8nQuery";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
-// Types
-interface Customer {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  metadata: any;
-  has_account: boolean;
-  created_at: string;
-}
+function CustomersContent() {
+  // Fetch customers data
+  const {
+    data: customersData,
+    isLoading: isLoadingCustomers,
+    error: customersError,
+    refetch: refetchCustomers,
+  } = useCustomers({
+    page: 1,
+    pageSize: 10,
+  });
 
-interface Stats {
-  total: number;
-  active: number;
-  inactive: number;
-  subscribed: number;
-  newThisMonth: number;
-}
+  // Fetch stats data
+  const {
+    data: stats,
+    isLoading: isLoadingStats,
+    error: statsError,
+    refetch: refetchStats,
+  } = useCustomersStats();
 
-// Server-side data fetching
-async function getInitialData() {
-  try {
-    // Fetch initial customers data
-    const customersResponse = await n8n.paginated<Customer>(
-      "/webhook/get-company-customers",
-      1,
-      10,
-      {}
+  const isLoading = isLoadingCustomers || isLoadingStats;
+  const error = customersError || statsError;
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-4 md:p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Failed to load customer data. Please try again later.
+          </AlertDescription>
+        </Alert>
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => {
+              refetchCustomers();
+              refetchStats();
+            }}
+            className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
     );
-    
-    // Fetch stats (optional - create a separate endpoint or calculate from customers)
-    const statsResponse = await n8n.get<Stats>("/webhook/get-customers-stats");
-    
-    return {
-      customers: customersResponse.success ? customersResponse.data?.data || [] : [],
-      total: customersResponse.success ? customersResponse.data?.total || 0 : 0,
-      stats: statsResponse.success ? statsResponse.data : null,
-    };
-  } catch (error) {
-    console.error("Error fetching initial data:", error);
-    return {
-      customers: [],
-      total: 0,
-      stats: null,
-    };
   }
-}
-
-export default async function CustomersPage() {
-  const { customers, total, stats } = await getInitialData();
-  
 
   return (
-    <div className="container mx-auto p-4 md:p-6">
-      <Suspense fallback={<CustomersSkeleton />}>
-        <SubscriberOverview 
-          initialData={customers[0]?.id ? customers : []}
-          initialTotal={total}
-          initialStats={stats}
-        />
-      </Suspense>
-    </div>
+    <SubscriberOverview
+      initialData={customersData?.data || []}
+      initialTotal={customersData?.total || 0}
+      initialStats={stats || null}
+      isLoading={isLoading}
+      onRefresh={() => {
+        refetchCustomers();
+        refetchStats();
+      }}
+    />
+  );
+}
+
+export default function CustomersPage() {
+  return (
+    <Suspense fallback={<CustomersSkeleton />}>
+      <CustomersContent />
+    </Suspense>
   );
 }
 
 function CustomersSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-32" />
-        ))}
+    <div className="container mx-auto p-4 md:p-6">
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <Skeleton className="h-[600px]" />
       </div>
-      <Skeleton className="h-[600px]" />
     </div>
   );
 }

@@ -63,7 +63,7 @@ export function CartProvider({
   cart: B2BCart | null
   company?: any
 }>) {
-  const { countryCode } = useParams()
+  const { countryCode = 'ph' } = useParams()
 
   const [optimisticCart, setOptimisticCart] = useOptimistic<B2BCart | null>(
     cart
@@ -112,7 +112,7 @@ export function CartProvider({
             
             if (existingIndex !== undefined) {
               // Update existing item at its current position
-              const item = items[existingIndex]
+              const item = items[existingIndex] as any;
               items[existingIndex] = {
                 ...item,
                 quantity: item.quantity + lineItem.quantity,

@@ -19,6 +19,7 @@ import {
 import { retrieveCustomer } from "./customer"
 import { getRegion } from "./regions"
 import { getCachedId } from "../data/cookies"
+import { updateCart } from "../medusa/data/cart"
 
 export async function retrieveCart(id?: string) {
   const cartId = id || (await getCartId())

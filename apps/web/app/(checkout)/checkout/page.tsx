@@ -13,6 +13,7 @@ import { AlertCircle, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+
 interface CheckoutPageProps {
   searchParams: {
     cart_id?: string;

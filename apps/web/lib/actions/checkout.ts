@@ -179,19 +179,18 @@ export async function createDelivery(cartId: string, company_id: any) {
 export async function placeOrder(
   prevState: any, data: FormData
 ) {
-  const id = data.get("cart-id")?.toString();
   
-  const cart = await retrieveCart(id);
+  const cart = await retrieveCart();
 
   console.log(cart, 'CAAARRTT')
-  if (!id) {
+  if (!cart) {
     throw new Error("No existing cart found when placing an order")
   }
 
 
   const firstName = data.get("first_name")?.toString();
   const lastName = data.get("last_name")?.toString();
-  const address = data.get("address")?.toString();
+  const address = data.get("address_1")?.toString();
   const city = data.get("city_code")?.toString();
   const barangay = data.get("barangay_code")?.toString();
   const zip = data.get("zip")?.toString();
@@ -230,7 +229,7 @@ console.log(firstName, lastName, address, city, phone, barangay, 'FOOORM')
 
 
 
-  const delivery = await createDelivery(id, cart?.metadata?.company_id);
+  const delivery = await createDelivery(cart?.id, cart?.metadata?.company_id);
 
   // track("order_completed", {
   //   order_id: delivery.id,

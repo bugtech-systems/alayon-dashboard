@@ -7,8 +7,6 @@ import { HttpTypes } from "@medusajs/types"
 import { track } from "@vercel/analytics/server"
 import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
-import { retrieveCart, updateCart } from "./cart"
-import { createCompany, createEmployee } from "./companies"
 import {
   getAuthHeaders,
   getCacheOptions,
@@ -18,6 +16,11 @@ import {
   removeCartId,
   setAuthToken,
 } from "@/lib/medusa/data/cookies"
+
+const BASE_URL =
+  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL  ||
+  "https://api.sharewin.pro";
+
 
 export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
   const authHeaders = await getAuthHeaders()
@@ -304,4 +307,34 @@ export const updateCustomerAddress = async (
     .catch((err) => {
       return { success: false, error: err.toString() }
     })
+}
+
+// lib/actions.ts
+export async function createGuestCustomer(customerData: {
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+}) {
+  try {
+    console.log(await getAuthHeaders(), 'auth head')
+    const response = await fetch(`${BASE_URL}/store/customers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(await getAuthHeaders())
+      },
+      body: JSON.stringify(customerData),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to create customer');
+    }
+    
+    const { customer } = await response.json();
+    return customer;
+  } catch (error) {
+    console.error('Error creating guest customer:', error);
+    return null;
+  }
 }

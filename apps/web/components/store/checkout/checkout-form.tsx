@@ -1,7 +1,6 @@
-// components/checkout-form.tsx
 "use client";
 
-import { initiatePaymentSession, placeOrder, updateCartShippingAddress } from "@/lib/actions";
+import { initiatePaymentSession, placeOrder, updateCartShippingAddress, createGuestCustomer } from "@/lib/actions";
 import { useCart } from "@/lib/context/cart-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +18,11 @@ import {
   Phone, 
   FileText,
   Banknote,
-  Wallet,
-  Smartphone,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  Building2,
+  Home,
+  Landmark
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -31,12 +31,11 @@ import { n8nFetcher } from "@/hooks/useN8nQuery";
 import { Combobox } from "@/components/ui/combobox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import PaymentButton from "@/components/payment-button";
 
 // Dynamically import map component with no SSR
 const MapLocationPicker = dynamic(
   () => import('@/components/map-location-picker').then(mod => mod.MapLocationPicker),
-  { ssr: false, loading: () => <div className="h-[350px] bg-gray-100 rounded-lg animate-pulse" /> }
+  { ssr: false, loading: () => <div className="h-[400px] bg-gray-100 rounded-lg animate-pulse" /> }
 );
 
 function SubmitButton() {
@@ -48,12 +47,11 @@ function SubmitButton() {
   );
 }
 
-// Payment methods with proper Medusa provider IDs
+// Payment Methods - Only COD enabled, others coming soon
 const PAYMENT_METHODS = [
-  { id: "cod", name: "Cash on Delivery", icon: Banknote, description: "Pay when you receive", provider_id: "pp_system_default" },
-  { id: "gcash", name: "GCash", icon: Smartphone, description: "Pay via GCash", provider_id: "pp_gcash" },
-  { id: "paymaya", name: "PayMaya", icon: Wallet, description: "Pay via PayMaya", provider_id: "pp_paymaya" },
-  { id: "bank-transfer", name: "Bank Transfer", icon: CreditCard, description: "Pay via bank transfer", provider_id: "pp_system_default" },
+  { id: "cod", name: "Cash on Delivery", icon: Banknote, description: "Pay when you receive your order", enabled: true },
+  { id: "gcash", name: "GCash", icon: CreditCard, description: "Pay via GCash wallet", enabled: false, comingSoon: true },
+  { id: "maya", name: "Maya", icon: Building2, description: "Pay via Maya wallet", enabled: false, comingSoon: true }
 ];
 
 const REGION_CODE = "08"; // Eastern Visayas
@@ -85,17 +83,18 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
   
   const [state, formAction] = useActionState(placeOrder, null);
   
+  // Customer state
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  
   // Consolidated form state
   const [formData, setFormData] = useState({
-    // Personal Info
     first_name: "", 
     last_name: "", 
     email: "", 
     phone: "", 
-    // Address Info
     address_1: "", 
     postal_code: "", 
-    // Order Info
     notes: ""
   });
   
@@ -114,12 +113,9 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDataPopulated, setIsDataPopulated] = useState(false);
   const [isUpdatingCart, setIsUpdatingCart] = useState(false);
-  const [activeSection, setActiveSection] = useState("personal");
-  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const updateTimeout = useRef<NodeJS.Timeout>();
   const initialPopulateDone = useRef(false);
-  const mapRef = useRef<any>(null);
 
   // Populate form from cart data - ONLY ONCE
   useEffect(() => {
@@ -152,23 +148,48 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
     setIsDataPopulated(true);
   }, [cart]);
 
-const handlePaymentSuccess = useCallback(() => {
-  // Redirect to order confirmation or show success message
-  if (state?.order_id) {
-    window.location.href = `/order/confirmation/${state.order_id}`;
-  }
-}, [state]);
+  // Auto-create guest customer when form is filled
+  const autoCreateGuestCustomer = useCallback(async () => {
+    if (customerId || isCreatingCustomer) return;
+    
+    const hasRequiredPersonal = formData.first_name && formData.last_name && formData.phone;
+    const hasRequiredAddress = selectedCity && selectedBarangay && formData.address_1;
+    
+    if (!hasRequiredPersonal || !hasRequiredAddress) return;
+    
+    setIsCreatingCustomer(true);
+    try {
+      const customer = await createGuestCustomer({
+        email: formData.email || undefined,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone: formData.phone,
+      });
+      
+      if (customer?.id) {
+        setCustomerId(customer.id);
+        console.log("Guest customer created:", customer.id);
+      }
+    } catch (error) {
+      console.error("Error creating guest customer:", error);
+    } finally {
+      setIsCreatingCustomer(false);
+    }
+  }, [formData, selectedCity, selectedBarangay, customerId, isCreatingCustomer]);
 
-const handlePaymentError = useCallback((error: string) => {
-  setPaymentError(error);
-  toast.error(error);
-}, []);
+  // Trigger customer creation when form data is complete
+  // useEffect(() => {
+  //   const timeout = setTimeout(() => {
+  //     autoCreateGuestCustomer();
+  //   }, 5000);
+    
+  //   return () => clearTimeout(timeout);
+  // }, [formData.first_name, formData.last_name, formData.phone, selectedCity, selectedBarangay, autoCreateGuestCustomer]);
 
   // Update cart when form changes (debounced)
   const updateCartData = useCallback(async () => {
     if (!cart?.id || !isDataPopulated || isUpdatingCart) return;
     
-    // Validate required fields
     const hasRequiredAddress = selectedCity && selectedBarangay && formData.address_1;
     const hasRequiredPersonal = formData.first_name && formData.last_name;
     if (!hasRequiredAddress || !hasRequiredPersonal) return;
@@ -184,6 +205,7 @@ const handlePaymentError = useCallback((error: string) => {
       country_code: "ph",
       province: REGION_CODE,
       email: formData.email,
+      phone: formData.phone,
       metadata: {
         barangay: selectedBarangay,
         location_coordinates: selectedLocation ? `${selectedLocation.lat},${selectedLocation.lng}` : null,
@@ -201,20 +223,20 @@ const handlePaymentError = useCallback((error: string) => {
   }, [cart?.id, formData, selectedCity, selectedBarangay, selectedLocation, isDataPopulated, isUpdatingCart]);
 
   // Debounced cart updates
-  useEffect(() => {
-    if (!isDataPopulated) return;
+  // useEffect(() => {
+  //   if (!isDataPopulated) return;
     
-    if (updateTimeout.current) clearTimeout(updateTimeout.current);
+  //   if (updateTimeout.current) clearTimeout(updateTimeout.current);
     
-    const hasRequiredData = formData.first_name && formData.last_name && formData.address_1 && selectedCity && selectedBarangay;
-    // if (hasRequiredData) {
-    //   updateTimeout.current = setTimeout(updateCartData, 3000);
-    // }
+  //   const hasRequiredData = formData.first_name && formData.last_name && formData.address_1 && selectedCity && selectedBarangay;
+  //   if (hasRequiredData) {
+  //     updateTimeout.current = setTimeout(updateCartData, 5000);
+  //   }
     
-    return () => {
-      if (updateTimeout.current) clearTimeout(updateTimeout.current);
-    };
-  }, [formData, selectedCity, selectedBarangay, selectedLocation, updateCartData, isDataPopulated]);
+  //   return () => {
+  //     if (updateTimeout.current) clearTimeout(updateTimeout.current);
+  //   };
+  // }, [formData, selectedCity, selectedBarangay, selectedLocation, updateCartData, isDataPopulated]);
 
   // Fetch cities
   useEffect(() => {
@@ -273,20 +295,16 @@ const handlePaymentError = useCallback((error: string) => {
     fetchBarangays();
   }, [selectedCity]);
 
-  // Initialize payment session
+  // Initialize payment session (only COD)
   useEffect(() => {
     const initPayment = async () => {
       if (!cart?.id || paymentInitialized) return;
       
       setIsInitializingPayment(true);
       try {
-        const hasPaymentCollection = cart.payment_collection;
-        const hasValidSession = hasPaymentCollection?.payment_sessions?.some(
-          (s: any) => s.status === "pending" || s.status === "authorized"
-        );
-        
-        if (!hasValidSession) {
-          await initiatePaymentSession(cart, { provider_id: 'pp_system_default' });
+        const method = PAYMENT_METHODS.find(m => m.id === selectedPaymentMethod);
+        if (method && method.enabled) {
+          await initiatePaymentSession(cart, { provider_id: "pp_system_default" });
         }
         setPaymentInitialized(true);
       } catch (error) {
@@ -297,29 +315,7 @@ const handlePaymentError = useCallback((error: string) => {
     };
     
     initPayment();
-  }, [cart, paymentInitialized]);
-
-  // Update payment session
-  useEffect(() => {
-    const updatePayment = async () => {
-      if (!cart?.id || !paymentInitialized) return;
-      
-      const method = PAYMENT_METHODS.find(m => m.id === selectedPaymentMethod);
-      if (!method) return;
-      
-      setIsInitializingPayment(true);
-      try {
-        await initiatePaymentSession(cart, { provider_id: method.provider_id });
-      } catch (error) {
-        console.error("Error updating payment:", error);
-        setErrors(prev => ({ ...prev, payment: "Failed to initialize payment method" }));
-      } finally {
-        setIsInitializingPayment(false);
-      }
-    };
-    
-    updatePayment();
-  }, [selectedPaymentMethod, cart?.id, paymentInitialized]);
+  }, [cart, paymentInitialized, selectedPaymentMethod]);
 
   // Validation
   const validateForm = useCallback(() => {
@@ -327,8 +323,7 @@ const handlePaymentError = useCallback((error: string) => {
     
     if (!formData.first_name.trim()) newErrors.first_name = "First name is required";
     if (!formData.last_name.trim()) newErrors.last_name = "Last name is required";
-    if (!formData.email.trim()) newErrors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Invalid email format";
+    // Email is NOT required - removed validation
     
     if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
     else if (!/^(09|\+639)\d{9}$/.test(formData.phone.replace(/\s/g, ''))) newErrors.phone = "Invalid Philippine number";
@@ -348,7 +343,7 @@ const handlePaymentError = useCallback((error: string) => {
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: "" }));
   };
 
-  // Handle location selection without re-rendering map
+  // Handle location selection
   const handleLocationSelect = useCallback((location: { lat: number; lng: number; address: string }) => {
     setSelectedLocation(location);
     if (errors.location) setErrors(prev => ({ ...prev, location: "" }));
@@ -368,9 +363,9 @@ const handlePaymentError = useCallback((error: string) => {
       return;
     }
     
-    // Ensure cart address is up to date
-    if (isDataPopulated && (!selectedCity || !selectedBarangay || !formData.address_1)) {
-      await updateCartData();
+    if (selectedPaymentMethod !== "cod") {
+      setErrors(prev => ({ ...prev, form: "Only Cash on Delivery is available at this time" }));
+      return;
     }
     
     if (!paymentInitialized && !isInitializingPayment) {
@@ -378,10 +373,11 @@ const handlePaymentError = useCallback((error: string) => {
       return;
     }
     
-    // Build submission data
     formDataObj.set("cart_id", cart.id);
     Object.entries(formData).forEach(([key, value]) => {
-      formDataObj.set(key, value);
+      if (key !== "email" || (key === "email" && value)) {
+        formDataObj.set(key, value);
+      }
     });
     formDataObj.set("city_code", selectedCity);
     formDataObj.set("barangay_code", selectedBarangay);
@@ -392,14 +388,15 @@ const handlePaymentError = useCallback((error: string) => {
       formDataObj.set("location_address", selectedLocation.address);
     }
     
-    const paymentMethod = PAYMENT_METHODS.find(m => m.id === selectedPaymentMethod);
-    if (paymentMethod) {
-      formDataObj.set("payment_provider_id", paymentMethod.provider_id);
+    if (customerId) {
+      formDataObj.set("customer_id", customerId);
     }
+    
+    formDataObj.set("payment_provider_id", "pp_system_default");
     
     formAction(formDataObj);
     localStorage.removeItem('cart_id');
-  }, [validateForm, cart?.id, paymentInitialized, isInitializingPayment, formData, selectedCity, selectedBarangay, selectedPaymentMethod, selectedLocation, formAction, isDataPopulated, updateCartData, isUpdatingCart]);
+  }, [validateForm, cart?.id, paymentInitialized, isInitializingPayment, formData, selectedCity, selectedBarangay, selectedPaymentMethod, selectedLocation, customerId, formAction, isDataPopulated, updateCartData, isUpdatingCart]);
 
   // Handle successful order
   useEffect(() => {
@@ -418,7 +415,7 @@ const handlePaymentError = useCallback((error: string) => {
   if (!hasItems) {
     return (
       <div className="w-full max-w-5xl mx-auto">
-        <Card className="text-center py-12">
+        <Card className="text-center ">
           <CardContent>
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
               <AlertCircle className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
@@ -437,26 +434,25 @@ const handlePaymentError = useCallback((error: string) => {
   const cityLabel = cities.find(c => c.value === selectedCity)?.label || "";
   const barangayLabel = barangays.find(b => b.value === selectedBarangay)?.label || "";
 
-
-
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-8">
+    <div className="w-full max-w-7xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2">Checkout</h1>
         <p className="text-muted-foreground">Complete your order information</p>
       </div>
 
       {/* Status Indicators */}
-      {(isUpdatingCart || isInitializingPayment) && (
+      {/* {(isInitializingPayment || isCreatingCustomer) && (
         <div className="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center gap-2">
           <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
           <span className="text-sm text-blue-700">
-            {isUpdatingCart ? "Updating shipping address..." : "Initializing payment..."}
+            {isCreatingCustomer ? "Setting up your account..." : 
+             "Preparing checkout..."}
           </span>
         </div>
-      )}
+      )} */}
 
-      {paymentInitialized && !isInitializingPayment && !isUpdatingCart && (
+      {customerId && !isCreatingCustomer && paymentInitialized && (
         <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 flex items-center justify-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
           <span className="text-sm text-green-700">Ready to place order</span>
@@ -471,230 +467,269 @@ const handlePaymentError = useCallback((error: string) => {
       )}
 
       <form action={handleSubmit} className="space-y-8">
+        {/* 2-Column Balanced Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column - Form Fields */}
-          <div className="space-y-6">
-            {/* Personal Information Card */}
+          
+          {/* LEFT COLUMN - Customer Information & Shipping Address (Merged) */}
+          <div className="space-y-3">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+              <CardHeader className="pb-1">
+                <CardTitle className="flex items-center gap-2 text-xl">
                   <User className="h-5 w-5 text-primary" />
-                  Personal Information
+                  Delivery Information
                 </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">Tell us where to deliver your order</p>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>First Name <span className="text-red-500">*</span></Label>
-                    <Input 
-                      value={formData.first_name} 
-                      onChange={(e) => handleChange("first_name", e.target.value)} 
-                      className={errors.first_name && "border-red-500"} 
-                    />
-                    {errors.first_name && <p className="text-xs text-red-500">{errors.first_name}</p>}
+              <Separator />
+              <CardContent className=" space-y-6">
+                {/* Personal Information Section */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <User className="h-3 w-3" />
+                    Personal Details
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>First Name <span className="text-red-500">*</span></Label>
+                      <Input 
+                        value={formData.first_name} 
+                        onChange={(e) => handleChange("first_name", e.target.value)} 
+                        className={errors.first_name && "border-red-500"} 
+                        placeholder="John"
+                      />
+                      {errors.first_name && <p className="text-xs text-red-500">{errors.first_name}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Last Name <span className="text-red-500">*</span></Label>
+                      <Input 
+                        value={formData.last_name} 
+                        onChange={(e) => handleChange("last_name", e.target.value)} 
+                        className={errors.last_name && "border-red-500"} 
+                        placeholder="Doe"
+                      />
+                      {errors.last_name && <p className="text-xs text-red-500">{errors.last_name}</p>}
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Last Name <span className="text-red-500">*</span></Label>
-                    <Input 
-                      value={formData.last_name} 
-                      onChange={(e) => handleChange("last_name", e.target.value)} 
-                      className={errors.last_name && "border-red-500"} 
-                    />
-                    {errors.last_name && <p className="text-xs text-red-500">{errors.last_name}</p>}
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label>Email <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="email" 
-                      value={formData.email} 
-                      onChange={(e) => handleChange("email", e.target.value)} 
-                      className="pl-9" 
-                    />
-                  </div>
-                  {errors.email && <p className="text-xs text-red-500">{errors.email}</p>}
-                </div>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label>Email <span className="text-muted-foreground text-xs">(Optional)</span></Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type="email" 
+                          value={formData.email} 
+                          onChange={(e) => handleChange("email", e.target.value)} 
+                          className="pl-9" 
+                          placeholder="you@example.com"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">For order updates (optional)</p>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label>Phone <span className="text-red-500">*</span></Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="tel" 
-                      value={formData.phone} 
-                      onChange={(e) => handleChange("phone", e.target.value)} 
-                      className="pl-9" 
-                      placeholder="09123456789"
-                    />
-                  </div>
-                  {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Order Notes Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Additional Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea 
-                  value={formData.notes} 
-                  onChange={(e) => handleChange("notes", e.target.value)} 
-                  placeholder="Special instructions, landmark, etc." 
-                  className="min-h-[100px]" 
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Shipping & Payment */}
-          <div className="space-y-6">
-            {/* Shipping Address Card - Consolidated */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  Shipping Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Street Address <span className="text-red-500">*</span></Label>
-                  <Input 
-                    value={formData.address_1} 
-                    onChange={(e) => handleChange("address_1", e.target.value)} 
-                    className={errors.address_1 && "border-red-500"} 
-                    placeholder="House number, street, subdivision"
-                  />
-                  {errors.address_1 && <p className="text-xs text-red-500">{errors.address_1}</p>}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>City <span className="text-red-500">*</span></Label>
-                    <Combobox 
-                      options={cities} 
-                      value={selectedCity} 
-                      onChange={setSelectedCity} 
-                      placeholder="Search city..." 
-                      isLoading={isLoadingCities} 
-                    />
-                    {errors.city && <p className="text-xs text-red-500">{errors.city}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Barangay <span className="text-red-500">*</span></Label>
-                    <Combobox 
-                      options={barangays} 
-                      value={selectedBarangay} 
-                      onChange={setSelectedBarangay} 
-                      placeholder={selectedCity ? "Search..." : "Select city first"} 
-                      disabled={!selectedCity} 
-                      isLoading={isLoadingBarangays} 
-                    />
-                    {errors.barangay && <p className="text-xs text-red-500">{errors.barangay}</p>}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>ZIP Code (Optional)</Label>
-                    <Input 
-                      value={formData.postal_code} 
-                      onChange={(e) => handleChange("postal_code", e.target.value)} 
-                      placeholder="6500" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Location Preview</Label>
-                    <div className="h-10 px-3 py-2 bg-gray-50 rounded-lg text-sm truncate">
-                      {barangayLabel && cityLabel ? `${barangayLabel}, ${cityLabel}` : "Select location"}
+                    <div className="space-y-2">
+                      <Label>Phone <span className="text-red-500">*</span></Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          type="tel" 
+                          value={formData.phone} 
+                          onChange={(e) => handleChange("phone", e.target.value)} 
+                          className="pl-9" 
+                          placeholder="09123456789"
+                        />
+                      </div>
+                      {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
                     </div>
                   </div>
                 </div>
 
-                {/* Map - Only rendered when needed, won't re-render */}
-                {selectedBarangay && selectedCity && (
-                  <div className="space-y-2 pt-2">
-                    <Label>Pin Your Location <span className="text-red-500">*</span></Label>
+                <Separator />
+
+                {/* Address Information Section */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <MapPin className="h-3 w-3" />
+                    Delivery Address
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Street Address <span className="text-red-500">*</span></Label>
+                      <Input 
+                        value={formData.address_1} 
+                        onChange={(e) => handleChange("address_1", e.target.value)} 
+                        className={errors.address_1 && "border-red-500"} 
+                        placeholder="House number, street, subdivision"
+                      />
+                      {errors.address_1 && <p className="text-xs text-red-500">{errors.address_1}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>City <span className="text-red-500">*</span></Label>
+                        <Combobox 
+                          options={cities} 
+                          value={selectedCity} 
+                          onChange={setSelectedCity} 
+                          placeholder="Search city..." 
+                          isLoading={isLoadingCities} 
+                        />
+                        {errors.city && <p className="text-xs text-red-500">{errors.city}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Barangay <span className="text-red-500">*</span></Label>
+                        <Combobox 
+                          options={barangays} 
+                          value={selectedBarangay} 
+                          onChange={setSelectedBarangay} 
+                          placeholder={selectedCity ? "Search barangay..." : "Select city first"} 
+                          disabled={!selectedCity} 
+                          isLoading={isLoadingBarangays} 
+                        />
+                        {errors.barangay && <p className="text-xs text-red-500">{errors.barangay}</p>}
+                      </div>
+                    </div>
+
+                
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Map Location Picker */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Home className="h-3 w-3" />
+                    Exact Pin Location
+                  </h3>
+                  <div className="space-y-3">
                     <MapLocationPicker 
                       onLocationSelect={handleLocationSelect}
                       initialLocation={selectedLocation || undefined}
+                      barangayName={barangayLabel}
+                      cityName={cityLabel}
                     />
                     {errors.location && <p className="text-xs text-red-500">{errors.location}</p>}
                     {selectedLocation && !errors.location && (
                       <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                         <p className="text-xs text-green-700 flex items-center gap-2">
-                          <CheckCircle2 className="h-3 w-3" /> Location selected
+                          <CheckCircle2 className="h-3 w-3" /> Delivery location pinned
                         </p>
                         <p className="text-xs text-green-600 mt-1 truncate">{selectedLocation.address}</p>
                       </div>
                     )}
                   </div>
-                )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* RIGHT COLUMN - Order Notes & Payment Method */}
+          <div className="space-y-6">
+            {/* Order Notes Card */}
+            <Card>
+              <CardHeader className="">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Special Instructions
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">Help our rider find you faster</p>
+              </CardHeader>
+              <Separator />
+              <CardContent className="">
+                <Textarea 
+                  value={formData.notes} 
+                  onChange={(e) => handleChange("notes", e.target.value)} 
+                  placeholder="Examples: Landmark near your location, gate color, preferred delivery time, etc." 
+                  className="min-h-[150px] resize-none" 
+                />
+                <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  This helps our rider locate you accurately
+                </p>
               </CardContent>
             </Card>
 
             {/* Payment Method Card */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
+              <CardHeader className="">
+                <CardTitle className="flex items-center gap-2 text-xl">
                   <CreditCard className="h-5 w-5 text-primary" />
                   Payment Method
                 </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">Choose how you want to pay</p>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <Separator />
+              <CardContent className="">
                 <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod} className="space-y-3">
                   {PAYMENT_METHODS.map((method) => {
                     const Icon = method.icon;
+                    const isDisabled = !method.enabled;
+                    
                     return (
-                      <div key={method.id} className={cn(
-                        "relative flex cursor-pointer rounded-lg border p-4 transition-all",
-                        selectedPaymentMethod === method.id ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "border-gray-200 hover:border-gray-300"
-                      )}>
-                        <RadioGroupItem value={method.id} id={method.id} className="sr-only" />
-                        <Label htmlFor={method.id} className="flex flex-1 cursor-pointer items-start gap-4">
-                          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", selectedPaymentMethod === method.id ? "bg-primary text-white" : "bg-gray-100 text-gray-500")}>
+                      <div 
+                        key={method.id} 
+                        className={cn(
+                          "relative rounded-lg border p-2 transition-all",
+                          method.enabled 
+                            ? selectedPaymentMethod === method.id 
+                              ? "border-primary bg-primary/5 ring-2 ring-primary/20 cursor-pointer" 
+                              : "border-gray-200 hover:border-gray-300 cursor-pointer"
+                            : "border-gray-200 bg-gray-50 opacity-75 cursor-not-allowed"
+                        )}
+                        onClick={() => method.enabled && setSelectedPaymentMethod(method.id)}
+                      >
+                        <div className="flex items-start gap-2">
+                          <div className={cn(
+                            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                            method.enabled && selectedPaymentMethod === method.id ? "bg-primary text-white" : "bg-gray-100 text-gray-500",
+                            !method.enabled && "bg-gray-200 text-gray-400"
+                          )}>
                             <Icon className="h-5 w-5" />
                           </div>
                           <div className="flex-1">
-                            <p className="font-medium">{method.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{method.name}</p>
+                              {method.comingSoon && (
+                                <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">Coming Soon</span>
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground">{method.description}</p>
+                            {isDisabled && (
+                              <p className="text-xs text-amber-600 mt-1">Available soon</p>
+                            )}
                           </div>
-                          <div className={cn("h-5 w-5 rounded-full border-2 transition-all flex items-center justify-center", selectedPaymentMethod === method.id ? "border-primary bg-primary" : "border-gray-300")}>
-                            {selectedPaymentMethod === method.id && <CheckCircle2 className="h-3 w-3 text-white" />}
-                          </div>
-                        </Label>
+                          {method.enabled && (
+                            <div className={cn(
+                              "h-5 w-5 rounded-full border-2 transition-all flex items-center justify-center",
+                              selectedPaymentMethod === method.id ? "border-primary bg-primary" : "border-gray-300"
+                            )}>
+                              {selectedPaymentMethod === method.id && <CheckCircle2 className="h-3 w-3 text-white" />}
+                            </div>
+                          )}
+                          {isDisabled && (
+                            <div className="h-5 w-5">
+                              <Lock className="h-4 w-4 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
                 </RadioGroup>
 
+                {/* COD Info Box */}
+                <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <p className="text-sm text-amber-800 flex items-start gap-2">
+                    <Banknote className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>Pay in cash when your order arrives. Please prepare exact amount if possible for faster delivery.</span>
+                  </p>
+                </div>
+
                 {errors.payment && (
-                  <div className="p-3 bg-red-50 rounded-lg text-red-700 text-sm">
+                  <div className="mt-4 p-3 bg-red-50 rounded-lg text-red-700 text-sm">
                     {errors.payment}
-                  </div>
-                )}
-
-                {(selectedPaymentMethod === "gcash" || selectedPaymentMethod === "paymaya") && (
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-800">You will be redirected to complete your payment after placing the order.</p>
-                  </div>
-                )}
-
-                {selectedPaymentMethod === "bank-transfer" && (
-                  <div className="p-4 bg-gray-50 rounded-lg space-y-2">
-                    <p className="text-sm font-medium">Bank Account Details:</p>
-                    <p className="text-sm">BPI: 1234 5678 9012</p>
-                    <p className="text-sm">BDO: 9876 5432 1098</p>
-                    <p className="text-sm">Account Name: Alayon Store</p>
-                    <p className="text-sm text-muted-foreground mt-2">Please include your order number as reference.</p>
                   </div>
                 )}
               </CardContent>
@@ -705,13 +740,9 @@ const handlePaymentError = useCallback((error: string) => {
         <input type="hidden" name="cart_id" value={cart.id} />
         <input type="hidden" name="city_name" value={cityLabel} />
         <input type="hidden" name="barangay_name" value={barangayLabel} />
-<PaymentButton
-  cart={cart}
-  onSuccess={handlePaymentSuccess}
-  onError={handlePaymentError}
-  className="mt-4"
-/>
-        {/* <SubmitButton /> */}
+        <input type="hidden" name="payment_provider_id" value="pp_system_default" />
+        
+        <SubmitButton />
 
         {state?.error && (
           <div className="p-4 rounded-lg border text-center bg-red-50 border-red-200 text-red-700">
@@ -720,5 +751,15 @@ const handlePaymentError = useCallback((error: string) => {
         )}
       </form>
     </div>
+  );
+}
+
+// Lock icon component for disabled payment methods
+function Lock({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
   );
 }

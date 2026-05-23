@@ -7,10 +7,6 @@
 @import "./presets/soft-pop.css";
 @import "./presets/tangerine.css";
 
-
-@import "leaflet/dist/leaflet.css";
-
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -202,6 +198,7 @@ These serve as the fallback; there is no separate default.css file. */
     }
   .marker-cluster div {
     @apply font-[inherit];
+
     }
 }
 
@@ -301,4 +298,3 @@ html {
 .disable-transitions * {
   transition: none !important;
 }
-

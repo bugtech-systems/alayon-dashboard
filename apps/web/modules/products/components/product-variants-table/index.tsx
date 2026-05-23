@@ -69,7 +69,7 @@ const ProductVariantsTable = ({
     )
 
     addToCartEventBus.emitCartAdd({
-      company,
+      companyId: company?.id,
       lineItems,
       regionId: region.id,
     })

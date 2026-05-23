@@ -1,273 +1,64 @@
 {
-  "name": "Customer Registration with Phone Validation",
+  "name": "Get Company Customers (Paginated)",
   "nodes": [
     {
-      "parameters": {},
-      "id": "webhook-trigger",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "position": [250, 300],
-      "webhookId": "customer-registration"
-    },
-    {
       "parameters": {
-        "conditions": {
-          "number": [
-            {
-              "id": "phone",
-              "leftValue": "{{ $json.phone }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "exists"
-              }
-            }
-          ]
-        }
-      },
-      "id": "validate-phone-exists",
-      "name": "Validate Phone Exists",
-      "type": "n8n-nodes-base.if",
-      "position": [450, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Phone number validation and standardization function\nfunction validateAndFormatPhone(phone, countryCode = 'PH') {\n  // Remove all non-digit characters\n  let cleaned = phone.toString().replace(/\\D/g, '');\n  \n  // Country code mappings\n  const countryCodes = {\n    'PH': '63',  // Philippines\n    'US': '1',   // United States\n    'GB': '44',  // United Kingdom\n    'AU': '61',  // Australia\n    'CA': '1',   // Canada\n    'SG': '65',  // Singapore\n    'MY': '60',  // Malaysia\n    'ID': '62',  // Indonesia\n    'TH': '66',  // Thailand\n    'VN': '84',  // Vietnam\n    'JP': '81',  // Japan\n    'KR': '82',  // South Korea\n    'CN': '86',  // China\n    'IN': '91',  // India\n    'DE': '49',  // Germany\n    'FR': '33',  // France\n    'IT': '39',  // Italy\n    'ES': '34',  // Spain\n    'BR': '55'   // Brazil\n  };\n  \n  const defaultCountryCode = countryCodes[countryCode] || '63';\n  \n  // Remove leading zero if present\n  if (cleaned.startsWith('0')) {\n    cleaned = cleaned.substring(1);\n  }\n  \n  // Check if phone already has country code\n  let hasCountryCode = false;\n  for (const code of Object.values(countryCodes)) {\n    if (cleaned.startsWith(code)) {\n      hasCountryCode = true;\n      break;\n    }\n  }\n  \n  // Add country code if missing\n  if (!hasCountryCode) {\n    cleaned = defaultCountryCode + cleaned;\n  }\n  \n  // Validate length (should be between 10-15 digits including country code)\n  if (cleaned.length < 10 || cleaned.length > 15) {\n    throw new Error(`Invalid phone number length: ${cleaned.length} digits. Must be between 10-15 digits including country code.`);\n  }\n  \n  // Format with plus sign for international format\n  const formattedPhone = '+' + cleaned;\n  \n  return {\n    original: phone,\n    cleaned: cleaned,\n    formatted: formattedPhone,\n    countryCode: cleaned.substring(0, countryCodes[countryCode]?.length || 2),\n    isValid: true\n  };\n}\n\nconst phoneInput = $input.first().json.phone;\nconst countryCode = $input.first().json.country_code || 'PH';\n\ntry {\n  const result = validateAndFormatPhone(phoneInput, countryCode);\n  return {\n    ...$input.first().json,\n    phone_original: result.original,\n    phone: result.formatted,\n    phone_cleaned: result.cleaned,\n    phone_country_code: result.countryCode,\n    phone_validated: true\n  };\n} catch (error) {\n  return {\n    ...$input.first().json,\n    phone_original: phoneInput,\n    phone: null,\n    phone_validated: false,\n    phone_validation_error: error.message\n  };\n}"
-      },
-      "id": "format-validate-phone",
-      "name": "Format & Validate Phone",
-      "type": "n8n-nodes-base.code",
-      "position": [650, 300]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "id": "phone_validated",
-              "leftValue": "={{ $json.phone_validated }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            }
-          ]
-        }
-      },
-      "id": "check-validation-status",
-      "name": "Check Validation Status",
-      "type": "n8n-nodes-base.if",
-      "position": [850, 300]
-    },
-    {
-      "parameters": {
-        "query": "SELECT * FROM customer WHERE phone = :phone",
-        "options": {
-          "replacements": ["phone={{ $json.phone }}"]
-        }
-      },
-      "id": "check-existing-customer",
-      "name": "Check Existing Customer",
-      "type": "n8n-nodes-base.mySql",
-      "position": [1050, 200],
-      "credentials": {
-        "mySql": "MySQL Connection"
+        "path": "get-company-customers",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {}
       }
     },
     {
-      "parameters": {
-        "jsCode": "// Check if customer already exists\nconst existingCustomer = $input.first().json;\nconst hasExisting = existingCustomer && Object.keys(existingCustomer).length > 0;\n\nreturn {\n  ...$input.first().json,\n  customer_exists: hasExisting,\n  customer_id: hasExisting ? existingCustomer.id : null\n};"
-      },
-      "id": "process-existing-check",
-      "name": "Process Existing Check",
+      "name": "Extract Query Params",
       "type": "n8n-nodes-base.code",
-      "position": [1250, 200]
-    },
-    {
+      "position": [450, 300],
       "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "id": "customer_exists",
-              "leftValue": "={{ $json.customer_exists }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            }
-          ]
-        }
-      },
-      "id": "check-if-customer-exists",
-      "name": "Check If Customer Exists",
-      "type": "n8n-nodes-base.if",
-      "position": [1450, 200]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Generate customer ID\nconst generateCustomerId = () => {\n  return 'cus_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);\n};\n\nconst customerData = $input.first().json;\n\nreturn {\n  id: generateCustomerId(),\n  email: customerData.email || null,\n  phone: customerData.phone,\n  first_name: customerData.first_name || null,\n  last_name: customerData.last_name || null,\n  hashed_password: customerData.password ? null : null, // Password should be hashed separately\n  is_active: true,\n  has_account: true,\n  metadata: {\n    phone_original: customerData.phone_original,\n    phone_cleaned: customerData.phone_cleaned,\n    phone_country_code: customerData.phone_country_code,\n    registered_at: new Date().toISOString(),\n    ...customerData.metadata\n  },\n  created_at: new Date(),\n  updated_at: new Date()\n};"
-      },
-      "id": "prepare-customer-data",
-      "name": "Prepare Customer Data",
-      "type": "n8n-nodes-base.code",
-      "position": [1650, 100]
-    },
-    {
-      "parameters": {
-        "query": "INSERT INTO customer (id, email, phone, first_name, last_name, hashed_password, is_active, has_account, metadata, created_at, updated_at) VALUES (:id, :email, :phone, :first_name, :last_name, :hashed_password, :is_active, :has_account, :metadata, :created_at, :updated_at)",
-        "options": {
-          "replacements": {
-            "id": "={{ $json.id }}",
-            "email": "={{ $json.email }}",
-            "phone": "={{ $json.phone }}",
-            "first_name": "={{ $json.first_name }}",
-            "last_name": "={{ $json.last_name }}",
-            "hashed_password": "={{ $json.hashed_password }}",
-            "is_active": "={{ $json.is_active }}",
-            "has_account": "={{ $json.has_account }}",
-            "metadata": "={{ JSON.stringify($json.metadata) }}",
-            "created_at": "={{ $json.created_at }}",
-            "updated_at": "={{ $json.updated_at }}"
-          }
-        }
-      },
-      "id": "insert-customer",
-      "name": "Insert Customer",
-      "type": "n8n-nodes-base.mySql",
-      "position": [1850, 100],
-      "credentials": {
-        "mySql": "MySQL Connection"
+        "jsCode": "// Extract pagination and filter parameters from query string\nconst query = $input.first().json.query || {};\n\nconst page = parseInt(query.page) || 1;\nconst pageSize = parseInt(query.pageSize) || 10;\nconst search = query.search || '';\nconst status = query.status || '';\nconst billing = query.billing || '';\nconst daysBack = parseInt(query.daysBack) || 0;\nconst sortBy = query.sortBy || 'created_at';\nconst sortOrder = query.sortOrder || 'desc';\n\nconst offset = (page - 1) * pageSize;\n\nreturn {\n  page,\n  pageSize,\n  offset,\n  search,\n  status,\n  billing,\n  daysBack,\n  sortBy,\n  sortOrder\n};"
       }
     },
     {
-      "parameters": {
-        "jsCode": "// Return success response with customer data\nconst customer = $input.first().json;\n\nreturn {\n  success: true,\n  message: 'Customer registered successfully',\n  customer: {\n    id: customer.id,\n    phone: customer.phone,\n    email: customer.email,\n    first_name: customer.first_name,\n    last_name: customer.last_name,\n    created_at: customer.created_at\n  }\n};"
-      },
-      "id": "success-response",
-      "name": "Success Response",
+      "name": "Get Auth Token",
       "type": "n8n-nodes-base.code",
-      "position": [2050, 100]
+      "position": [650, 300],
+      "parameters": {
+        "jsCode": "// Extract authorization token from headers\nconst headers = $input.first().json.headers || {};\nconst authHeader = headers.authorization || '';\nconst token = authHeader.replace('Bearer ', '');\n\nif (!token) {\n  throw new Error('No authorization token provided');\n}\n\nreturn {\n  token\n};"
+      }
     },
     {
+      "name": "Get Company ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [850, 300],
       "parameters": {
-        "jsCode": "// Return error for existing customer\nconst existing = $input.first().json;\n\nreturn {\n  success: false,\n  error: 'Customer already exists',\n  customer: {\n    id: existing.customer_id,\n    phone: existing.phone,\n    email: existing.email\n  }\n};"
-      },
-      "id": "existing-customer-response",
-      "name": "Existing Customer Response",
-      "type": "n8n-nodes-base.code",
-      "position": [1650, 300]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Return validation error response\nconst errorData = $input.first().json;\n\nreturn {\n  success: false,\n  error: 'Phone number validation failed',\n  details: errorData.phone_validation_error,\n  phone_original: errorData.phone_original\n};"
-      },
-      "id": "validation-error-response",
-      "name": "Validation Error Response",
-      "type": "n8n-nodes-base.code",
-      "position": [1050, 500]
-    },
-    {
-      "parameters": {
-        "values": {
-          "string": [
+        "url": "http://medusa-backend:9000/admin/customers",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "bearerToken",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
+              "name": "Authorization",
+              "value": "=Bearer {{$('Get Auth Token').item.json.token}}"
             }
           ]
         },
         "options": {
-          "responseCode": 400
+          "timeout": 10000
         }
-      },
-      "id": "error-response-webhook",
-      "name": "Error Response",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "position": [1250, 500]
+      }
     },
     {
-      "parameters": {},
-      "id": "success-webhook",
-      "name": "Return Success",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "position": [2250, 100]
-    },
-    {
+      "name": "Query Customers",
+      "type": "n8n-nodes-base.postgres",
+      "position": [1050, 300],
       "parameters": {
-        "values": {
-          "string": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {
-          "responseCode": 200
-        }
-      },
-      "id": "success-webhook-final",
-      "name": "Success Response Final",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "position": [2250, 200]
+        "operation": "executeQuery",
+        "query": "={{$json.customersQuery}}"
+      }
     }
-  ],
-  "connections": {
-    "Webhook": {
-      "main": [[{"node": "Validate Phone Exists", "type": "main", "index": 0}]]
-    },
-    "Validate Phone Exists": {
-      "main": [
-        [
-          {"node": "Format & Validate Phone", "type": "main", "index": 0}
-        ]
-      ]
-    },
-    "Format & Validate Phone": {
-      "main": [[{"node": "Check Validation Status", "type": "main", "index": 0}]]
-    },
-    "Check Validation Status": {
-      "main": [
-        [
-          {"node": "Check Existing Customer", "type": "main", "index": 0}
-        ],
-        [
-          {"node": "Validation Error Response", "type": "main", "index": 0}
-        ]
-      ]
-    },
-    "Check Existing Customer": {
-      "main": [[{"node": "Process Existing Check", "type": "main", "index": 0}]]
-    },
-    "Process Existing Check": {
-      "main": [[{"node": "Check If Customer Exists", "type": "main", "index": 0}]]
-    },
-    "Check If Customer Exists": {
-      "main": [
-        [
-          {"node": "Prepare Customer Data", "type": "main", "index": 0}
-        ],
-        [
-          {"node": "Existing Customer Response", "type": "main", "index": 0}
-        ]
-      ]
-    },
-    "Prepare Customer Data": {
-      "main": [[{"node": "Insert Customer", "type": "main", "index": 0}]]
-    },
-    "Insert Customer": {
-      "main": [[{"node": "Success Response", "type": "main", "index": 0}]]
-    },
-    "Success Response": {
-      "main": [[{"node": "Success Response Final", "type": "main", "index": 0}]]
-    },
-    "Existing Customer Response": {
-      "main": [[{"node": "Error Response", "type": "main", "index": 0}]]
-    },
-    "Validation Error Response": {
-      "main": [[{"node": "Error Response", "type": "main", "index": 0}]]
-    }
-  }
+  ]
 }

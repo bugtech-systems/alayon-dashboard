@@ -26,7 +26,6 @@ export const retrieveCompany = async (companyId: string) => {
   const next = {
     ...(await getCacheOptions("companies")),
   }
-  console.log(companyId, 'ccaaaaadddd')
 
   const { company } = await sdk.client.fetch<StoreCompanyResponse>(
     `/store/companies/${companyId}`,

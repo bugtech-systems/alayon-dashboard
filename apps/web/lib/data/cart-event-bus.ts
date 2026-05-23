@@ -28,7 +28,8 @@ export const addToCartEventBus: CartAddEventBus | any = {
       track("add_to_cart", {
         product_name: lineItem.productVariant.title,
         quantity: lineItem.quantity,
-        companyId: payload?.companyId
+        companyId: payload?.companyId,
+        regionId: payload?.regionId
       })
     }
   },

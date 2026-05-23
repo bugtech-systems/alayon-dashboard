@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
-  type ColumnFiltersState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -15,7 +14,6 @@ import {
   type PaginationState,
   type SortingState,
   useReactTable,
-  type VisibilityState,
 } from "@tanstack/react-table";
 import {
   ArrowUpDown,
@@ -34,6 +32,7 @@ import {
   AlertCircle,
   Receipt,
   MoreVertical,
+  RefreshCw,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { n8n } from "@/lib/n8n-webhook-service";
 import {
   Dialog,
   DialogContent,
@@ -63,7 +61,14 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 import { recentCustomersColumns } from "./columns";
-import type { RecentCustomerRow } from "./schema";
+import {
+  useCustomers,
+  useBulkDeleteCustomers,
+  useBulkUpdateCustomerStatus,
+  useBulkUpdateCustomerBilling,
+  useUpdateCustomerStatus,
+  useDeleteCustomer,
+} from "@/lib/hooks/useN8nQuery";
 
 const statusOptions = [
   { value: "all", label: "All" },
@@ -100,34 +105,25 @@ const bulkStatusOptions = [
 ] as const;
 
 const bulkBillingOptions = [
-  { value: "Paid", label: "Paid", color: "bg-green-100 text-green-700" },
-  { value: "Pending", label: "Pending", color: "bg-yellow-100 text-yellow-700" },
-  { value: "Overdue", label: "Overdue", color: "bg-red-100 text-red-700" },
-  { value: "Trial", label: "Trial", color: "bg-blue-100 text-blue-700" },
+  { value: "Paid", label: "Paid", color: "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400" },
+  { value: "Pending", label: "Pending", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400" },
+  { value: "Overdue", label: "Overdue", color: "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400" },
+  { value: "Trial", label: "Trial", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400" },
 ] as const;
 
-interface RecentCustomersTableProps {
-  initialData?: RecentCustomerRow[];
-  initialTotal?: number;
-}
-
-export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: RecentCustomersTableProps) {
+export function RecentCustomersTable() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [data, setData] = useState<RecentCustomerRow[]>(initialData);
-  const [total, setTotal] = useState(initialTotal);
-  const [loading, setLoading] = useState(!initialData.length);
+  // State
   const [rowSelection, setRowSelection] = useState({});
-  
-  // Bulk action states
-  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [billingDialogOpen, setBillingDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedBilling, setSelectedBilling] = useState<string>("");
+  const [deleteProgress, setDeleteProgress] = useState({ processed: 0, total: 0 });
 
   // Get filters from URL
   const currentSearch = searchParams.get("search") || "";
@@ -143,7 +139,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
     if (sort === "oldest") return [{ id: "joined", desc: false }];
     if (sort === "name-asc") return [{ id: "name", desc: false }];
     if (sort === "name-desc") return [{ id: "name", desc: true }];
-    return [{ id: "joined", desc: true }]; // newest default
+    return [{ id: "joined", desc: true }];
   };
 
   const [sorting, setSorting] = useState<SortingState>(getSortFromURL);
@@ -152,94 +148,36 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
     pageSize: currentPageSize,
   });
 
+  // Build query params for n8n
+  const queryParams = {
+    page: pagination.pageIndex + 1,
+    pageSize: pagination.pageSize,
+    search: currentSearch || undefined,
+    status: currentStatus !== "all" ? currentStatus : undefined,
+    billing: currentBilling !== "all" ? currentBilling : undefined,
+    daysBack: currentJoinedDate !== "all" ? currentJoinedDate : undefined,
+    sortBy: sorting[0]?.id,
+    sortOrder: sorting[0]?.desc ? "desc" : "asc",
+  };
+
+  // N8N Hooks
+  const { data: response, isLoading, isFetching, refetch } = useCustomers(queryParams);
+  const bulkDelete = useBulkDeleteCustomers();
+  const bulkUpdateStatus = useBulkUpdateCustomerStatus();
+  const bulkUpdateBilling = useBulkUpdateCustomerBilling();
+  const updateStatus = useUpdateCustomerStatus();
+  const deleteCustomer = useDeleteCustomer();
+
+  const data = response?.data || [];
+  const total = response?.total || 0;
+  const loading = isLoading && data.length === 0;
+  const isRefreshing = isFetching && !isLoading;
+
   // Get selected row IDs
   const getSelectedRowIds = useCallback(() => {
     const selectedRows = table.getSelectedRowModel().rows;
     return selectedRows.map(row => row.original.id);
   }, [rowSelection]);
-
-  // Bulk delete customers
-  const handleBulkDelete = async () => {
-    const selectedIds = getSelectedRowIds();
-    if (selectedIds.length === 0) return;
-
-    setBulkActionLoading(true);
-    try {
-      const response = await n8n.bulkDelete("deleteCustomers", selectedIds);
-      
-      if (response.success) {
-        toast.success(`Successfully deleted ${selectedIds.length} customer(s)`);
-        setRowSelection({});
-        setDeleteDialogOpen(false);
-        fetchCustomers(); // Refresh the table
-      } else {
-        throw new Error(response.error || "Failed to delete customers");
-      }
-    } catch (error) {
-      console.error("Error deleting customers:", error);
-      toast.error("Failed to delete customers. Please try again.");
-    } finally {
-      setBulkActionLoading(false);
-    }
-  };
-
-  // Bulk update status
-  const handleBulkUpdateStatus = async () => {
-    const selectedIds = getSelectedRowIds();
-    if (selectedIds.length === 0 || !selectedStatus) return;
-
-    setBulkActionLoading(true);
-    try {
-      const response = await n8n.bulkUpdate("updateCustomersStatus", {
-        customerIds: selectedIds,
-        status: selectedStatus,
-      });
-      
-      if (response.success) {
-        toast.success(`Successfully updated ${selectedIds.length} customer(s) to ${selectedStatus}`);
-        setRowSelection({});
-        setStatusDialogOpen(false);
-        setSelectedStatus("");
-        fetchCustomers(); // Refresh the table
-      } else {
-        throw new Error(response.error || "Failed to update customer status");
-      }
-    } catch (error) {
-      console.error("Error updating customer status:", error);
-      toast.error("Failed to update customer status. Please try again.");
-    } finally {
-      setBulkActionLoading(false);
-    }
-  };
-
-  // Bulk update billing
-  const handleBulkUpdateBilling = async () => {
-    const selectedIds = getSelectedRowIds();
-    if (selectedIds.length === 0 || !selectedBilling) return;
-
-    setBulkActionLoading(true);
-    try {
-      const response = await n8n.bulkUpdate("updateCustomersBilling", {
-        customerIds: selectedIds,
-        billingStatus: selectedBilling,
-      });
-      
-      if (response.success) {
-        toast.success(`Successfully updated ${selectedIds.length} customer(s) billing to ${selectedBilling}`);
-        setRowSelection({});
-        setBillingDialogOpen(false);
-        setSelectedBilling("");
-        fetchCustomers(); // Refresh the table
-      } else {
-        throw new Error(response.error || "Failed to update customer billing");
-      }
-    } catch (error) {
-      console.error("Error updating customer billing:", error);
-      toast.error("Failed to update customer billing. Please try again.");
-    } finally {
-      setBulkActionLoading(false);
-    }
-  };
 
   // Update URL with current filters
   const updateUrlParams = useCallback((updates: Record<string, string | number | null>) => {
@@ -256,112 +194,113 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
     router.push(`${pathname}?${params.toString()}`);
   }, [searchParams, pathname, router]);
 
-  // Fetch data from n8n
-  const fetchCustomers = useCallback(async () => {
-    setLoading(true);
-    
-    try {
-      const params: Record<string, any> = {
-        page: pagination.pageIndex + 1,
-        pageSize: pagination.pageSize,
-      };
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    const selectedIds = getSelectedRowIds();
+    if (selectedIds.length === 0) return;
 
-      if (currentSearch) params.search = currentSearch;
-      if (currentStatus !== "all") params.status = currentStatus;
-      if (currentBilling !== "all") params.billing = currentBilling;
-      if (currentJoinedDate !== "all") params.daysBack = currentJoinedDate;
-      
-      if (sorting[0]) {
-        params.sortBy = sorting[0].id;
-        params.sortOrder = sorting[0].desc ? "desc" : "asc";
+    setDeleteProgress({ processed: 0, total: selectedIds.length });
+    
+    bulkDelete.mutate(
+      {
+        endpoint: "/customers",
+        ids: selectedIds,
+        concurrency: 5,
+        onProgress: (processed, total, successful, failed) => {
+          setDeleteProgress({ processed, total });
+        },
+      },
+      {
+        onSuccess: (result) => {
+          if (result.success) {
+            toast.success(result.message);
+            setRowSelection({});
+            setDeleteDialogOpen(false);
+            refetch();
+          } else {
+            toast.error(result.message || "Failed to delete some customers");
+          }
+          setDeleteProgress({ processed: 0, total: 0 });
+        },
+        onError: (error) => {
+          toast.error("Failed to delete customers");
+          setDeleteProgress({ processed: 0, total: 0 });
+        },
       }
+    );
+  };
 
-      const response = await n8n.getPaginated<RecentCustomerRow>("getCustomers", params.page, params.pageSize, {
-        search: params.search,
-        status: params.status,
-        billing: params.billing,
-        daysBack: params.daysBack,
-        sortBy: params.sortBy,
-        sortOrder: params.sortOrder,
-      });
+  // Bulk update status handler
+  const handleBulkUpdateStatus = async () => {
+    const selectedIds = getSelectedRowIds();
+    if (selectedIds.length === 0 || !selectedStatus) return;
 
-      if (response.success && response.data) {
-        setData(response.data.data);
-        setTotal(response.data.total);
-        
-        if (response.data.page !== pagination.pageIndex + 1) {
-          setPagination(prev => ({ ...prev, pageIndex: response.data.page - 1 }));
-        }
-      } else {
-        throw new Error(response.error || "Failed to fetch customers");
+    bulkUpdateStatus.mutate(
+      { ids: selectedIds, status: selectedStatus },
+      {
+        onSuccess: () => {
+          toast.success(`Successfully updated ${selectedIds.length} customer(s) to ${selectedStatus}`);
+          setRowSelection({});
+          setStatusDialogOpen(false);
+          setSelectedStatus("");
+          refetch();
+        },
+        onError: () => {
+          toast.error("Failed to update customer status");
+        },
       }
-    } catch (error) {
-      console.error("Error fetching customers:", error);
-      toast.error("Failed to fetch customers. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.pageIndex, pagination.pageSize, currentSearch, currentStatus, currentBilling, currentJoinedDate, sorting]);
+    );
+  };
 
-  // Sync URL with state
-  useEffect(() => {
-    const params: Record<string, string | number | null> = {
-      page: pagination.pageIndex + 1,
-      pageSize: pagination.pageSize,
-      search: currentSearch || null,
-      status: currentStatus !== "all" ? currentStatus : null,
-      billing: currentBilling !== "all" ? currentBilling : null,
-      joinedDate: currentJoinedDate !== "all" ? currentJoinedDate : null,
-    };
-    
-    const sortValue = getSortValueFromState(sorting);
-    if (sortValue !== "newest") {
-      params.sort = sortValue;
-    }
-    
-    updateUrlParams(params);
-  }, [pagination, currentSearch, currentStatus, currentBilling, currentJoinedDate, sorting]);
+  // Bulk update billing handler
+  const handleBulkUpdateBilling = async () => {
+    const selectedIds = getSelectedRowIds();
+    if (selectedIds.length === 0 || !selectedBilling) return;
 
-  // Fetch when dependencies change
-  useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    bulkUpdateBilling.mutate(
+      { ids: selectedIds, billingStatus: selectedBilling },
+      {
+        onSuccess: () => {
+          toast.success(`Successfully updated ${selectedIds.length} customer(s) billing to ${selectedBilling}`);
+          setRowSelection({});
+          setBillingDialogOpen(false);
+          setSelectedBilling("");
+          refetch();
+        },
+        onError: () => {
+          toast.error("Failed to update customer billing");
+        },
+      }
+    );
+  };
 
-  // Helper to get sort value from sorting state
-  function getSortValueFromState(sortingState: SortingState): string {
-    if (!sortingState[0]) return "newest";
-    if (sortingState[0].id === "joined" && sortingState[0].desc) return "newest";
-    if (sortingState[0].id === "joined" && !sortingState[0].desc) return "oldest";
-    if (sortingState[0].id === "name" && !sortingState[0].desc) return "name-asc";
-    if (sortingState[0].id === "name" && sortingState[0].desc) return "name-desc";
-    return "newest";
-  }
+  // Single customer actions
+  const handleDeleteSingleCustomer = async (customerId: string) => {
+    deleteCustomer.mutate(customerId, {
+      onSuccess: () => {
+        toast.success("Customer deleted successfully");
+        refetch();
+      },
+      onError: () => {
+        toast.error("Failed to delete customer");
+      },
+    });
+  };
 
-  // Table setup
-  const table = useReactTable({
-    data,
-    columns: recentCustomersColumns,
-    state: {
-      rowSelection,
-      pagination,
-      sorting,
-    },
-    getRowId: (row) => row.id,
-    enableRowSelection: true,
-    manualPagination: true,
-    manualSorting: true,
-    manualFiltering: true,
-    pageCount: Math.ceil(total / pagination.pageSize),
-    onRowSelectionChange: setRowSelection,
-    onPaginationChange: setPagination,
-    onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  });
-
-  const selectedCount = table.getSelectedRowModel().rows.length;
+  const handleUpdateSingleCustomerStatus = async (customerId: string, status: string) => {
+    updateStatus.mutate(
+      { id: customerId, status },
+      {
+        onSuccess: () => {
+          toast.success(`Customer status updated to ${status}`);
+          refetch();
+        },
+        onError: () => {
+          toast.error("Failed to update customer status");
+        },
+      }
+    );
+  };
 
   // Filter handlers
   const handleSearchChange = (value: string) => {
@@ -406,7 +345,107 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
     return "newest";
   };
 
-  if (loading && data.length === 0) {
+  // Sync URL with state
+  useEffect(() => {
+    const params: Record<string, string | number | null> = {
+      page: pagination.pageIndex + 1,
+      pageSize: pagination.pageSize,
+      search: currentSearch || null,
+      status: currentStatus !== "all" ? currentStatus : null,
+      billing: currentBilling !== "all" ? currentBilling : null,
+      joinedDate: currentJoinedDate !== "all" ? currentJoinedDate : null,
+    };
+    
+    const sortValue = getCurrentSortValue();
+    if (sortValue !== "newest") {
+      params.sort = sortValue;
+    }
+    
+    updateUrlParams(params);
+  }, [pagination, currentSearch, currentStatus, currentBilling, currentJoinedDate]);
+
+  // Enhanced columns with action handlers
+  const enhancedColumns = recentCustomersColumns.map(column => {
+    if (column.id === "actions") {
+      return {
+        ...column,
+        cell: ({ row }: any) => {
+          const customer = row.original;
+          return (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={() => handleUpdateSingleCustomerStatus(customer.id, "Subscribed")}
+                  disabled={updateStatus.isPending}
+                >
+                  <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                  Set as Subscribed
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleUpdateSingleCustomerStatus(customer.id, "Inactive")}
+                  disabled={updateStatus.isPending}
+                >
+                  <AlertCircle className="mr-2 h-4 w-4 text-yellow-600" />
+                  Set as Inactive
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleUpdateSingleCustomerStatus(customer.id, "Unsubscribed")}
+                  disabled={updateStatus.isPending}
+                >
+                  <XCircle className="mr-2 h-4 w-4 text-red-600" />
+                  Set as Unsubscribed
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => handleDeleteSingleCustomer(customer.id)}
+                  className="text-red-600"
+                  disabled={deleteCustomer.isPending}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          );
+        },
+      };
+    }
+    return column;
+  });
+
+  // Table setup
+  const table = useReactTable({
+    data,
+    columns: enhancedColumns,
+    state: {
+      rowSelection,
+      pagination,
+      sorting,
+    },
+    getRowId: (row) => row.id,
+    enableRowSelection: true,
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
+    pageCount: Math.ceil(total / pagination.pageSize) || 1,
+    onRowSelectionChange: setRowSelection,
+    onPaginationChange: setPagination,
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  });
+
+  const selectedCount = table.getSelectedRowModel().rows.length;
+  const isBulkActionLoading = bulkDelete.isPending || bulkUpdateStatus.isPending || bulkUpdateBilling.isPending;
+
+  if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="flex flex-col items-center gap-2">
@@ -433,7 +472,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={bulkActionLoading}>
+                <Button variant="outline" size="sm" disabled={isBulkActionLoading}>
                   <UsersRound className="mr-2 h-4 w-4" />
                   Update Status
                 </Button>
@@ -456,7 +495,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={bulkActionLoading}>
+                <Button variant="outline" size="sm" disabled={isBulkActionLoading}>
                   <Receipt className="mr-2 h-4 w-4" />
                   Update Billing
                 </Button>
@@ -482,7 +521,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
               variant="destructive"
               size="sm"
               onClick={() => setDeleteDialogOpen(true)}
-              disabled={bulkActionLoading}
+              disabled={isBulkActionLoading}
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Selected
@@ -492,7 +531,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
               variant="ghost"
               size="sm"
               onClick={() => setRowSelection({})}
-              disabled={bulkActionLoading}
+              disabled={isBulkActionLoading}
             >
               Clear Selection
             </Button>
@@ -598,6 +637,11 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </div>
       </div>
 
@@ -616,7 +660,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
             ))}
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {isFetching && data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={table.getVisibleLeafColumns().length} className="h-24 text-center">
                   <div className="flex items-center justify-center gap-2">
@@ -686,7 +730,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
               className="hidden size-8 lg:flex"
               size="icon"
               onClick={() => table.setPageIndex(0)}
-              disabled={!table.getCanPreviousPage() || loading}
+              disabled={!table.getCanPreviousPage() || isFetching}
             >
               <span className="sr-only">Go to first page</span>
               <ChevronsLeft className="size-4" />
@@ -696,7 +740,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
               className="size-8"
               size="icon"
               onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage() || loading}
+              disabled={!table.getCanPreviousPage() || isFetching}
             >
               <span className="sr-only">Go to previous page</span>
               <ChevronLeft className="size-4" />
@@ -706,7 +750,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
               className="size-8"
               size="icon"
               onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage() || loading}
+              disabled={!table.getCanNextPage() || isFetching}
             >
               <span className="sr-only">Go to next page</span>
               <ChevronRight className="size-4" />
@@ -716,7 +760,7 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
               className="hidden size-8 lg:flex"
               size="icon"
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-              disabled={!table.getCanNextPage() || loading}
+              disabled={!table.getCanNextPage() || isFetching}
             >
               <span className="sr-only">Go to last page</span>
               <ChevronsRight className="size-4" />
@@ -731,16 +775,28 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
           <DialogHeader>
             <DialogTitle>Delete Customers</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete {selectedCount} customer{selectedCount !== 1 ? "s" : ""}? 
-              This action cannot be undone.
+              {deleteProgress.total > 0 ? (
+                <div className="space-y-2">
+                  <p>Deleting {deleteProgress.processed} of {deleteProgress.total} customers...</p>
+                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-destructive transition-all duration-300"
+                      style={{ width: `${(deleteProgress.processed / deleteProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                `Are you sure you want to delete ${selectedCount} customer${selectedCount !== 1 ? "s" : ""}? 
+                This action cannot be undone.`
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={bulkActionLoading}>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={bulkDelete.isPending}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkActionLoading}>
-              {bulkActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button variant="destructive" onClick={handleBulkDelete} disabled={bulkDelete.isPending}>
+              {bulkDelete.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
             </Button>
           </DialogFooter>
@@ -757,11 +813,11 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setStatusDialogOpen(false)} disabled={bulkActionLoading}>
+            <Button variant="outline" onClick={() => setStatusDialogOpen(false)} disabled={bulkUpdateStatus.isPending}>
               Cancel
             </Button>
-            <Button onClick={handleBulkUpdateStatus} disabled={bulkActionLoading}>
-              {bulkActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleBulkUpdateStatus} disabled={bulkUpdateStatus.isPending}>
+              {bulkUpdateStatus.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm Update
             </Button>
           </DialogFooter>
@@ -778,11 +834,11 @@ export function RecentCustomersTable({ initialData = [], initialTotal = 0 }: Rec
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setBillingDialogOpen(false)} disabled={bulkActionLoading}>
+            <Button variant="outline" onClick={() => setBillingDialogOpen(false)} disabled={bulkUpdateBilling.isPending}>
               Cancel
             </Button>
-            <Button onClick={handleBulkUpdateBilling} disabled={bulkActionLoading}>
-              {bulkActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleBulkUpdateBilling} disabled={bulkUpdateBilling.isPending}>
+              {bulkUpdateBilling.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm Update
             </Button>
           </DialogFooter>

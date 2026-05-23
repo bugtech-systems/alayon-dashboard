@@ -13,7 +13,7 @@ export const getAuthHeaders = async (): Promise<
     const token = cookies.get("_medusa_jwt")?.value
 
     if (token) {
-      return { authorization: `Bearer ${token}` }
+      return { authorization: `Bearer ${token}`, 'x-publishable-api-key': `${process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}` }
     }
 
     return {}

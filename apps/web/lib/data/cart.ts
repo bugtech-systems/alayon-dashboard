@@ -111,9 +111,8 @@ export async function retrieveCompanyCart(id?: string) {
 }
 
 export async function getOrSetCart(countryCode: string = 'ph', companyId?: string) {
-  let cart = await companyId ? await retrieveCompanyCart(companyId) : await retrieveCart();
-  console.log(cart, 'cccccccrrrtt')
-  const region = await getRegion('ph')
+  let cart = await companyId ? await retrieveCompanyCart(companyId) : await retrieveCart() as any;
+  const region = await getRegion(countryCode)
   const session_id = await getCachedId()
   if (!region) {
     throw new Error(`Region not found for country code: ${countryCode}`)
@@ -132,17 +131,16 @@ export async function getOrSetCart(countryCode: string = 'ph', companyId?: strin
       },
     }
 
-    const cartResp = await sdk.store.cart.create(body, {}, headers)
-    console.log(cartResp, 'carrt resp')
+    const {cart: cartData} = await sdk.store.cart.create(body, {}, headers)
+    console.log(cartData, 'carrt resp')
 
     const cartCacheTag = await getCacheTag("carts")
     revalidateTag(cartCacheTag, "max")
-
-    cart = await retrieveCart()
+    
+    setCartId(cartData?.id)
+    cart = cartData;
   }
 
-  console.log(cart, 'CAAAAARTTTT')
-    setCartId(cart?.id)
 
   if (cart && cart?.region_id !== region.id) {
     await sdk.store.cart.update(cart.id, { region_id: region.id }, {}, headers)
@@ -176,46 +174,46 @@ export async function updateCart(data: HttpTypes.StoreUpdateCart) {
     .catch(medusaError)
 }
 
-export async function addToCart({
-  variantId,
-  quantity,
-  countryCode = 'ph',
-}: {
-  variantId: string
-  quantity: number
-  countryCode: string
-}) {
-  if (!variantId) {
-    throw new Error("Missing variant ID when adding to cart")
-  }
+// export async function addToCart({
+//   variantId,
+//   quantity,
+//   countryCode = 'ph',
+// }: {
+//   variantId: string
+//   quantity: number
+//   countryCode: string
+// }) {
+//   if (!variantId) {
+//     throw new Error("Missing variant ID when adding to cart")
+//   }
+  
+//   const cart = await getOrSetCart(countryCode)
+//   if (!cart) {
+//     throw new Error("Error retrieving or creating cart")
+//   }
 
-  const cart = await getOrSetCart(countryCode)
-  if (!cart) {
-    throw new Error("Error retrieving or creating cart")
-  }
+//   const headers = {
+//     ...(await getAuthHeaders()),
+//   }
 
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
-
-  await sdk.store.cart
-    .createLineItem(
-      cart.id,
-      {
-        variant_id: variantId,
-        quantity,
-      },
-      {},
-      headers
-    )
-    .then(async () => {
-      const fullfillmentCacheTag = await getCacheTag("fulfillment")
-      revalidateTag(fullfillmentCacheTag, "max")
-      const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag, "max")
-    })
-    .catch(medusaError)
-}
+//   await sdk.store.cart
+//     .createLineItem(
+//       cart.id,
+//       {
+//         variant_id: variantId,
+//         quantity,
+//       },
+//       {},
+//       headers
+//     )
+//     .then(async () => {
+//       const fullfillmentCacheTag = await getCacheTag("fulfillment")
+//       revalidateTag(fullfillmentCacheTag, "max")
+//       const cartCacheTag = await getCacheTag("carts")
+//       revalidateTag(cartCacheTag, "max")
+//     })
+//     .catch(medusaError)
+// }
 
 export async function addToCartBulk({
   lineItems,
@@ -231,7 +229,7 @@ export async function addToCartBulk({
   await setCompanyId(companyId)
   }
   const cart = await getOrSetCart(countryCode, companyId)
-  console.log(cart, 'GETTTS SEEET')
+  console.log(cart, companyId, 'GETTTS SEEET')
   if (!cart) {
     throw new Error("Error retrieving or creating cart")
   }
@@ -310,10 +308,12 @@ export async function deleteLineItem(lineId: string) {
   if (!lineId) {
     throw new Error("Missing lineItem ID when deleting line item")
   }
-
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag, "max")
   const cartId = await getCartId()
   if (!cartId) {
-    throw new Error("Missing cart ID when deleting line item")
+    await removeCartId()
+    return new Error("Missing cart ID when deleting line item")
   }
 
   const headers = {
