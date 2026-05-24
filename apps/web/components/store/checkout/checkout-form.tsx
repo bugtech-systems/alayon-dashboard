@@ -94,7 +94,6 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
     email: "", 
     phone: "", 
     address_1: "", 
-    postal_code: "", 
     notes: ""
   });
   
@@ -128,7 +127,6 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
       email: addr.email || cart.email || "",
       phone: addr.phone || "",
       address_1: addr.address_1 || "",
-      postal_code: addr.postal_code || "",
       notes: ""
     });
     
@@ -223,20 +221,20 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
   }, [cart?.id, formData, selectedCity, selectedBarangay, selectedLocation, isDataPopulated, isUpdatingCart]);
 
   // Debounced cart updates
-  // useEffect(() => {
-  //   if (!isDataPopulated) return;
+  useEffect(() => {
+    if (!isDataPopulated) return;
     
-  //   if (updateTimeout.current) clearTimeout(updateTimeout.current);
+    if (updateTimeout.current) clearTimeout(updateTimeout.current);
     
-  //   const hasRequiredData = formData.first_name && formData.last_name && formData.address_1 && selectedCity && selectedBarangay;
-  //   if (hasRequiredData) {
-  //     updateTimeout.current = setTimeout(updateCartData, 5000);
-  //   }
+    const hasRequiredData = formData.first_name && formData.last_name && formData.address_1 && selectedCity && selectedBarangay;
+    if (hasRequiredData) {
+      updateTimeout.current = setTimeout(updateCartData, 5000);
+    }
     
-  //   return () => {
-  //     if (updateTimeout.current) clearTimeout(updateTimeout.current);
-  //   };
-  // }, [formData, selectedCity, selectedBarangay, selectedLocation, updateCartData, isDataPopulated]);
+    return () => {
+      if (updateTimeout.current) clearTimeout(updateTimeout.current);
+    };
+  }, [formData, selectedCity, selectedBarangay, selectedLocation, updateCartData, isDataPopulated]);
 
   // Fetch cities
   useEffect(() => {
@@ -430,7 +428,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
       </div>
     );
   }
-
+  console.log(selectedLocation, 'SELECTEDD', cart)
   const cityLabel = cities.find(c => c.value === selectedCity)?.label || "";
   const barangayLabel = barangays.find(b => b.value === selectedBarangay)?.label || "";
 

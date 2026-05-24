@@ -32,9 +32,17 @@ const nextConfig = {
         protocol: "https",
         hostname: "*.s3.amazonaws.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.alayon.store",
+      },
+      {
+        protocol: "https",
+        hostname: "*.sharewin.pro",
+      },
     ],
   },
-  allowedDevOrigins: ['192.168.1.140', 'localhost', '127.0.0.1', 'sharewin.pro', 'alayon.store'],
+  allowedDevOrigins: ['192.168.1.140', '192.168.1.120','localhost', '127.0.0.1', 'sharewin.pro', 'alayon.store'],
    async headers() {
     return [
       {
