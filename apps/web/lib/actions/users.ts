@@ -16,12 +16,14 @@ type FormState =
     }
   | undefined;
 
-const redirecter = (actor_type: "company" | "driver") => {
+const redirecter = (actor_type: "admin" | "company" | "driver") => {
   let redirectPatch;
   if (actor_type === "company") {
     redirectPatch = "/dashboard/company";
   } else if (actor_type === "driver") {
     redirectPatch = "/dashboard/driver";
+  } if (actor_type === "admin") {
+    redirectPatch = "/leo";
   } else {
     redirectPatch = "/";
   }
@@ -35,7 +37,7 @@ export async function logout() {
 }
 
 export async function signup(prevState: FormState, data: FormData) {
-  const user_type = data.get("user_type") as string;
+  const user_type = data.get("userType") as string;
   const company_id = data.get("company_id") as string;
   const first_name = data.get("first_name") as string;
   const last_name = data.get("last_name") as string;
@@ -63,12 +65,13 @@ export async function signup(prevState: FormState, data: FormData) {
 
     revalidateTag('users', 'max');
 
-    const createUserData: CreateUserType = {
+    const createUserData: any = {
       email,
       first_name,
       last_name,
       phone,
       actor_type,
+      company_id
     };
 
       createUserData.company_id = company_id;

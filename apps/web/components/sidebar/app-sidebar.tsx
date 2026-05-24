@@ -20,6 +20,7 @@ import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 import { companySidebarItems } from "@/data/sidebar/company-sidebar-items";
+import { AccountSwitcher } from "./account-switcher";
 
 const _data = {
   navSecondary: [
@@ -92,7 +93,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         {/* Uncomment when SidebarSupportCard is fixed */}
         {/* <SidebarSupportCard /> */}
-        <NavUser user={rootUser} />
+        {/* <NavUser user={rootUser} /> */}
+        <AccountSwitcher/>
       </SidebarFooter>
     </Sidebar>
   );

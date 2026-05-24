@@ -62,6 +62,8 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
         endpoint: `/webhook/get-citymun?regCode=${DEFAULT_REGION}&provCode=${DEFAULT_PROVINCE}`, 
         method: "GET"
       });
+
+      console.log(data, "DAAAATA")
       
       // Transform data based on your API response structure
       const formattedMunicipalities = data.map((item: any) => ({

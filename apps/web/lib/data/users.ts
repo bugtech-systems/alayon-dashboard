@@ -17,7 +17,37 @@ export async function retrieveUser() {
     const user = await n8nFetcher({endpoint: "/webhook/auth/session", 
       method: "GET",
       headers,
-      next
+      // next
+    });
+
+
+    console.log(user, 'USSSE')
+    return user;
+  } catch (error) {
+    console.log(error, 'errr');
+    return null;
+  }
+}
+
+export async function loginUser(data: any) {
+  try {
+
+
+
+        // Method 1: Using the list endpoint with handle filter (recommended)
+       const headers = {
+        ...(await getAuthHeaders()),
+      }
+    
+      const next = {
+        ...(await getCacheOptions("user")),
+      }
+
+
+    const user = await n8nFetcher({endpoint: "/webhook/auth/session", 
+      method: "POST",
+      headers,
+      // next
     });
 
 

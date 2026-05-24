@@ -30,14 +30,14 @@ export default function LoginPage() {
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
-    userType: "customer"
+    userType: "company"
   })
   const [errors, setErrors] = useState<Partial<LoginFormData>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [generalError, setGeneralError] = useState<string | null>(null)
 
   const userTypes = [
-    { value: "customer", label: "Customer", icon: User, color: "blue" },
+    // { value: "customer", label: "Customer", icon: User, color: "blue" },
     { value: "company", label: "Merchant", icon: Store, color: "green" },
     { value: "driver", label: "Driver", icon: Truck, color: "orange" },
     { value: "user", label: "Admin", icon: Building2, color: "purple" },

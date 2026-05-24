@@ -61,12 +61,13 @@ export async function n8nFetcher({
     body: (method === "POST" || method === "PUT") ? JSON.stringify(body) : undefined,
   })
 
-
+console.log(res, 'RESSP')
 
   if (!res.ok) {
     throw new Error(`n8n error: ${res.status}`)
   }
-  const json = await res.json()
+  const json = res.json()
+console.log(json, 'RESSP json')
 
   return Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : json.data ?? json;
 }

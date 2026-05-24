@@ -1,34 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Configuration
+// Your default region (Philippines) - used as fallback only
 const DEFAULT_REGION = "ph";
-const DEFAULT_COUNTRY = "ph";
 
-// Reserved paths that should NOT be treated as company handles
-const RESERVED_PATHS = [
-  "products",
-  "store",
+// Reserved paths that should NOT be treated as region/country codes
+const RESERVED_PATHS = new Set([
+  "admin",
+  "leo",
+  "api",
+  "auth",
+  "checkout",
   "account",
   "cart",
-  "checkout",
-  "api",
-  "admin",
-  "search",
-  "categories",
   "collections",
+  "products",
+  "categories",
+  "search",
   "orders",
-  "wishlist",
-  "profile",
-  "addresses",
-  "payment-methods"
-];
+  "order",
+  "payment",
+  "store",
+  "_next",
+  "favicon.ico",
+  "robots.txt",
+  "sitemap.xml",
+  "images",
+  "icons",
+  "fonts"
+]);
 
-// Static file extensions to skip
-const STATIC_EXTENSIONS = [
-  ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg",
-  ".css", ".js", ".json", ".ico", ".txt", ".xml", ".pdf",
-  ".woff", ".woff2", ".ttf", ".eot"
-];
+// Valid country codes (ISO 3166-1 alpha-2)
+// You can expand this list based on your Medusa regions
+const VALID_COUNTRIES = new Set([
+  "ph", "us", "gb", "ca", "au", "de", "fr", "jp", "cn", "in"
+  // Add more as needed
+]);
 
 async function setCacheId(request: NextRequest, response: NextResponse) {
   const cacheId = request.cookies.get("_medusa_cache_id")?.value;
@@ -48,45 +54,35 @@ async function setCacheId(request: NextRequest, response: NextResponse) {
   return newCacheId;
 }
 
-function isStaticAsset(pathname: string): boolean {
-  return (
+function shouldSkipMiddleware(pathname: string): boolean {
+  // Skip static assets
+  if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
-    pathname.startsWith("/public") ||
-    STATIC_EXTENSIONS.some(ext => pathname.endsWith(ext))
-  );
-}
-
-function isReservedPath(pathname: string): boolean {
-  const firstSegment = pathname.split("/")[1];
-  return RESERVED_PATHS.includes(firstSegment);
-}
-
-function getCompanyHandle(pathname: string): string | null {
-  const segments = pathname.split("/").filter(Boolean);
-  
-  // If no segments or first segment is reserved, return null
-  if (segments.length === 0 || isReservedPath(pathname)) {
-    return null;
+    pathname.includes(".")
+  ) {
+    return true;
   }
   
-  // First segment is the company handle
-  return segments[0];
+  // Skip reserved paths that shouldn't be treated as country codes
+  const firstPathSegment = pathname.split("/")[1];
+  if (firstPathSegment && RESERVED_PATHS.has(firstPathSegment)) {
+    return true;
+  }
+  
+  return false;
+}
+
+function isValidCountryCode(code: string): boolean {
+  return VALID_COUNTRIES.has(code.toLowerCase());
 }
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
 
-  // Skip middleware for static assets and API routes
-  if (isStaticAsset(pathname)) {
-    return response;
-  }
-
-  // Handle root path - redirect to default store or homepage
-  if (pathname === "/") {
-    // You can redirect to a default company or keep as homepage
-    // For now, keep as homepage
+  // Skip middleware for static assets, API routes, and reserved paths
+  if (shouldSkipMiddleware(pathname)) {
     return response;
   }
 
@@ -94,63 +90,55 @@ export async function middleware(request: NextRequest) {
   const cacheId = await setCacheId(request, response);
   response.headers.set("x-medusa-cache-id", cacheId);
 
-  // Handle region/country
-  const userRegion = request.cookies.get("user_region")?.value;
-  const userCountry = request.cookies.get("user_country")?.value;
+  // Get user's stored region preference
+  let userRegion = request.cookies.get("user_region")?.value;
   
-  if (!userRegion) {
-    response.cookies.set("user_region", DEFAULT_REGION, {
-      maxAge: 60 * 60 * 24 * 30,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-  }
+  // Parse the URL to check for Medusa's default region/country handling
+  const pathSegments = pathname.split("/").filter(Boolean);
+  const firstSegment = pathSegments[0];
   
-  if (!userCountry) {
-    response.cookies.set("user_country", DEFAULT_COUNTRY, {
-      maxAge: 60 * 60 * 24 * 30,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-  }
-
-  // Add region info to headers for server components
-  response.headers.set("x-user-region", userRegion || DEFAULT_REGION);
-  response.headers.set("x-user-country", userCountry || DEFAULT_COUNTRY);
-
-  // Handle company routes
-  const companyHandle = getCompanyHandle(pathname);
+  // Check if the first path segment is a valid country code
+  const hasValidCountryInPath = firstSegment && isValidCountryCode(firstSegment);
   
-  if (companyHandle && !isReservedPath(pathname)) {
-    // Add company handle to headers for server components to use
-    response.headers.set("x-company-handle", companyHandle);
+  // Medusa's default behavior: if there's a valid country in the path, use that as region
+  if (hasValidCountryInPath) {
+    // Medusa will handle the region resolution based on the country in path
+    // Just ensure the user_region cookie matches this preference
+    if (userRegion !== firstSegment) {
+      response.cookies.set("user_region", firstSegment, {
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
+    }
     
-    // Optional: Validate company exists by making a quick check
-    // This can be done in the page component instead to avoid blocking
+    // Add region info to headers
+    response.headers.set("x-user-region", firstSegment);
+  } else {
+    // No country in path - Medusa will use default region
+    // Set PH as the default region for the store (cookie-only, not in URL)
+    if (!userRegion) {
+      userRegion = DEFAULT_REGION;
+      response.cookies.set("user_region", userRegion, {
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+      });
+    }
     
-    console.log(`🏢 Company route detected: ${companyHandle}`);
-  }
-
-  // Log for debugging (remove in production)
-  if (process.env.NODE_ENV === "development") {
-    console.log(`[Middleware] Path: ${pathname}, Company: ${companyHandle || "none"}`);
+    // Add region info to headers (PH by default)
+    response.headers.set("x-user-region", userRegion || DEFAULT_REGION);
+    
+    // IMPORTANT: Do NOT rewrite or redirect - let Medusa handle the default region
+    // Medusa will internally use the user_region cookie to determine pricing,
+    // shipping options, and available countries
   }
 
   return response;
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * - files with extensions (static assets)
-     */
-    "/((?!_next/static|_next/image|favicon.ico|public|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js|json|ico|txt|xml|pdf|woff|woff2|ttf|eot)$).*)",
-  ],
+  matcher: "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
 };

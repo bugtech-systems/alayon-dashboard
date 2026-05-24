@@ -3,10 +3,11 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { User, AuthState, LoginCredentials, ActorType } from '@/types';
-import { medusa, setSessionActive, clearSession, storeUserData, getStoredUser } from '@/lib/medusa';
+import { setSessionActive, clearSession, storeUserData, getStoredUser } from '@/lib/medusa';
 import { useRouter } from 'next/navigation';
 import { getAuthHeaders, setAuthToken } from '@/lib/data/cookies';
 import { n8nFetcher } from '@/hooks/useN8nQuery';
+import { sdk } from '@/lib/config';
 
 interface AuthContextType {
   user: User | null;
@@ -24,54 +25,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
-// Mock users for demo
-const mockUsers: Record<string, { user: User; password: string }> = {
-  'company@example.com': {
-    user: {
-      id: 'comp_1',
-      email: 'company@example.com',
-      first_name: 'John',
-      last_name: 'Doe',
-      role: 'admin',
-      actorType: 'company',
-      companyId: 'company_123',
-      companyName: 'ABC Logistics',
-      permissions: ['view_products', 'edit_products', 'view_customers', 'manage_team', 'view_orders'],
-    },
-    password: 'company123',
-  },
-  'manager@company.com': {
-    user: {
-      id: 'comp_2',
-      email: 'manager@company.com',
-      first_name: 'Jane',
-      last_name: 'Smith',
-      role: 'manager',
-      actorType: 'company',
-      companyId: 'company_123',
-      companyName: 'ABC Logistics',
-      permissions: ['view_products', 'view_customers', 'view_team', 'view_orders'],
-    },
-    password: 'manager123',
-  },
-  'driver@example.com': {
-    user: {
-      id: 'driver_1',
-      email: 'driver@example.com',
-      first_name: 'Mike',
-      last_name: 'Johnson',
-      role: 'driver',
-      actorType: 'driver',
-      companyId: 'company_123',
-      companyName: 'ABC Logistics',
-      driverId: 'DRV001',
-      vehicleType: 'Van',
-      licenseNumber: 'DL123456',
-      permissions: ['view_deliveries', 'update_delivery_status', 'view_routes'],
-    },
-    password: 'driver123',
-  },
-};
+
 
 // Session cache
 class SessionCache {
@@ -165,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Production - try to restore session from Medusa
         try {
-          const { customer } = await medusa.store.customer.retrieve().catch(() => ({ customer: null }));
+          const { customer } = await sdk.store.customer.retrieve().catch(() => ({ customer: null }));
           
           if (customer) {
             const actorType = customer.metadata?.actor_type as ActorType;
@@ -260,7 +214,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       })
         console.log(res, 'RRRSSS')
-     let token = await medusa.auth.login(actorType, 'emailpass', {
+     let token = await sdk.auth.login(actorType, 'emailpass', {
         email: credentials.email,
         password: credentials.password,
       }) as any;
@@ -331,7 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!DEMO_MODE) {
         try {
-          await medusa.auth.logout();
+          await sdk.auth.logout();
         } catch (error) {
           console.warn('Logout API call failed:', error);
         }
@@ -394,7 +348,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const cached = SessionCache.get();
       if (!cached?.token) return false;
 
-      const { customer } = await medusa.store.customer.retrieve().catch(() => ({ customer: null }));
+      const { customer } = await sdk.store.customer.retrieve().catch(() => ({ customer: null }));
       
       if (customer && authState.user && customer.id === authState.user.id) {
         SessionCache.set(authState.user, cached.token, currentActorType);

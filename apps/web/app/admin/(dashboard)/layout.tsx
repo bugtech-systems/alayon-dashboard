@@ -14,15 +14,20 @@ import { AccountSwitcher } from "@/components/sidebar/account-switcher";
 import { LayoutControls } from "@/components/sidebar/layout-controls";
 import { SearchDialog } from "@/components/sidebar/search-dialog";
 import { ThemeSwitcher } from "@/components/sidebar/theme-switcher";
+import { retrieveUser } from "@/lib/data";
 
 export default async function Layout({ children }: Readonly<{ children: ReactNode }>) {
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
+
+    const user = retrieveUser() as any;
   const [variant, collapsible] = await Promise.all([
     getPreference("sidebar_variant", SIDEBAR_VARIANT_VALUES, "inset"),
     getPreference("sidebar_collapsible", SIDEBAR_COLLAPSIBLE_VALUES, "icon"),
   ]);
 
+
+  console.log(user, 'USSS')
   return (
     <SidebarProvider
       defaultOpen={defaultOpen}

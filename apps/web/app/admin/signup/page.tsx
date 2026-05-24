@@ -21,7 +21,7 @@ export default function SignupPageClient() {
     return (
       <Container className="flex flex-col gap-4">
         <Heading level="h1" className="text-xl">
-          Create your Medusa Eats account
+          Create your Alayon account
         </Heading>
         <div className="animate-pulse space-y-4">
           <div className="h-10 bg-gray-200 rounded"></div>
@@ -34,9 +34,6 @@ export default function SignupPageClient() {
 
   return (
     <Container className="flex flex-col gap-4">
-      <Heading level="h1" className="text-xl">
-        Create your Medusa Eats account
-      </Heading>
       <SignupForm companies={companies} />
     </Container>
   )

@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { LocationDialogWrapper } from "@/components/location/location-dialog-wrapper"
+import { AccountSwitcher } from "@/components/sidebar/account-switcher"
 
 // Navigation items
 const navigation = [
@@ -157,7 +158,8 @@ function SearchModal() {
 }
 
 export async function NavigationHeader() {
-
+    const customer = await retrieveCustomer() as any;
+console.log(customer, "USSS")
   return (
     <>
     <LocationDialogWrapper/>
@@ -227,7 +229,9 @@ export async function NavigationHeader() {
 
               {/* Account Button */}
               <Suspense fallback={<SkeletonAccountButton />}>
-                <AccountButton />
+              <div className="mx-3">
+                <AccountSwitcher users={[customer]}/>
+              </div>
               </Suspense>
 
               {/* Cart Button */}

@@ -4,7 +4,7 @@
 import { login } from "@/lib/data/customer"
 import { LOGIN_VIEW } from "@/modules/account/templates/login-template"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { redirect, useRouter } from "next/navigation"
 import { Command } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -127,7 +127,7 @@ const Login = ({ setCurrentView }: Props) => {
                     </Label>
                     <button
                       type="button"
-                      onClick={() => setCurrentView(LOGIN_VIEW.RESET_PASSWORD)}
+                      onClick={() => redirect('/admin/login')}
                       className="text-xs text-muted-foreground hover:text-primary transition-colors"
                       data-testid="forgot-password-button"
                     >

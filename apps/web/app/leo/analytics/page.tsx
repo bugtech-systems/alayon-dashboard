@@ -3,16 +3,11 @@
 'use client';
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-import { SectionCards } from "@/components/section-cards";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@workspace/ui/components/sidebar";
 import { Suspense, useMemo } from "react";
 import { DynamicDataTable } from "@/components/DynamicDataTable";
 import { 
-  bettingsTableConfig, 
-  soldoutTableConfig,
-  drawsTableConfig, 
   transactionsTableConfig,
   batchTableConfig
 } from "@/components/configData";

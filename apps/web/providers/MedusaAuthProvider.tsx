@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation"
 import { apiFetch } from "@/lib/apiClient"
 import { n8nFetcher } from "@/hooks/useN8nQuery"
 import { getAuthHeaders, removeAuthToken, setAuthToken } from "@/lib/medusa/data/cookies"
+import { removeCartId } from "@/lib/data/cookies"
 
 type User = {
   id: string
@@ -92,12 +93,16 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
     setAuthToken(res?.token)
     // Re-fetch session (sets user state)
     await fetchAuthSession()
+    router.push("/")
+    } else {
+      removeAuthToken()
+      localStorage.removeItem('signup_company_id')
+      localStorage.removeItem('signup_user_type')
 
-
+      
     }
 
     // ✅ redirect after login success
-    router.push("/")
   }
 
   // ----------------------------
