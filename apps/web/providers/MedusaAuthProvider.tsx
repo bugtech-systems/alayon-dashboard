@@ -56,7 +56,6 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
       const res = await n8nFetcher({"endpoint": "/webhook/auth/session", 
         method: "GET"
       })
-      console.log(res, 'ressss')
       //   const userData = await resUser.json() as any;
         if(res.user || res.customer || res.company || res.driver){
         setUser({...(res.user || res.customer || res.company || res.driver), actor_type: res.actor_type})

@@ -33,39 +33,30 @@ export default function RootLayout({
   return (
     <html  
       lang="en"
-      data-theme-mode={theme_mode}
-      data-theme-preset={theme_preset}
-      data-content-layout={content_layout}
+      // data-theme-mode={theme_mode}
+      // data-theme-preset={theme_preset}
+      // data-content-layout={content_layout}
       data-navbar-style={navbar_style}
       data-sidebar-variant={sidebar_variant}
       data-sidebar-collapsible={sidebar_collapsible}
       data-font={font}
       suppressHydrationWarning>
         <head>
-                  <ThemeBootScript />
+                  {/* <ThemeBootScript /> */}
         </head>
       <body className={`${fontVars} min-h-screen antialiased`}>
         <TooltipProvider>
-             <PreferencesStoreProvider
-            themeMode={theme_mode}
-            themePreset={theme_preset}
-            contentLayout={content_layout}
-            navbarStyle={navbar_style}
-            font={font}
-          >
+          
      <LocationProvider>
         <MedusaAuthProvider>
         <Providers>
-        <ThemeProvider>
             <AuthProvider>
 
           {children}
           </AuthProvider>
-          </ThemeProvider>
         </Providers>
         </MedusaAuthProvider>
 </LocationProvider>
-</PreferencesStoreProvider>
         <Analytics />
         </TooltipProvider>
 

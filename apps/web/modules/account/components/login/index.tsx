@@ -125,14 +125,14 @@ const Login = ({ setCurrentView }: Props) => {
                     <Label htmlFor="login-password" className="text-sm font-medium">
                       Password
                     </Label>
-                    <button
+                    {/* <button
                       type="button"
                       onClick={() => redirect('/admin/login')}
                       className="text-xs text-muted-foreground hover:text-primary transition-colors"
                       data-testid="forgot-password-button"
                     >
                       Forgot password?
-                    </button>
+                    </button> */}
                   </div>
                   <Input
                     id="login-password"

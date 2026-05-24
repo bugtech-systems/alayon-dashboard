@@ -1,6 +1,6 @@
 "use server"
 
-import { sdk } from "@/lib/medusa/config"
+import { sdk } from "@/lib/config"
 import medusaError from "@/lib/medusa/util/medusa-error"
 import { B2BCustomer } from "@/types/global"
 import { HttpTypes } from "@medusajs/types"
@@ -17,7 +17,7 @@ import {
   removeAuthToken,
   removeCartId,
   setAuthToken,
-} from "../medusa/data/cookies"
+} from "./cookies"
 import { n8nFetcher } from "@/hooks/useN8nQuery"
 
 export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
