@@ -22,7 +22,8 @@ import {
   ArrowRight,
   Building2,
   Home,
-  Landmark
+  Landmark,
+  XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -31,6 +32,7 @@ import { n8nFetcher } from "@/hooks/useN8nQuery";
 import { Combobox } from "@/components/ui/combobox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Dynamically import map component with no SSR
 const MapLocationPicker = dynamic(
@@ -47,7 +49,7 @@ function SubmitButton() {
   );
 }
 
-// Payment Methods - Only COD enabled, others coming soon
+// Payment Methods - Only COD enabled
 const PAYMENT_METHODS = [
   { id: "cod", name: "Cash on Delivery", icon: Banknote, description: "Pay when you receive your order", enabled: true },
   { id: "gcash", name: "GCash", icon: CreditCard, description: "Pay via GCash wallet", enabled: false, comingSoon: true },
@@ -60,7 +62,7 @@ const REGION_CODE = "08"; // Eastern Visayas
 interface AddressFormData {
   first_name: string;
   last_name: string;
-  email: string;
+  email?: string;
   phone: string;
   address_1: string;
   city: string;
@@ -86,8 +88,9 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
   // Customer state
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [customerError, setCustomerError] = useState<string | null>(null);
   
-  // Consolidated form state
+  // Form state
   const [formData, setFormData] = useState({
     first_name: "", 
     last_name: "", 
@@ -110,13 +113,15 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
   const [isInitializingPayment, setIsInitializingPayment] = useState(false);
   const [paymentInitialized, setPaymentInitialized] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isDataPopulated, setIsDataPopulated] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [isUpdatingCart, setIsUpdatingCart] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
 
   const updateTimeout = useRef<NodeJS.Timeout>();
   const initialPopulateDone = useRef(false);
+  const lastUpdateRef = useRef<string>("");
 
-  // Populate form from cart data - ONLY ONCE
+  // Populate form from cart data
   useEffect(() => {
     if (!cart?.shipping_address || initialPopulateDone.current) return;
     
@@ -124,7 +129,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
     setFormData({
       first_name: addr.first_name || "",
       last_name: addr.last_name || "",
-      email: addr.email || cart.email || "",
+      email: addr?.metadata.email || cart.email || "",
       phone: addr.phone || "",
       address_1: addr.address_1 || "",
       notes: ""
@@ -143,68 +148,78 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
     }
     
     initialPopulateDone.current = true;
-    setIsDataPopulated(true);
   }, [cart]);
 
-  // Auto-create guest customer when form is filled
+  // Auto-create guest customer when personal info is complete
   const autoCreateGuestCustomer = useCallback(async () => {
-    if (customerId || isCreatingCustomer) return;
+    if (customerId || isCreatingCustomer || customerError) return;
     
-    const hasRequiredPersonal = formData.first_name && formData.last_name && formData.phone;
-    const hasRequiredAddress = selectedCity && selectedBarangay && formData.address_1;
+    const hasRequiredPersonal = formData.first_name.trim() && formData.last_name.trim() && formData.phone.trim();
     
-    if (!hasRequiredPersonal || !hasRequiredAddress) return;
+    if (!hasRequiredPersonal) return;
     
     setIsCreatingCustomer(true);
+    setCustomerError(null);
+    
     try {
       const customer = await createGuestCustomer({
         email: formData.email || undefined,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        phone: formData.phone,
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        phone: formData.phone.trim(),
       });
       
       if (customer?.id) {
         setCustomerId(customer.id);
         console.log("Guest customer created:", customer.id);
+      } else if (customer?.error) {
+        setCustomerError(customer.error);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating guest customer:", error);
+      setCustomerError(error.message || "Failed to create customer");
     } finally {
       setIsCreatingCustomer(false);
     }
-  }, [formData, selectedCity, selectedBarangay, customerId, isCreatingCustomer]);
+  }, [formData.first_name, formData.last_name, formData.phone, formData.email, customerId, isCreatingCustomer, customerError]);
 
-  // Trigger customer creation when form data is complete
-  // useEffect(() => {
-  //   const timeout = setTimeout(() => {
-  //     autoCreateGuestCustomer();
-  //   }, 5000);
+  // Trigger customer creation when personal info is complete (with debounce)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      autoCreateGuestCustomer();
+    }, 5000);
     
-  //   return () => clearTimeout(timeout);
-  // }, [formData.first_name, formData.last_name, formData.phone, selectedCity, selectedBarangay, autoCreateGuestCustomer]);
+    return () => clearTimeout(timer);
+  }, [formData.first_name, formData.last_name, formData.phone, autoCreateGuestCustomer]);
 
-  // Update cart when form changes (debounced)
+  // Update cart shipping address automatically
   const updateCartData = useCallback(async () => {
-    if (!cart?.id || !isDataPopulated || isUpdatingCart) return;
+    const hasRequiredAddress = selectedCity && selectedBarangay && formData.address_1.trim();
+    const hasRequiredPersonal = formData.first_name.trim() && formData.last_name.trim() && formData.phone.trim();
     
-    const hasRequiredAddress = selectedCity && selectedBarangay && formData.address_1;
-    const hasRequiredPersonal = formData.first_name && formData.last_name;
-    if (!hasRequiredAddress || !hasRequiredPersonal) return;
+    if (!hasRequiredAddress || !hasRequiredPersonal || !cart?.id) return;
+
+    // Create a unique hash of current data to prevent duplicate updates
+    const updateHash = `${formData.first_name}|${formData.last_name}|${formData.phone}|${formData.address_1}|${selectedCity}|${selectedBarangay}|${selectedLocation?.lat}|${selectedLocation?.lng}`;
+    if (lastUpdateRef.current === updateHash) return;
+    lastUpdateRef.current = updateHash;
 
     setIsUpdatingCart(true);
+    setUpdateSuccess(false);
 
-    const shippingAddress: AddressFormData = {
-      first_name: formData.first_name,
-      last_name: formData.last_name,
-      address_1: formData.address_1,
+    const shippingAddress: AddressFormData | any = {
+      id: cart?.shipping_address_id,
+      first_name: formData.first_name.trim(),
+      last_name: formData.last_name.trim(),
+      address_1: formData.address_1.trim(),
       city: selectedCity,
-      postal_code: formData.postal_code || undefined,
+      postal_code: "",
       country_code: "ph",
       province: REGION_CODE,
-      email: formData.email,
-      phone: formData.phone,
+      email: formData.email || undefined,
+      phone: formData.phone.trim(),
       metadata: {
+        email: formData.email || undefined,
         barangay: selectedBarangay,
         location_coordinates: selectedLocation ? `${selectedLocation.lat},${selectedLocation.lng}` : null,
         location_address: selectedLocation?.address || null
@@ -213,28 +228,31 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
 
     try {
       await updateCartShippingAddress(cart.id, shippingAddress);
+      setUpdateSuccess(true);
+      setTimeout(() => setUpdateSuccess(false), 3000);
     } catch (error) {
       console.error("Error updating cart:", error);
+      setErrors(prev => ({ ...prev, cart_update: "Failed to update shipping address" }));
     } finally {
       setIsUpdatingCart(false);
     }
-  }, [cart?.id, formData, selectedCity, selectedBarangay, selectedLocation, isDataPopulated, isUpdatingCart]);
+  }, [cart?.id, formData, selectedCity, selectedBarangay, selectedLocation]);
 
-  // Debounced cart updates
+  // Debounced cart updates (1 second after user stops typing)
   useEffect(() => {
-    if (!isDataPopulated) return;
-    
     if (updateTimeout.current) clearTimeout(updateTimeout.current);
     
-    const hasRequiredData = formData.first_name && formData.last_name && formData.address_1 && selectedCity && selectedBarangay;
+    const hasRequiredData = formData.first_name.trim() && formData.last_name.trim() && formData.phone.trim() && 
+                           formData.address_1.trim() && selectedCity && selectedBarangay;
+    
     if (hasRequiredData) {
-      updateTimeout.current = setTimeout(updateCartData, 5000);
+      updateTimeout.current = setTimeout(updateCartData, 1000);
     }
     
     return () => {
       if (updateTimeout.current) clearTimeout(updateTimeout.current);
     };
-  }, [formData, selectedCity, selectedBarangay, selectedLocation, updateCartData, isDataPopulated]);
+  }, [formData, selectedCity, selectedBarangay, selectedLocation, updateCartData]);
 
   // Fetch cities
   useEffect(() => {
@@ -254,6 +272,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
         }
       } catch (error) {
         console.error("Error fetching cities:", error);
+        setErrors(prev => ({ ...prev, cities: "Failed to load cities" }));
       } finally {
         setIsLoadingCities(false);
       }
@@ -261,7 +280,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
     fetchCities();
   }, []);
 
-  // Fetch barangays
+  // Fetch barangays when city changes
   useEffect(() => {
     const fetchBarangays = async () => {
       if (!selectedCity) {
@@ -285,6 +304,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
         }
       } catch (error) {
         console.error("Error fetching barangays:", error);
+        setErrors(prev => ({ ...prev, barangays: "Failed to load barangays" }));
         setBarangays([]);
       } finally {
         setIsLoadingBarangays(false);
@@ -293,68 +313,112 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
     fetchBarangays();
   }, [selectedCity]);
 
-  // Initialize payment session (only COD)
+  // Initialize payment session (COD only)
   useEffect(() => {
     const initPayment = async () => {
-      if (!cart?.id || paymentInitialized) return;
+      if (!cart?.id || paymentInitialized || isInitializingPayment) return;
       
       setIsInitializingPayment(true);
       try {
         const method = PAYMENT_METHODS.find(m => m.id === selectedPaymentMethod);
         if (method && method.enabled) {
           await initiatePaymentSession(cart, { provider_id: "pp_system_default" });
+          setPaymentInitialized(true);
         }
-        setPaymentInitialized(true);
       } catch (error) {
         console.error("Error initializing payment:", error);
+        setErrors(prev => ({ ...prev, payment: "Failed to initialize payment" }));
       } finally {
         setIsInitializingPayment(false);
       }
     };
     
     initPayment();
-  }, [cart, paymentInitialized, selectedPaymentMethod]);
+  }, [cart, paymentInitialized, selectedPaymentMethod, isInitializingPayment]);
 
-  // Validation
+  // Validation with field tracking
+  const validateField = useCallback((field: string, value: any): string => {
+    switch (field) {
+      case "first_name":
+        return !value?.trim() ? "First name is required" : "";
+      case "last_name":
+        return !value?.trim() ? "Last name is required" : "";
+      case "phone":
+        if (!value?.trim()) return "Phone number is required";
+        if (!/^(09|\+639)\d{9}$/.test(value.replace(/\s/g, ''))) return "Invalid Philippine number (e.g., 09123456789)";
+        return "";
+      case "address_1":
+        return !value?.trim() ? "Street address is required" : "";
+      case "city":
+        return !value ? "Please select a city" : "";
+      case "barangay":
+        return !value ? "Please select a barangay" : "";
+      case "location":
+        return !value ? "Please pin your exact location on the map" : "";
+      default:
+        return "";
+    }
+  }, []);
+
   const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
     
-    if (!formData.first_name.trim()) newErrors.first_name = "First name is required";
-    if (!formData.last_name.trim()) newErrors.last_name = "Last name is required";
-    // Email is NOT required - removed validation
-    
-    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
-    else if (!/^(09|\+639)\d{9}$/.test(formData.phone.replace(/\s/g, ''))) newErrors.phone = "Invalid Philippine number";
-    
-    if (!formData.address_1.trim()) newErrors.address_1 = "Street address is required";
-    if (!selectedCity) newErrors.city = "Please select a city";
-    if (!selectedBarangay) newErrors.barangay = "Please select a barangay";
-    if (!selectedLocation) newErrors.location = "Please pin your location on the map";
+    newErrors.first_name = validateField("first_name", formData.first_name);
+    newErrors.last_name = validateField("last_name", formData.last_name);
+    newErrors.phone = validateField("phone", formData.phone);
+    newErrors.address_1 = validateField("address_1", formData.address_1);
+    newErrors.city = validateField("city", selectedCity);
+    newErrors.barangay = validateField("barangay", selectedBarangay);
+    newErrors.location = validateField("location", selectedLocation);
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }, [formData, selectedCity, selectedBarangay, selectedLocation]);
+    return Object.values(newErrors).every(error => error === "");
+  }, [formData, selectedCity, selectedBarangay, selectedLocation, validateField]);
 
-  // Handle input changes
+  // Handle input changes with validation
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: "" }));
+    if (errors[field]) {
+      const error = validateField(field, value);
+      setErrors(prev => ({ ...prev, [field]: error }));
+    }
   };
 
-  // Handle location selection
+  const handleBlur = (field: string) => {
+    setTouchedFields(prev => ({ ...prev, [field]: true }));
+    const error = validateField(field, field === "city" ? selectedCity : field === "barangay" ? selectedBarangay : field === "location" ? selectedLocation : formData[field as keyof typeof formData]);
+    setErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const handleCityChange = (value: string) => {
+    setSelectedCity(value);
+    setSelectedBarangay("");
+    if (errors.city) setErrors(prev => ({ ...prev, city: "" }));
+  };
+
+  const handleBarangayChange = (value: string) => {
+    setSelectedBarangay(value);
+    if (errors.barangay) setErrors(prev => ({ ...prev, barangay: "" }));
+  };
+
   const handleLocationSelect = useCallback((location: { lat: number; lng: number; address: string }) => {
     setSelectedLocation(location);
     if (errors.location) setErrors(prev => ({ ...prev, location: "" }));
-  }, [errors.location]);
+  }, []);
 
   // Submit handler
   const handleSubmit = useCallback(async (formDataObj: FormData) => {
+    if (!validateForm()) {
+      // Mark all fields as touched to show errors
+      const allFields = ["first_name", "last_name", "phone", "address_1", "city", "barangay", "location"];
+      allFields.forEach(field => setTouchedFields(prev => ({ ...prev, [field]: true })));
+      return;
+    }
+    
     if (isUpdatingCart) {
       setErrors(prev => ({ ...prev, form: "Please wait, updating address..." }));
       return;
     }
-    
-    if (!validateForm()) return;
     
     if (!cart?.id) {
       setErrors(prev => ({ ...prev, form: "Cart not found" }));
@@ -372,11 +436,12 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
     }
     
     formDataObj.set("cart_id", cart.id);
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key !== "email" || (key === "email" && value)) {
-        formDataObj.set(key, value);
-      }
-    });
+    formDataObj.set("first_name", formData.first_name.trim());
+    formDataObj.set("last_name", formData.last_name.trim());
+    if (formData.email) formDataObj.set("email", formData.email);
+    formDataObj.set("phone", formData.phone.trim());
+    formDataObj.set("address_1", formData.address_1.trim());
+    if (formData.notes) formDataObj.set("notes", formData.notes);
     formDataObj.set("city_code", selectedCity);
     formDataObj.set("barangay_code", selectedBarangay);
     formDataObj.set("payment_method", selectedPaymentMethod);
@@ -393,8 +458,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
     formDataObj.set("payment_provider_id", "pp_system_default");
     
     formAction(formDataObj);
-    localStorage.removeItem('cart_id');
-  }, [validateForm, cart?.id, paymentInitialized, isInitializingPayment, formData, selectedCity, selectedBarangay, selectedPaymentMethod, selectedLocation, customerId, formAction, isDataPopulated, updateCartData, isUpdatingCart]);
+  }, [validateForm, isUpdatingCart, cart?.id, selectedPaymentMethod, paymentInitialized, isInitializingPayment, formData, selectedCity, selectedBarangay, selectedLocation, customerId, formAction]);
 
   // Handle successful order
   useEffect(() => {
@@ -413,8 +477,8 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
   if (!hasItems) {
     return (
       <div className="w-full max-w-5xl mx-auto">
-        <Card className="text-center ">
-          <CardContent>
+        <Card className="text-center">
+          <CardContent className="pt-8">
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
               <AlertCircle className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
               <h2 className="text-xl font-semibold mb-2">Your cart is empty</h2>
@@ -428,7 +492,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
       </div>
     );
   }
-  console.log(selectedLocation, 'SELECTEDD', cart)
+
   const cityLabel = cities.find(c => c.value === selectedCity)?.label || "";
   const barangayLabel = barangays.find(b => b.value === selectedBarangay)?.label || "";
 
@@ -440,47 +504,76 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
       </div>
 
       {/* Status Indicators */}
-      {/* {(isInitializingPayment || isCreatingCustomer) && (
-        <div className="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center gap-2">
+      {isUpdatingCart && (
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
           <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-          <span className="text-sm text-blue-700">
-            {isCreatingCustomer ? "Setting up your account..." : 
-             "Preparing checkout..."}
-          </span>
-        </div>
-      )} */}
+          <AlertDescription className="text-blue-700">
+            Saving your shipping information...
+          </AlertDescription>
+        </Alert>
+      )}
 
-      {customerId && !isCreatingCustomer && paymentInitialized && (
-        <div className="mb-6 p-4 rounded-lg bg-green-50 border border-green-200 flex items-center justify-center gap-2">
+      {updateSuccess && !isUpdatingCart && (
+        <Alert className="mb-6 bg-green-50 border-green-200">
           <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <span className="text-sm text-green-700">Ready to place order</span>
-        </div>
+          <AlertDescription className="text-green-700">
+            Shipping address saved successfully!
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {isCreatingCustomer && (
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          <AlertDescription className="text-blue-700">
+            Setting up your account...
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {customerId && !isCreatingCustomer && (
+        <Alert className="mb-6 bg-green-50 border-green-200">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700">
+            Account ready! You can now place your order.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {customerError && (
+        <Alert className="mb-6 bg-red-50 border-red-200">
+          <XCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-700">
+            {customerError}
+          </AlertDescription>
+        </Alert>
       )}
 
       {errors.form && (
-        <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-start gap-2">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{errors.form}</span>
-        </div>
+        <Alert className="mb-6 bg-red-50 border-red-200">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-700">
+            {errors.form}
+          </AlertDescription>
+        </Alert>
       )}
 
       <form action={handleSubmit} className="space-y-8">
-        {/* 2-Column Balanced Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* LEFT COLUMN - Customer Information & Shipping Address (Merged) */}
-          <div className="space-y-3">
+          {/* LEFT COLUMN - Customer Information & Shipping Address */}
+          <div className="space-y-6">
             <Card>
-              <CardHeader className="pb-1">
+              <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <User className="h-5 w-5 text-primary" />
                   Delivery Information
                 </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">Tell us where to deliver your order</p>
+                <p className="text-sm text-muted-foreground">Tell us where to deliver your order</p>
               </CardHeader>
               <Separator />
-              <CardContent className=" space-y-6">
-                {/* Personal Information Section */}
+              <CardContent className="pt-6 space-y-6">
+                {/* Personal Information */}
                 <div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
                     <User className="h-3 w-3" />
@@ -492,20 +585,30 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
                       <Input 
                         value={formData.first_name} 
                         onChange={(e) => handleChange("first_name", e.target.value)} 
-                        className={errors.first_name && "border-red-500"} 
+                        onBlur={() => handleBlur("first_name")}
+                        className={cn(errors.first_name && touchedFields.first_name && "border-red-500 focus-visible:ring-red-500")} 
                         placeholder="John"
                       />
-                      {errors.first_name && <p className="text-xs text-red-500">{errors.first_name}</p>}
+                      {errors.first_name && touchedFields.first_name && (
+                        <p className="text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> {errors.first_name}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label>Last Name <span className="text-red-500">*</span></Label>
                       <Input 
                         value={formData.last_name} 
                         onChange={(e) => handleChange("last_name", e.target.value)} 
-                        className={errors.last_name && "border-red-500"} 
+                        onBlur={() => handleBlur("last_name")}
+                        className={cn(errors.last_name && touchedFields.last_name && "border-red-500 focus-visible:ring-red-500")} 
                         placeholder="Doe"
                       />
-                      {errors.last_name && <p className="text-xs text-red-500">{errors.last_name}</p>}
+                      {errors.last_name && touchedFields.last_name && (
+                        <p className="text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> {errors.last_name}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -533,18 +636,23 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
                           type="tel" 
                           value={formData.phone} 
                           onChange={(e) => handleChange("phone", e.target.value)} 
-                          className="pl-9" 
+                          onBlur={() => handleBlur("phone")}
+                          className={cn(errors.phone && touchedFields.phone && "border-red-500 focus-visible:ring-red-500", "pl-9")} 
                           placeholder="09123456789"
                         />
                       </div>
-                      {errors.phone && <p className="text-xs text-red-500">{errors.phone}</p>}
+                      {errors.phone && touchedFields.phone && (
+                        <p className="text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> {errors.phone}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <Separator />
 
-                {/* Address Information Section */}
+                {/* Address Information */}
                 <div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
                     <MapPin className="h-3 w-3" />
@@ -557,10 +665,15 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
                       <Input 
                         value={formData.address_1} 
                         onChange={(e) => handleChange("address_1", e.target.value)} 
-                        className={errors.address_1 && "border-red-500"} 
+                        onBlur={() => handleBlur("address_1")}
+                        className={cn(errors.address_1 && touchedFields.address_1 && "border-red-500 focus-visible:ring-red-500")} 
                         placeholder="House number, street, subdivision"
                       />
-                      {errors.address_1 && <p className="text-xs text-red-500">{errors.address_1}</p>}
+                      {errors.address_1 && touchedFields.address_1 && (
+                        <p className="text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" /> {errors.address_1}
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -569,27 +682,33 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
                         <Combobox 
                           options={cities} 
                           value={selectedCity} 
-                          onChange={setSelectedCity} 
+                          onChange={handleCityChange} 
                           placeholder="Search city..." 
                           isLoading={isLoadingCities} 
                         />
-                        {errors.city && <p className="text-xs text-red-500">{errors.city}</p>}
+                        {errors.city && (
+                          <p className="text-xs text-red-500 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" /> {errors.city}
+                          </p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label>Barangay <span className="text-red-500">*</span></Label>
                         <Combobox 
                           options={barangays} 
                           value={selectedBarangay} 
-                          onChange={setSelectedBarangay} 
+                          onChange={handleBarangayChange} 
                           placeholder={selectedCity ? "Search barangay..." : "Select city first"} 
                           disabled={!selectedCity} 
                           isLoading={isLoadingBarangays} 
                         />
-                        {errors.barangay && <p className="text-xs text-red-500">{errors.barangay}</p>}
+                        {errors.barangay && (
+                          <p className="text-xs text-red-500 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" /> {errors.barangay}
+                          </p>
+                        )}
                       </div>
                     </div>
-
-                
                   </div>
                 </div>
 
@@ -599,20 +718,24 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
                 <div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
                     <Home className="h-3 w-3" />
-                    Exact Pin Location
+                    Exact Pin Location <span className="text-red-500">*</span>
                   </h3>
-                  <div className="space-y-3">
+                  <div className={cn("space-y-3", errors.location && "border-red-500 rounded-lg")}>
                     <MapLocationPicker 
                       onLocationSelect={handleLocationSelect}
                       initialLocation={selectedLocation || undefined}
                       barangayName={barangayLabel}
                       cityName={cityLabel}
                     />
-                    {errors.location && <p className="text-xs text-red-500">{errors.location}</p>}
+                    {errors.location && (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" /> {errors.location}
+                      </p>
+                    )}
                     {selectedLocation && !errors.location && (
                       <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                         <p className="text-xs text-green-700 flex items-center gap-2">
-                          <CheckCircle2 className="h-3 w-3" /> Delivery location pinned
+                          <CheckCircle2 className="h-3 w-3" /> Delivery location pinned successfully
                         </p>
                         <p className="text-xs text-green-600 mt-1 truncate">{selectedLocation.address}</p>
                       </div>
@@ -625,17 +748,17 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
 
           {/* RIGHT COLUMN - Order Notes & Payment Method */}
           <div className="space-y-6">
-            {/* Order Notes Card */}
+            {/* Order Notes */}
             <Card>
-              <CardHeader className="">
+              <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <FileText className="h-5 w-5 text-primary" />
                   Special Instructions
                 </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">Help our rider find you faster</p>
+                <p className="text-sm text-muted-foreground">Help our rider find you faster</p>
               </CardHeader>
               <Separator />
-              <CardContent className="">
+              <CardContent className="pt-6">
                 <Textarea 
                   value={formData.notes} 
                   onChange={(e) => handleChange("notes", e.target.value)} 
@@ -649,17 +772,17 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
               </CardContent>
             </Card>
 
-            {/* Payment Method Card */}
+            {/* Payment Method */}
             <Card>
-              <CardHeader className="">
+              <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <CreditCard className="h-5 w-5 text-primary" />
                   Payment Method
                 </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">Choose how you want to pay</p>
+                <p className="text-sm text-muted-foreground">Choose how you want to pay</p>
               </CardHeader>
               <Separator />
-              <CardContent className="">
+              <CardContent className="pt-6">
                 <RadioGroup value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod} className="space-y-3">
                   {PAYMENT_METHODS.map((method) => {
                     const Icon = method.icon;
@@ -669,7 +792,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
                       <div 
                         key={method.id} 
                         className={cn(
-                          "relative rounded-lg border p-2 transition-all",
+                          "relative rounded-lg border p-4 transition-all",
                           method.enabled 
                             ? selectedPaymentMethod === method.id 
                               ? "border-primary bg-primary/5 ring-2 ring-primary/20 cursor-pointer" 
@@ -678,7 +801,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
                         )}
                         onClick={() => method.enabled && setSelectedPaymentMethod(method.id)}
                       >
-                        <div className="flex items-start gap-2">
+                        <div className="flex items-start gap-4">
                           <div className={cn(
                             "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
                             method.enabled && selectedPaymentMethod === method.id ? "bg-primary text-white" : "bg-gray-100 text-gray-500",
@@ -694,9 +817,6 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground">{method.description}</p>
-                            {isDisabled && (
-                              <p className="text-xs text-amber-600 mt-1">Available soon</p>
-                            )}
                           </div>
                           {method.enabled && (
                             <div className={cn(
@@ -706,18 +826,13 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
                               {selectedPaymentMethod === method.id && <CheckCircle2 className="h-3 w-3 text-white" />}
                             </div>
                           )}
-                          {isDisabled && (
-                            <div className="h-5 w-5">
-                              <Lock className="h-4 w-4 text-gray-400" />
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
                   })}
                 </RadioGroup>
 
-                {/* COD Info Box */}
+                {/* COD Info */}
                 <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
                   <p className="text-sm text-amber-800 flex items-start gap-2">
                     <Banknote className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -743,21 +858,12 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
         <SubmitButton />
 
         {state?.error && (
-          <div className="p-4 rounded-lg border text-center bg-red-50 border-red-200 text-red-700">
-            {state.error}
-          </div>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{state.error}</AlertDescription>
+          </Alert>
         )}
       </form>
     </div>
-  );
-}
-
-// Lock icon component for disabled payment methods
-function Lock({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-    </svg>
   );
 }

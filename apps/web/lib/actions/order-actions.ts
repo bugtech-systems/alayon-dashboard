@@ -3,6 +3,8 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { getAuthHeaders } from "../data/cookies";
+import { sdk } from "../config";
 
 const REDIRECT_COOKIE_KEY = 'order_redirect_shown';
 const REDIRECT_DISMISSED_KEY = 'order_redirect_dismissed';
@@ -127,4 +129,34 @@ export async function getRedirectStatus() {
     hasMedusaDeliveryId: !!medusaDeliveryId,
     medusaDeliveryId: medusaDeliveryId || null,
   };
+}
+
+// lib/actions.ts
+
+export async function listShippingMethods(regionId: string) {
+  const headers = await getAuthHeaders();
+  try {
+    const { shipping_options } = await sdk.client.fetch(
+      `/admin/shipping-options?region_id=${regionId}`,
+      { method: 'GET', headers }
+    ) as any;
+    return shipping_options || [];
+  } catch (error) {
+    console.error('Error fetching shipping methods:', error);
+    return [];
+  }
+}
+
+export async function getPaymentProviders(regionId: string) {
+  const headers = await getAuthHeaders();
+  try {
+    const { payment_providers } = await sdk.client.fetch(
+      `/store/payment-providers?region_id=${regionId}`,
+      { method: 'GET', headers }
+    ) as any;
+    return payment_providers || [];
+  } catch (error) {
+    console.error('Error fetching payment providers:', error);
+    return [];
+  }
 }

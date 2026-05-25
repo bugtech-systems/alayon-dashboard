@@ -33,7 +33,7 @@ export function OrderRedirectBanner({ deliveryId, onDismiss }: OrderRedirectBann
   }, [onDismiss]);
 
   const handleViewOrder = () => {
-    router.push(`/your-order?id=${deliveryId}`);
+    router.push(`/your-order?id=${deliveryId}&complete=true`);
   };
 
   // Remind later - DOES NOT remove delivery cookie

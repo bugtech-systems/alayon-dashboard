@@ -710,6 +710,7 @@ export default function OrderStatusPage({ id, showMarkAsCompleted = false }: { i
   const searchParams = useSearchParams();
   const router = useRouter();
   const deliveryId = (id || searchParams.get("id")) as any;
+  const markComplete = (showMarkAsCompleted || searchParams.get("complete")) as any;
 
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [driver, setDriver] = useState<Driver | null>(null);
@@ -772,10 +773,10 @@ const handleMarkAsCompleted = async () => {
     // You can add a toast notification here
     
     // Optional: Redirect to orders page after completion
-    // router.push("/account/orders");
+    router.push("/");
     
     // Refresh the page to update the UI
-    router.refresh();
+    // router.refresh();
   } catch (err) {
     console.error("Failed to mark as completed:", err);
   } finally {
@@ -922,7 +923,7 @@ const handleMarkAsCompleted = async () => {
           </Button>
 
           <div className="flex items-center gap-3">
-            {showMarkAsCompleted && delivery.delivery_status !== "delivered" && (
+            {markComplete && delivery.delivery_status !== "delivered" && (
               <Button
                 variant="outline"
                 size="sm"

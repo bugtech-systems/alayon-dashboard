@@ -133,7 +133,6 @@ async function HomeContent() {
   const shouldRedirect = await shouldRedirectToOrder();
   const deliveryId = await getDeliveryId();
   
-  console.log('HomeContent:', { shouldRedirect, deliveryId });
   
   return (
     <>

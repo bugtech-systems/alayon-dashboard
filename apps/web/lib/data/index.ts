@@ -4,3 +4,5 @@ export * from "./deliveries";
 export * from "./drivers";
 export * from "./users";
 export * from "./companies";
+export * from "./fulfillment";
+export * from "./payment";

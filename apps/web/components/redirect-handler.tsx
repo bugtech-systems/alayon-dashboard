@@ -20,11 +20,11 @@ export function RedirectHandler({ deliveryId }: RedirectHandlerProps) {
       // Mark redirect as shown via Server Action
       markRedirectShown().then(() => {
         // Redirect to order page
-        router.push(`/your-order?id=${deliveryId}`);
+        router.push(`/your-order?id=${deliveryId}&complete=true`);
       }).catch((error) => {
         console.error('Failed to mark redirect:', error);
         // Still redirect even if marking fails
-        router.push(`/your-order?id=${deliveryId}`);
+        router.push(`/`);
       });
     }
   }, [deliveryId, router]);
