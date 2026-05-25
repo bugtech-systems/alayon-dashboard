@@ -120,11 +120,11 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
   const updateTimeout = useRef<NodeJS.Timeout>();
   const initialPopulateDone = useRef(false);
   const lastUpdateRef = useRef<string>("");
+    let localData = localStorage.getItem('userLocation');
 
   // Populate form from cart data
   useEffect(() => {
     if (!cart?.shipping_address || initialPopulateDone.current) return;
-    
     const addr = cart.shipping_address;
     setFormData({
       first_name: addr.first_name || "",
@@ -134,10 +134,19 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
       address_1: addr.address_1 || "",
       notes: ""
     });
-    
+
+
+   if (localData) {
+        let localCity = JSON.parse(localData);
+        console.log(localCity, 'looccc')
+        setSelectedCity(localCity.municipalityId);
+        setSelectedBarangay(localCity.barangayId);
+    }
+
     if (addr.city) setSelectedCity(addr.city);
     if (addr.metadata?.barangay) setSelectedBarangay(addr.metadata.barangay);
-    
+
+
     if (addr.metadata?.location_coordinates) {
       const [lat, lng] = addr.metadata.location_coordinates.split(',');
       setSelectedLocation({
@@ -187,7 +196,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
       autoCreateGuestCustomer();
-    }, 5000);
+    }, 3000);
     
     return () => clearTimeout(timer);
   }, [formData.first_name, formData.last_name, formData.phone, autoCreateGuestCustomer]);
@@ -285,7 +294,6 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
     const fetchBarangays = async () => {
       if (!selectedCity) {
         setBarangays([]);
-        setSelectedBarangay("");
         return;
       }
       
@@ -301,6 +309,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
             value: barangay.psgc_code,
             label: barangay.barangay_desc
           })));
+
         }
       } catch (error) {
         console.error("Error fetching barangays:", error);
@@ -472,7 +481,7 @@ export function CheckoutForm({ cart: cartProp }: CheckoutFormProps) {
   }, [state]);
 
   if (!cart) return null;
-
+console.log(selectedBarangay, selectedCity, localData)
   const hasItems = cart.items && cart.items.length > 0;
   if (!hasItems) {
     return (
