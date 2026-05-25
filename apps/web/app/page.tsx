@@ -4,11 +4,48 @@ import { HeroSection } from "@/components/hero-section-modern";
 import { NavigationHeader } from "@/modules/layout/templates/nav/index";
 import { ProductList } from "@/components/product-list";
 import { getRegion } from "@/lib/actions/regions";
+import { cookies } from "next/headers";
 import { Suspense } from "react";
+import { getDeliveryId } from "@/lib/data/cookies";
+import { OrderRedirectBanner } from "@/components/order-redirect-banner";
+import { RedirectHandler } from "@/components/redirect-handler";
 
 // Force dynamic rendering to avoid prerendering issues
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+
+// Cookie keys
+const REDIRECT_COOKIE_KEY = 'order_redirect_shown';
+const REDIRECT_DISMISSED_KEY = 'order_redirect_dismissed';
+const REDIRECT_PERMANENT_DISMISS_KEY = 'order_redirect_permanent_dismiss';
+
+// Helper function to check if redirect should happen (READ ONLY - allowed in Server Component)
+async function shouldRedirectToOrder(): Promise<boolean> {
+  const cookieStore = await cookies();
+  
+  // Check for permanent dismissal (never show again)
+  const permanentDismiss = cookieStore.get(REDIRECT_PERMANENT_DISMISS_KEY)?.value;
+  if (permanentDismiss === 'true') {
+    return false;
+  }
+  
+  // Check for temporary dismissal (don't show again today)
+  const temporaryDismiss = cookieStore.get(REDIRECT_DISMISSED_KEY)?.value;
+  if (temporaryDismiss === 'true') {
+    return false;
+  }
+  
+  // Check if redirect already shown in this session
+  const redirectShown = cookieStore.get(REDIRECT_COOKIE_KEY)?.value;
+  if (redirectShown === 'true') {
+    return false;
+  }
+  
+  // Check if there's a delivery ID to redirect to
+  const deliveryId = await getDeliveryId();
+  
+  return !!deliveryId;
+}
 
 // Loading skeletons
 function NavigationSkeleton() {
@@ -91,14 +128,29 @@ function FooterWrapper() {
 // Main content component that fetches data
 async function HomeContent() {
   const region = await getRegion('ph');
-  console.log(region, 'REEG')
-
+  
+  // Check if we should redirect to order page (READ ONLY - allowed)
+  const shouldRedirect = await shouldRedirectToOrder();
+  const deliveryId = await getDeliveryId();
+  
+  console.log('HomeContent:', { shouldRedirect, deliveryId });
+  
   return (
     <>
       <NavigationWrapper />
       <HeroWrapper />
       <ProductListWrapper region={region} />
       <FooterWrapper />
+      
+      {/* Client-side redirect handler */}
+      {shouldRedirect && deliveryId && (
+        <RedirectHandler deliveryId={deliveryId} />
+      )}
+      
+      {/* Show banner if there's an active order but redirect was dismissed */}
+      {deliveryId && !shouldRedirect && (
+        <OrderRedirectBanner deliveryId={deliveryId} />
+      )}
     </>
   )
 }

@@ -1,33 +1,49 @@
 // app/(checkout)/your-order/page.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  Clock, MapPin, Package2, Truck, Phone, 
-  CheckCircle2, AlertCircle, ClipboardCheck, 
+import {
+  Clock, MapPin, Package2, Truck, Phone,
+  CheckCircle2, AlertCircle, ClipboardCheck,
   ShoppingBag, ChevronRight, XCircle, Receipt,
-  FileText, Building2, Banknote
+  Building2, ArrowLeft, RefreshCw, Minimize2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { retrieveDelivery, retrieveDriver } from "@/lib/data";
+import { markOrderAsCompleted } from "@/lib/actions/order-actions";
+
+
+// app/(checkout)/your-order/page.tsx
+// Add this import at the top
+
+// Update the handleMarkAsCompleted function
+
 
 // Types
-type DeliveryStatus = 
-  | "pending" 
-  | "company_accepted" 
-  | "pickup_claimed" 
-  | "company_preparing" 
-  | "ready_for_pickup" 
-  | "in_transit" 
-  | "delivered" 
+type DeliveryStatus =
+  | "pending"
+  | "company_accepted"
+  | "pickup_claimed"
+  | "company_preparing"
+  | "ready_for_pickup"
+  | "in_transit"
+  | "delivered"
   | "cancelled";
 
 interface Delivery {
@@ -76,7 +92,7 @@ interface Driver {
   phone?: string;
 }
 
-// Status configuration
+// Status configuration with animation variants
 const STATUS_CONFIG: Record<DeliveryStatus, {
   label: string;
   shortLabel: string;
@@ -85,6 +101,7 @@ const STATUS_CONFIG: Record<DeliveryStatus, {
   progress: number;
   color: string;
   description: string;
+  pulseColor: string;
 }> = {
   pending: {
     label: "Order Placed",
@@ -93,7 +110,8 @@ const STATUS_CONFIG: Record<DeliveryStatus, {
     icon: Clock,
     progress: 0,
     color: "bg-gray-500",
-    description: "Your order has been received and is awaiting confirmation"
+    description: "Your order has been received and is awaiting confirmation",
+    pulseColor: "ring-gray-500/20"
   },
   company_accepted: {
     label: "Order Confirmed",
@@ -102,7 +120,8 @@ const STATUS_CONFIG: Record<DeliveryStatus, {
     icon: CheckCircle2,
     progress: 20,
     color: "bg-blue-500",
-    description: "The store has accepted your order"
+    description: "The store has accepted your order",
+    pulseColor: "ring-blue-500/20"
   },
   pickup_claimed: {
     label: "Pickup Assigned",
@@ -111,7 +130,8 @@ const STATUS_CONFIG: Record<DeliveryStatus, {
     icon: ClipboardCheck,
     progress: 35,
     color: "bg-indigo-500",
-    description: "A rider has been assigned to pick up your order"
+    description: "A rider has been assigned to pick up your order",
+    pulseColor: "ring-indigo-500/20"
   },
   company_preparing: {
     label: "Preparing Your Order",
@@ -120,7 +140,8 @@ const STATUS_CONFIG: Record<DeliveryStatus, {
     icon: Package2,
     progress: 50,
     color: "bg-purple-500",
-    description: "The store is preparing your items"
+    description: "The store is preparing your items",
+    pulseColor: "ring-purple-500/20"
   },
   ready_for_pickup: {
     label: "Ready for Pickup",
@@ -129,7 +150,8 @@ const STATUS_CONFIG: Record<DeliveryStatus, {
     icon: ShoppingBag,
     progress: 65,
     color: "bg-yellow-500",
-    description: "Your order is ready and waiting for pickup"
+    description: "Your order is ready and waiting for pickup",
+    pulseColor: "ring-yellow-500/20"
   },
   in_transit: {
     label: "Out for Delivery",
@@ -138,7 +160,8 @@ const STATUS_CONFIG: Record<DeliveryStatus, {
     icon: Truck,
     progress: 85,
     color: "bg-orange-500",
-    description: "Your order is on its way to you"
+    description: "Your order is on its way to you",
+    pulseColor: "ring-orange-500/20"
   },
   delivered: {
     label: "Delivered",
@@ -147,7 +170,8 @@ const STATUS_CONFIG: Record<DeliveryStatus, {
     icon: CheckCircle2,
     progress: 100,
     color: "bg-green-500",
-    description: "Your order has been delivered"
+    description: "Your order has been delivered",
+    pulseColor: "ring-green-500/20"
   },
   cancelled: {
     label: "Cancelled",
@@ -156,7 +180,8 @@ const STATUS_CONFIG: Record<DeliveryStatus, {
     icon: XCircle,
     progress: 0,
     color: "bg-red-500",
-    description: "Your order has been cancelled"
+    description: "Your order has been cancelled",
+    pulseColor: "ring-red-500/20"
   }
 };
 
@@ -175,26 +200,107 @@ const getNumericStatus = (status: DeliveryStatus): number => {
   return index === -1 ? 0 : index;
 };
 
+// API route for cookie operations
+async function clearDeliveryCookie() {
+  try {
+    const response = await fetch('/api/cookies/clear-delivery', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to clear cookie:', error);
+    return false;
+  }
+}
+
+async function setModalDismissed() {
+  try {
+    const response = await fetch('/api/cookies/set-modal-dismissed', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ date: new Date().toDateString() }),
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Failed to set modal dismissed:', error);
+    return false;
+  }
+}
+
+async function shouldShowModal(): Promise<boolean> {
+  try {
+    const response = await fetch('/api/cookies/should-show-modal');
+    const data = await response.json();
+    return data.shouldShow;
+  } catch (error) {
+    console.error('Failed to check modal status:', error);
+    return true;
+  }
+}
+
+// Animated Progress Component
+function AnimatedProgress({ value, className }: { value: number; className?: string }) {
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setWidth(value), 100);
+    return () => clearTimeout(timer);
+  }, [value]);
+
+  return (
+    <div className={cn("h-2 w-full overflow-hidden rounded-full bg-secondary", className)}>
+      <div
+        className="h-full bg-primary transition-all duration-1000 ease-out"
+        style={{ width: `${width}%` }}
+      />
+    </div>
+  );
+}
+
+// Animated Status Dot
+function AnimatedStatusDot({ isActive, color, pulseColor }: { isActive: boolean; color: string; pulseColor: string }) {
+  return (
+    <div className="relative flex items-center justify-center">
+      <div
+        className={cn(
+          "h-3 w-3 rounded-full transition-all duration-300",
+          color,
+          isActive && "ring-4 ring-opacity-30 animate-pulse",
+          isActive && pulseColor
+        )}
+      />
+      {isActive && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute h-6 w-6 rounded-full bg-primary/20 animate-ping" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Tax Breakdown Component
-function TaxBreakdown({ subtotal, taxAmount, taxRate, deliveryFee }: { 
-  subtotal: number; 
-  taxAmount: number; 
+function TaxBreakdown({ subtotal, taxAmount, taxRate, deliveryFee }: {
+  subtotal: number;
+  taxAmount: number;
   taxRate?: number;
   deliveryFee: number;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  // Calculate tax breakdown
-  const vatRate = taxRate || 0.12; // Default to 12% VAT
+
   const vatAmount = taxAmount;
   const taxableAmount = subtotal + deliveryFee;
   const calculatedVatRate = taxableAmount > 0 ? (vatAmount / taxableAmount) * 100 : 0;
-  
+
   return (
     <div className="space-y-2">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full text-left"
+        className="flex w-full items-center justify-between text-left"
       >
         <div className="flex items-center gap-2">
           <Receipt className="h-4 w-4 text-muted-foreground" />
@@ -205,9 +311,9 @@ function TaxBreakdown({ subtotal, taxAmount, taxRate, deliveryFee }: {
           isExpanded && "rotate-90"
         )} />
       </button>
-      
+
       {isExpanded && (
-        <div className="p-3 bg-gray-50 rounded-lg space-y-2 text-sm">
+        <div className="space-y-2 rounded-lg bg-gray-50 p-3 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Taxable Amount</span>
             <span className="font-medium">
@@ -246,7 +352,7 @@ function OrderSummary({ subtotal, deliveryFee, taxAmount, total, formatPrice }: 
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
-          <Receipt className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
+          <Receipt className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
           Order Summary
         </CardTitle>
       </CardHeader>
@@ -267,13 +373,13 @@ function OrderSummary({ subtotal, deliveryFee, taxAmount, total, formatPrice }: 
           <Separator className="my-2" />
           <div className="flex justify-between pt-1">
             <span className="font-semibold">Total Amount</span>
-            <span className="font-bold text-primary text-base lg:text-xl">
+            <span className="text-base font-bold text-primary lg:text-xl">
               {formatPrice(total)}
             </span>
           </div>
         </div>
-        
-        <TaxBreakdown 
+
+        <TaxBreakdown
           subtotal={subtotal}
           taxAmount={taxAmount}
           taxRate={0.12}
@@ -287,39 +393,43 @@ function OrderSummary({ subtotal, deliveryFee, taxAmount, total, formatPrice }: 
 // Mobile Timeline Component
 function MobileTimeline({ currentStatus, progressPercentage, estimatedRemaining, deliveredAt }: any) {
   const currentConfig = STATUS_CONFIG[currentStatus as DeliveryStatus];
-  
+
   return (
-    <div className="lg:hidden space-y-4">
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <div className="flex items-center justify-between mb-3">
+    <div className="space-y-4 lg:hidden">
+      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className={cn("w-3 h-3 rounded-full", currentConfig.color)} />
+            <AnimatedStatusDot
+              isActive={true}
+              color={currentConfig.color}
+              pulseColor={currentConfig.pulseColor}
+            />
             <span className="text-sm font-medium">{currentConfig.label}</span>
           </div>
           {estimatedRemaining && !deliveredAt && (
-            <span className="text-xs text-primary font-medium">{estimatedRemaining} left</span>
+            <span className="text-xs font-medium text-primary">{estimatedRemaining} left</span>
           )}
         </div>
-        <Progress value={progressPercentage} className="h-1.5" />
-        <p className="text-xs text-muted-foreground mt-2">{currentConfig.description}</p>
+        <AnimatedProgress value={progressPercentage} className="h-1.5" />
+        <p className="mt-2 text-xs text-muted-foreground">{currentConfig.description}</p>
       </div>
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 overflow-x-auto">
-        <div className="flex items-center gap-2 min-w-max">
+      <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+        <div className="flex min-w-max items-center gap-2">
           {STATUS_STEPS.map((step, idx) => {
             const stepConfig = STATUS_CONFIG[step];
             const StepIcon = stepConfig.icon;
             const isCompleted = getNumericStatus(currentStatus) >= getNumericStatus(step);
             const isCurrent = currentStatus === step;
-            
+
             return (
               <React.Fragment key={step}>
                 <div className="flex flex-col items-center gap-1">
                   <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                    "flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300",
                     isCompleted ? "bg-green-500 text-white" :
-                    isCurrent ? "bg-primary text-white ring-4 ring-primary/20" :
-                    "bg-gray-100 text-gray-400"
+                      isCurrent ? "bg-primary text-white ring-4 ring-primary/20" :
+                        "bg-gray-100 text-gray-400"
                   )}>
                     {isCompleted ? (
                       <CheckCircle2 className="h-4 w-4" />
@@ -349,7 +459,7 @@ function MobileTimeline({ currentStatus, progressPercentage, estimatedRemaining,
 // Desktop Timeline Component
 function DesktopTimeline({ currentStatus, progressPercentage, estimatedRemaining, deliveredAt }: any) {
   const currentConfig = STATUS_CONFIG[currentStatus as DeliveryStatus];
-  
+
   return (
     <div className="hidden lg:block">
       <Card>
@@ -361,7 +471,7 @@ function DesktopTimeline({ currentStatus, progressPercentage, estimatedRemaining
                   <span key={step}>{STATUS_CONFIG[step].shortLabel}</span>
                 ))}
               </div>
-              <Progress value={progressPercentage} className="h-2" />
+              <AnimatedProgress value={progressPercentage} className="h-2" />
             </div>
 
             <div className="grid grid-cols-7 gap-1">
@@ -370,36 +480,46 @@ function DesktopTimeline({ currentStatus, progressPercentage, estimatedRemaining
                 const StepIcon = stepConfig.icon;
                 const isCompleted = getNumericStatus(currentStatus) >= getNumericStatus(step);
                 const isCurrent = currentStatus === step;
-                
+
                 return (
                   <div key={step} className="text-center">
-                    <div className={cn(
-                      "w-8 h-8 mx-auto rounded-full flex items-center justify-center transition-all",
-                      isCompleted ? "bg-green-500 text-white" : 
-                      isCurrent ? "bg-primary text-white ring-4 ring-primary/20" :
-                      "bg-gray-200 text-gray-500"
-                    )}>
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        <StepIcon className="h-4 w-4" />
+                    <div className="relative mx-auto flex h-8 w-8 items-center justify-center">
+                      {isCurrent && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="absolute h-10 w-10 rounded-full bg-primary/20 animate-ping" />
+                        </div>
                       )}
+                      <div className={cn(
+                        "relative z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300",
+                        isCompleted ? "bg-green-500 text-white" :
+                          isCurrent ? "bg-primary text-white ring-4 ring-primary/20" :
+                            "bg-gray-200 text-gray-500"
+                      )}>
+                        {isCompleted ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                          <StepIcon className="h-4 w-4" />
+                        )}
+                      </div>
                     </div>
                     <p className={cn(
-                      "text-xs mt-2",
+                      "mt-2 text-xs",
                       isCurrent ? "font-semibold text-primary" : "text-muted-foreground"
                     )}>
                       {stepConfig.shortLabel}
                     </p>
+                    {isCurrent && estimatedRemaining && !deliveredAt && (
+                      <p className="mt-1 text-[10px] text-primary">{estimatedRemaining}</p>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            <div className="text-center pt-2">
+            <div className="pt-2 text-center">
               <p className="text-sm text-muted-foreground">{currentConfig.description}</p>
               {estimatedRemaining && !deliveredAt && (
-                <div className="flex items-center justify-center gap-2 mt-3">
+                <div className="mt-3 flex items-center justify-center gap-2">
                   <Clock className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">
                     Estimated {estimatedRemaining} remaining
@@ -419,12 +539,12 @@ function OrderItem({ item, formatPrice, isMobile = false }: any) {
   const [isExpanded, setIsExpanded] = useState(false);
   const itemTotal = item.quantity * item.unit_price;
   const itemTax = item.tax_total || 0;
-  
+
   if (isMobile) {
     return (
       <div>
         <div className="flex gap-3 py-3">
-          <div className="relative w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+          <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
             {item.thumbnail ? (
               <Image
                 src={item.thumbnail}
@@ -434,28 +554,28 @@ function OrderItem({ item, formatPrice, isMobile = false }: any) {
                 sizes="64px"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="flex h-full w-full items-center justify-center">
                 <Package2 className="h-5 w-5 text-muted-foreground/50" />
               </div>
             )}
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium text-sm text-foreground line-clamp-2 flex-1">
+              <h3 className="line-clamp-2 flex-1 text-sm font-medium text-foreground">
                 {item.title}
               </h3>
-              <span className="font-semibold text-primary text-sm whitespace-nowrap">
+              <span className="whitespace-nowrap text-sm font-semibold text-primary">
                 {formatPrice(itemTotal)}
               </span>
             </div>
             {item.variant?.title && (
-              <p className="text-xs text-muted-foreground mt-0.5">{item.variant.title}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{item.variant.title}</p>
             )}
-            <div className="flex items-center justify-between mt-2">
+            <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Qty: {item.quantity}</span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="h-7 px-2 text-xs"
                 onClick={() => setIsExpanded(!isExpanded)}
               >
@@ -465,7 +585,7 @@ function OrderItem({ item, formatPrice, isMobile = false }: any) {
           </div>
         </div>
         {isExpanded && (
-          <div className="ml-[68px] mb-3 p-3 bg-gray-50 rounded-lg text-xs space-y-1">
+          <div className="mb-3 ml-[68px] rounded-lg bg-gray-50 p-3 text-xs space-y-1">
             <p><span className="text-muted-foreground">Unit price:</span> {formatPrice(item.unit_price)}</p>
             <p><span className="text-muted-foreground">Item total:</span> {formatPrice(itemTotal)}</p>
             {itemTax > 0 && (
@@ -476,10 +596,10 @@ function OrderItem({ item, formatPrice, isMobile = false }: any) {
       </div>
     );
   }
-  
+
   return (
-    <div className="flex gap-4 py-3 border-b last:border-0">
-      <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+    <div className="flex gap-4 border-b py-3 last:border-0">
+      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
         {item.thumbnail ? (
           <Image
             src={item.thumbnail}
@@ -489,17 +609,17 @@ function OrderItem({ item, formatPrice, isMobile = false }: any) {
             sizes="80px"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="flex h-full w-full items-center justify-center">
             <Package2 className="h-6 w-6 text-muted-foreground/50" />
           </div>
         )}
       </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="font-medium text-foreground line-clamp-2">{item.title}</h3>
+      <div className="min-w-0 flex-1">
+        <h3 className="line-clamp-2 font-medium text-foreground">{item.title}</h3>
         {item.variant?.title && (
-          <p className="text-sm text-muted-foreground mt-0.5">{item.variant.title}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{item.variant.title}</p>
         )}
-        <div className="flex items-center justify-between mt-2">
+        <div className="mt-2 flex items-center justify-between">
           <div className="space-y-0.5">
             <span className="text-sm text-muted-foreground">Qty: {item.quantity}</span>
             {itemTax > 0 && (
@@ -513,47 +633,186 @@ function OrderItem({ item, formatPrice, isMobile = false }: any) {
   );
 }
 
-export default function OrderStatusPage() {
+// Buy Again Button Component (Desktop & Mobile)
+function BuyAgainButton({ onClick, variant = "default" }: { onClick: () => void; variant?: "default" | "sticky" }) {
+  if (variant === "sticky") {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-gray-200 bg-white p-4 shadow-lg lg:hidden">
+        <Button
+          onClick={onClick}
+          size="lg"
+          className="w-full gap-2 bg-primary text-white hover:bg-primary/90"
+        >
+          <ShoppingBag className="h-4 w-4" />
+          Buy Again
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Button
+      onClick={onClick}
+      size="lg"
+      className="gap-2 bg-primary text-white hover:bg-primary/90"
+    >
+      <ShoppingBag className="h-4 w-4" />
+      Buy Again
+    </Button>
+  );
+}
+
+// Return to Shop Modal
+function ReturnToShopModal({ isOpen, onClose, onConfirm, onDismiss }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Minimize2 className="h-5 w-5 text-primary" />
+            Minimize Order Tracking?
+          </DialogTitle>
+          <DialogDescription>
+            Your order is still in progress. You can continue tracking it later from your orders page.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center justify-center py-4">
+          <div className="rounded-full bg-primary/10 p-3">
+            <Package2 className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+        <DialogFooter className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            onClick={onDismiss}
+            className="sm:flex-1"
+          >
+            Don't show again today
+          </Button>
+          <Button
+            onClick={onConfirm}
+            className="sm:flex-1"
+          >
+            Continue to Store
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function OrderStatusPage({ id, showMarkAsCompleted = false }: { id?: any; showMarkAsCompleted?: boolean }) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const deliveryId = searchParams.get("id") as any;
-  
+  const deliveryId = (id || searchParams.get("id")) as any;
+
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [driver, setDriver] = useState<Driver | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const deliveryData = await retrieveDelivery(deliveryId) as any;
-        
-        if (!deliveryData) {
-          setError("Order not found");
-          return;
-        }
-        
-        setDelivery(deliveryData);
-        
-        if (deliveryData.driver_id) {
-          try {
-            const driverData = await retrieveDriver(deliveryData.driver_id) as any;
-            setDriver(driverData);
-          } catch (err) {
-            console.error("Failed to fetch driver:", err);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch delivery:", err);
-        setError("Failed to load order details");
-      } finally {
-        setLoading(false);
+  const fetchData = useCallback(async (showRefreshIndicator = false) => {
+    try {
+      if (showRefreshIndicator) setIsRefreshing(true);
+      const deliveryData = await retrieveDelivery(deliveryId) as any;
+
+      if (!deliveryData) {
+        setError("Order not found");
+        return;
       }
-    };
 
-    fetchData();
-  }, [deliveryId, router]);
+      setDelivery(deliveryData);
+
+      if (deliveryData.driver_id) {
+        try {
+          const driverData = await retrieveDriver(deliveryData.driver_id) as any;
+          setDriver(driverData);
+        } catch (err) {
+          console.error("Failed to fetch driver:", err);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch delivery:", err);
+      setError("Failed to load order details");
+    } finally {
+      if (showRefreshIndicator) setIsRefreshing(false);
+      setLoading(false);
+    }
+  }, [deliveryId]);
+
+  // Initial fetch and background auto-refresh
+  useEffect(() => {
+    fetchData(true);
+
+    // Set up background polling every 30 seconds
+    const intervalId = setInterval(() => {
+      fetchData(false);
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [fetchData]);
+
+const handleMarkAsCompleted = async () => {
+  setIsMarkingComplete(true);
+  try {
+    // Mark order as completed - this removes the delivery cookie
+    await markOrderAsCompleted(deliveryId);
+    
+    console.log("Order marked as completed:", deliveryId);
+    
+    // Optional: Show success message
+    // You can add a toast notification here
+    
+    // Optional: Redirect to orders page after completion
+    // router.push("/account/orders");
+    
+    // Refresh the page to update the UI
+    router.refresh();
+  } catch (err) {
+    console.error("Failed to mark as completed:", err);
+  } finally {
+    setIsMarkingComplete(false);
+  }
+};
+
+  const handleBuyAgain = () => {
+    // Navigate to store with the same items pre-filled
+    router.push("/");
+  };
+
+  const handleReturnToStore = async () => {
+    // Check if modal should be shown
+    const showModal = await shouldShowModal();
+    if (showModal) {
+      setShowReturnModal(true);
+    } else {
+      // Direct navigation if modal was dismissed today
+      router.push("/");
+    }
+  };
+
+  const handleConfirmReturn = () => {
+    setShowReturnModal(false);
+    router.push("/");
+  };
+
+  const handleDismissModal = async () => {
+    await setModalDismissed();
+    setShowReturnModal(false);
+    router.push("/");
+  };
+
+  const handleCloseModal = () => {
+    setShowReturnModal(false);
+  };
 
   const formatTime = (date: string) => {
     return new Date(date).toLocaleTimeString("en-PH", {
@@ -582,9 +841,9 @@ export default function OrderStatusPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
           <p className="text-muted-foreground">Loading your order...</p>
         </div>
       </div>
@@ -593,12 +852,12 @@ export default function OrderStatusPage() {
 
   if (error || !delivery) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md mx-4">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <Card className="mx-4 max-w-md">
           <CardContent className="pt-6 text-center">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Order Not Found</h2>
-            <p className="text-muted-foreground mb-6">{error || "Unable to find your order"}</p>
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
+            <h2 className="mb-2 text-xl font-semibold">Order Not Found</h2>
+            <p className="mb-6 text-muted-foreground">{error || "Unable to find your order"}</p>
             <Link href="/account/orders">
               <Button>View All Orders</Button>
             </Link>
@@ -615,12 +874,10 @@ export default function OrderStatusPage() {
   ) || 0;
 
   const deliveryFee = delivery.delivery_fee || 0;
-  
-  // Use tax amount from delivery or calculate if not provided
+
   let taxAmount = delivery.tax_amount || 0;
   let totalAmount = delivery.total || (subtotal + deliveryFee + taxAmount);
-  
-  // If tax amount is 0 but we have subtotal, calculate 12% VAT
+
   if (taxAmount === 0 && subtotal > 0) {
     const taxableAmount = subtotal + deliveryFee;
     taxAmount = taxableAmount * 0.12;
@@ -634,7 +891,6 @@ export default function OrderStatusPage() {
 
   const eta = delivery.eta ? formatTime(delivery.eta) : null;
   const deliveredAt = delivery.delivered_at ? formatTime(delivery.delivered_at) : null;
-  const deliveryDate = delivery.delivered_at ? formatDate(delivery.delivered_at) : null;
 
   const getEstimatedRemaining = () => {
     if (delivery.delivered_at || !delivery.eta) return null;
@@ -651,56 +907,80 @@ export default function OrderStatusPage() {
   const estimatedRemaining = getEstimatedRemaining();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 lg:hidden">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Order #{delivery.id.slice(-8)}</p>
-              <h1 className="text-lg font-semibold text-foreground">Track Order</h1>
-            </div>
+    <div className="min-h-screen bg-gray-50 pb-20 lg:pb-0">
+      {/* Header with Return to Store and Mark as Completed */}
+      <div className="sticky top-0 z-10 border-b border-gray-100 bg-white shadow-sm">
+        <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReturnToStore}
+            className="gap-2 text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Return to Store
+          </Button>
+
+          <div className="flex items-center gap-3">
+            {showMarkAsCompleted && delivery.delivery_status !== "delivered" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleMarkAsCompleted}
+                disabled={isMarkingComplete}
+                className="gap-2 border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                {isMarkingComplete ? "Completing..." : "Mark as Completed"}
+              </Button>
+            )}
             <Badge variant={currentStatusConfig.variant as any} className="text-xs">
-              <CurrentStatusIcon className="h-3 w-3 mr-1" />
+              <CurrentStatusIcon className="mr-1 h-3 w-3" />
               {currentStatusConfig.shortLabel}
             </Badge>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+      {/* Auto-refresh indicator */}
+      {isRefreshing && (
+        <div className="fixed right-4 top-16 z-20 flex items-center gap-2 rounded-full bg-primary/90 px-3 py-1.5 text-xs text-white shadow-lg lg:top-20">
+          <RefreshCw className="h-3 w-3 animate-spin" />
+          Updating...
+        </div>
+      )}
+
+      <div className="container mx-auto px-4 py-4 sm:px-6 lg:px-8 lg:py-8">
         {/* Desktop Header */}
-        <div className="hidden lg:block mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="mb-8 hidden lg:block">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-primary mb-2">
+              <div className="mb-2 flex items-center gap-2 text-primary">
                 <Package2 className="h-5 w-5" />
                 <span className="text-sm font-medium">Order Status</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
+              <h1 className="text-2xl font-semibold text-foreground md:text-3xl">
                 Order #{delivery.id.slice(-8)}
               </h1>
-              <p className="text-muted-foreground mt-1">
+              <p className="mt-1 text-muted-foreground">
                 Track your order from {delivery.company?.name || "Alayon Store"}
               </p>
             </div>
-            <Badge variant={currentStatusConfig.variant as any} className="w-fit text-sm py-1.5 px-4">
-              <CurrentStatusIcon className="h-3.5 w-3.5 mr-1.5" />
-              {currentStatusConfig.label}
-            </Badge>
+            {/* Desktop Buy Again Button */}
+            <BuyAgainButton onClick={handleBuyAgain} />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-8">
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-4 lg:space-y-6">
-            <MobileTimeline 
+          <div className="space-y-4 lg:col-span-2 lg:space-y-6">
+            <MobileTimeline
               currentStatus={currentStatus}
               progressPercentage={progressPercentage}
               estimatedRemaining={estimatedRemaining}
               deliveredAt={deliveredAt}
             />
-            <DesktopTimeline 
+            <DesktopTimeline
               currentStatus={currentStatus}
               progressPercentage={progressPercentage}
               estimatedRemaining={estimatedRemaining}
@@ -711,7 +991,7 @@ export default function OrderStatusPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
-                  <Package2 className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
+                  <Package2 className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                   Order Items
                   <span className="ml-auto text-sm font-normal text-muted-foreground">
                     {delivery.cart?.items?.length || 0} items
@@ -719,12 +999,12 @@ export default function OrderStatusPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 lg:space-y-4">
-                <div className="lg:hidden space-y-2">
+                <div className="space-y-2 lg:hidden">
                   {delivery.cart?.items?.map((item) => (
                     <OrderItem key={item.id} item={item} formatPrice={formatPrice} isMobile={true} />
                   ))}
                 </div>
-                <div className="hidden lg:block space-y-2">
+                <div className="hidden space-y-2 lg:block">
                   {delivery.cart?.items?.map((item) => (
                     <OrderItem key={item.id} item={item} formatPrice={formatPrice} isMobile={false} />
                   ))}
@@ -732,8 +1012,7 @@ export default function OrderStatusPage() {
 
                 <Separator className="my-3 lg:my-4" />
 
-                {/* Order Summary */}
-                <OrderSummary 
+                <OrderSummary
                   subtotal={subtotal}
                   deliveryFee={deliveryFee}
                   taxAmount={taxAmount}
@@ -750,13 +1029,13 @@ export default function OrderStatusPage() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
-                  <Truck className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
+                  <Truck className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                   Delivery Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {eta && !deliveredAt && (
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
                     <div>
                       <p className="text-xs text-muted-foreground">Estimated Delivery</p>
                       <p className="font-semibold text-foreground">{eta}</p>
@@ -770,17 +1049,17 @@ export default function OrderStatusPage() {
                 )}
 
                 {driver && (
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10">
                       <Truck className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground text-sm">{driver.name}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground">{driver.name}</p>
                       <p className="text-xs text-muted-foreground">Your delivery partner</p>
                       {driver.phone && (
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="mt-1 flex items-center gap-2">
                           <a href={`tel:${driver.phone}`}>
-                            <Button variant="link" size="sm" className="h-auto p-0 text-xs gap-1">
+                            <Button variant="link" size="sm" className="h-auto gap-1 p-0 text-xs">
                               <Phone className="h-3 w-3" />
                               {driver.phone}
                             </Button>
@@ -798,12 +1077,12 @@ export default function OrderStatusPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
-                    <MapPin className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
+                    <MapPin className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                     Delivery Address
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <address className="not-italic text-sm text-muted-foreground">
+                  <address className="text-sm not-italic text-muted-foreground">
                     <p>{delivery.delivery_address.address_1}</p>
                     {delivery.delivery_address.address_2 && <p>{delivery.delivery_address.address_2}</p>}
                     <p>
@@ -812,8 +1091,8 @@ export default function OrderStatusPage() {
                     </p>
                   </address>
                   {delivery.delivery_instructions && (
-                    <div className="p-2 bg-gray-50 rounded-lg text-xs">
-                      <p className="font-medium text-muted-foreground mb-0.5">Instructions:</p>
+                    <div className="rounded-lg bg-gray-50 p-2 text-xs">
+                      <p className="mb-0.5 font-medium text-muted-foreground">Instructions:</p>
                       <p className="text-foreground">"{delivery.delivery_instructions}"</p>
                     </div>
                   )}
@@ -826,7 +1105,7 @@ export default function OrderStatusPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
-                    <Building2 className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
+                    <Building2 className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                     Merchant Information
                   </CardTitle>
                 </CardHeader>
@@ -837,7 +1116,7 @@ export default function OrderStatusPage() {
                       TIN: {delivery.company.tax_id}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     Registered under Philippine BIR regulations. VAT invoice available upon request.
                   </p>
                 </CardContent>
@@ -849,7 +1128,7 @@ export default function OrderStatusPage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
-                    <Clock className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
+                    <Clock className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                     Activity Timeline
                   </CardTitle>
                 </CardHeader>
@@ -857,7 +1136,7 @@ export default function OrderStatusPage() {
                   <div className="space-y-3">
                     {delivery.timeline.slice(0, 3).map((event, index) => (
                       <div key={index} className="flex gap-2 text-sm">
-                        <div className="w-16 text-xs text-muted-foreground flex-shrink-0">
+                        <div className="w-16 flex-shrink-0 text-xs text-muted-foreground">
                           {new Date(event.created_at).toLocaleTimeString("en-PH", {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -869,13 +1148,13 @@ export default function OrderStatusPage() {
                     ))}
                     {delivery.timeline.length > 3 && (
                       <details className="text-sm">
-                        <summary className="text-primary cursor-pointer text-xs font-medium">
+                        <summary className="cursor-pointer text-xs font-medium text-primary">
                           View {delivery.timeline.length - 3} more events
                         </summary>
                         <div className="mt-2 space-y-2">
                           {delivery.timeline.slice(3).map((event, index) => (
-                            <div key={index} className="flex gap-2 text-sm pt-2 border-t border-gray-100">
-                              <div className="w-16 text-xs text-muted-foreground flex-shrink-0">
+                            <div key={index} className="flex gap-2 border-t border-gray-100 pt-2 text-sm">
+                              <div className="w-16 flex-shrink-0 text-xs text-muted-foreground">
                                 {new Date(event.created_at).toLocaleTimeString("en-PH", {
                                   hour: "2-digit",
                                   minute: "2-digit",
@@ -894,12 +1173,12 @@ export default function OrderStatusPage() {
             )}
 
             {/* Help Card */}
-            <Card className="bg-primary/5 border-primary/20">
+            <Card className="border-primary/20 bg-primary/5">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <AlertCircle className="h-8 w-8 lg:h-10 lg:w-10 text-primary mx-auto mb-2 lg:mb-3" />
-                  <h3 className="font-semibold text-foreground mb-1 lg:mb-2 text-sm lg:text-base">Need Help?</h3>
-                  <p className="text-xs lg:text-sm text-muted-foreground mb-3 lg:mb-4">
+                  <AlertCircle className="mx-auto mb-2 h-8 w-8 text-primary lg:mb-3 lg:h-10 lg:w-10" />
+                  <h3 className="mb-1 text-sm font-semibold text-foreground lg:mb-2 lg:text-base">Need Help?</h3>
+                  <p className="mb-3 text-xs text-muted-foreground lg:mb-4 lg:text-sm">
                     Having issues with your order? Contact our support team.
                   </p>
                   <div className="flex gap-2">
@@ -920,6 +1199,17 @@ export default function OrderStatusPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Buy Again Button */}
+      <BuyAgainButton onClick={handleBuyAgain} variant="sticky" />
+
+      {/* Return to Shop Modal */}
+      <ReturnToShopModal
+        isOpen={showReturnModal}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmReturn}
+        onDismiss={handleDismissModal}
+      />
     </div>
   );
 }

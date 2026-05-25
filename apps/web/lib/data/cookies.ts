@@ -3,6 +3,7 @@
 import "server-only"
 
 import { cookies as nextCookies } from "next/headers"
+const CACHE_ID_COOKIE_KEY = "_medusa_cache_id";
 
 export const getAuthHeaders = async (): Promise<
   { authorization: string } | {}
@@ -89,11 +90,101 @@ export const getCartId = async () => {
   return cookies.get("_medusa_cart_id")?.value
 }
 
-export const getCachedId = async () => {
-  const cookies = await nextCookies()
+// export const getCachedId = async () => {
+//   const cookies = await nextCookies()
 
-  return cookies.get("_medusa_cache_id")?.value
+//   return cookies.get("_medusa_cache_id")?.value
+// }
+
+
+
+/**
+ * Generates a unique ID without external libraries
+ * Format: timestamp-randomness-counter
+ */
+function generateUniqueId(): string {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 15);
+  const counter = performance?.now?.()?.toString(36) || Math.random().toString(36).substring(2, 8);
+  
+  // Combine multiple sources of entropy for uniqueness
+  return `${timestamp}-${randomPart}-${counter}`;
 }
+
+/**
+ * Generates a cryptographically secure random ID (if available)
+ * Falls back to the basic generator if crypto is not available
+ */
+function generateSecureId(): string {
+  // Try to use crypto.randomUUID() if available (modern browsers/Node.js)
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+  // Fallback to custom generator
+  return generateUniqueId();
+}
+
+/**
+ * Gets or creates a cache ID stored in cookies
+ * @returns The cache ID (existing or newly generated)
+ */
+export const getCachedId = async (): Promise<string> => {
+  const cookieStore = await nextCookies();
+  let cacheId = cookieStore.get(CACHE_ID_COOKIE_KEY)?.value;
+  
+  // If no cache ID exists, generate one
+  if (!cacheId) {
+    cacheId = generateSecureId();
+    
+    // Save to cookies with appropriate options
+    cookieStore.set(CACHE_ID_COOKIE_KEY, cacheId, {
+      httpOnly: true,  // Prevents client-side JavaScript access (more secure)
+      secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+      sameSite: 'lax',  // CSRF protection
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      path: '/', // Available across the entire site
+    });
+  }
+  
+  return cacheId;
+};
+
+/**
+ * Gets the cache ID without generating a new one if it doesn't exist
+ * @returns The cache ID or null if not found
+ */
+export const getCachedIdIfExists = async (): Promise<string | null> => {
+  const cookieStore = await nextCookies();
+  return cookieStore.get(CACHE_ID_COOKIE_KEY)?.value || null;
+};
+
+/**
+ * Regenerates a new cache ID (replaces existing one)
+ * @returns The new cache ID
+ */
+export const regenerateCachedId = async (): Promise<string> => {
+  const cookieStore = await nextCookies();
+  const newCacheId = generateSecureId();
+  
+  cookieStore.set(CACHE_ID_COOKIE_KEY, newCacheId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 365,
+    path: '/',
+  });
+  
+  return newCacheId;
+};
+
+/**
+ * Deletes the cache ID cookie
+ */
+export const deleteCachedId = async (): Promise<void> => {
+  const cookieStore = await nextCookies();
+  cookieStore.delete(CACHE_ID_COOKIE_KEY);
+};
 
 export const setCartId = async (cartId: string) => {
   const cookies = await nextCookies()
@@ -130,4 +221,12 @@ export const removeCartId = async () => {
   cookies.set("_medusa_cart_id", "", {
     maxAge: -1,
   })
+}
+
+
+export const getDeliveryId = async () => {
+  const cookies = await nextCookies()
+
+   return cookies.get("_medusa_delivery_id")?.value
+
 }

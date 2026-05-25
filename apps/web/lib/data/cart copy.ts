@@ -22,6 +22,12 @@ import {
 import { retrieveCustomer } from "@/lib/data/customer"
 import { getRegion } from "@/lib/data/regions"
 import { DeliveryDTO } from "../types"
+import { cookies as nextCookies } from "next/headers"
+
+
+const CART_ID_COOKIE_KEY = "_medusa_cart_id";
+const DEFAULT_CURRENCY_CODE = "php";
+const DEFAULT_COUNTRY_CODE = "ph";
 
 export async function createDelivery(cartId: string, company_id: any) {
   const { delivery } = await sdk.client.fetch<{
@@ -110,46 +116,161 @@ export async function retrieveCompanyCart(id?: string) {
     return company
 }
 
-export async function getOrSetCart(countryCode: string = 'ph', companyId?: string) {
-  let cart = await companyId ? await retrieveCompanyCart(companyId) : await retrieveCart() as any;
-  const region = await getRegion(countryCode)
-  const session_id = await getCachedId()
+
+
+
+
+// Helper to set cart ID cookie
+async function setCartIdCookie(cartId: string) {
+  const cookieStore = await nextCookies();
+  cookieStore.set(CART_ID_COOKIE_KEY, cartId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+    path: '/',
+  });
+}
+
+// Helper to get cart ID from cookie
+async function getCartIdFromCookie(): Promise<string | null> {
+  const cookieStore = await nextCookies();
+  return cookieStore.get(CART_ID_COOKIE_KEY)?.value || null;
+}
+
+// Helper to retrieve cart by ID
+async function retrieveCartById(cartId: string) {
+  const headers = await getAuthHeaders();
+  
+  try {
+    const { cart } = await sdk.store.cart.retrieve(cartId, {}, headers);
+    return cart;
+  } catch (error) {
+    console.error('Failed to retrieve cart:', error);
+    return null;
+  }
+}
+
+// Helper to explicitly set cart currency to PHP
+export async function setCartCurrencyToPHP(cartId: string) {
+  const headers = await getAuthHeaders();
+  const region = await getRegion('ph');
+  try {
+    const { cart } = await sdk.store.cart.update(cartId, {
+      region_id: region?.id,
+    }, {}, headers);
+    
+    const cartCacheTag = await getCacheTag("carts");
+    revalidateTag(cartCacheTag, "max");
+    
+    return cart;
+  } catch (error) {
+    console.error('Failed to update cart currency:', error);
+    throw error;
+  }
+}
+
+// Main function to get or set cart
+export async function getOrSetCart(
+  countryCode: string = DEFAULT_COUNTRY_CODE, 
+  companyId?: string
+) {
+  // Get region with PHP currency
+  const region = await getRegion(countryCode);
+  
   if (!region) {
-    throw new Error(`Region not found for country code: ${countryCode}`)
+    throw new Error(`Region not found for country code: ${countryCode}`);
   }
 
-  const headers = {
-    ...(await getAuthHeaders()),
+  // Ensure region uses PHP currency
+  if (region.currency_code !== DEFAULT_CURRENCY_CODE) {
+    console.warn(`Region currency is ${region.currency_code}, but PHP is preferred. Overriding to PHP.`);
+    // Note: You might want to handle this differently based on your business logic
   }
 
+  const sessionId = await getCachedId();
+  const headers = await getAuthHeaders();
+  
+  let cart = null;
+  let cartId = await getCartIdFromCookie();
+
+  // Try to retrieve existing cart by ID from cookie
+  if (cartId) {
+    cart = await retrieveCartById(cartId);
+  }
+
+  // If no cart found by ID, try company cart
+  if (!cart && companyId) {
+    cart = await retrieveCompanyCart(companyId);
+    if (cart) {
+      // Update cookie with found cart ID
+      await setCartIdCookie(cart.id);
+    }
+  }
+
+  // Create new cart if none exists
   if (!cart) {
     const body = {
       region_id: region.id,
+      currency_code: DEFAULT_CURRENCY_CODE, // Force PHP currency
       metadata: {
         company_id: companyId,
-        session_id
+        session_id: sessionId,
+        created_with_currency: DEFAULT_CURRENCY_CODE,
       },
-    }
+    };
 
-    const {cart: cartData} = await sdk.store.cart.create(body, {}, headers)
-    console.log(cartData, 'carrt resp newwwwss')
-
-    const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag, "max")
+    const { cart: newCart } = await sdk.store.cart.create(body, {}, headers);
     
-    setCartId(cartData?.id)
-    cart = cartData;
+    console.log('New cart created:', {
+      cartId: newCart.id,
+      currency: DEFAULT_CURRENCY_CODE,
+      region: region.name,
+      sessionId
+    });
+
+    // Save cart ID to cookie
+    await setCartIdCookie(newCart.id);
+    
+    // Revalidate cart cache
+    const cartCacheTag = await getCacheTag("carts");
+    revalidateTag(cartCacheTag, "max");
+    
+    cart = newCart;
   }
 
-
-  if (cart && cart?.region_id !== region.id) {
-    await sdk.store.cart.update(cart.id, { region_id: region.id }, {}, headers)
-    const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag, "max")
+  // Update cart region if it doesn't match (preserving PHP currency)
+  if (cart && cart.region_id !== region.id) {
+    await sdk.store.cart.update(cart.id, { 
+      region_id: region.id,
+      currency_code: DEFAULT_CURRENCY_CODE, // Ensure PHP currency is maintained
+    }, {}, headers);
+    
+    console.log('Cart region updated:', {
+      cartId: cart.id,
+      oldRegion: cart.region_id,
+      newRegion: region.id,
+      currency: DEFAULT_CURRENCY_CODE
+    });
+    
+    const cartCacheTag = await getCacheTag("carts");
+    revalidateTag(cartCacheTag, "max");
   }
 
-  return cart
+  return cart;
 }
+
+// Helper function to get current cart without creating a new one
+export async function getCurrentCart() {
+  const cartId = await getCartIdFromCookie();
+  
+  if (!cartId) {
+    return null;
+  }
+  
+  return await retrieveCartById(cartId);
+}
+
 
 export async function updateCart(data: HttpTypes.StoreUpdateCart) {
   const cartId = await getCartId()
@@ -253,8 +374,7 @@ export async function addToCartBulk({
       body: JSON.stringify({ line_items: lineItems }),
     }
   )
-    .then(async (data) => {
-      console.log(data, 'DAAATAAA')
+    .then(async () => {
       const fullfillmentCacheTag = await getCacheTag("fulfillment")
       revalidateTag(fullfillmentCacheTag, "max")
       const cartCacheTag = await getCacheTag("carts")

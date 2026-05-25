@@ -57,7 +57,7 @@ const ProductVariantsTable = ({
 
   const handleAddToCart = async () => {
     setIsAdding(true)
-
+    console.log(company, region, 'addddiing')
     const lineItems = Array.from(lineItemsMap.entries()).map(
       ([variantId, { quantity, ...variant }]) => ({
         company,

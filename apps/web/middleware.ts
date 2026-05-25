@@ -11,6 +11,8 @@ const DYNAMIC_ROUTES = new Set([
   "shop",       // for /[shopId]
   // Add all your dynamic route prefixes here
   "products",
+  "checkout",
+  "cart",
   "admin",
   "leo",
   "api",
