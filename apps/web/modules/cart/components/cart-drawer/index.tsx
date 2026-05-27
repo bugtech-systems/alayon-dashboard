@@ -170,7 +170,7 @@ const CartDrawer = ({
     close()
   }, [pathname, cancelTimer])
 
-  const checkoutStep = cart ? getCheckoutStep(cart) : undefined
+  const checkoutStep = cart?.id ? getCheckoutStep(cart) : undefined
   const checkoutPath = checkoutStep
       ? `/checkout?step=${checkoutStep}&cart_id=${cart?.id}`
       : `/checkout?cart_id=${cart?.id}`
@@ -447,7 +447,7 @@ const CartDrawer = ({
               <LocalizedClientLink href={checkoutPath}>
                 <Button
                   className="w-full gap-1.5 text-sm h-9"
-                  disabled={totalItems === 0 || isUpdatingCart}
+                  disabled={totalItems === 0 || isUpdatingCart || !cart?.id}
                 >
                   <>
                     <Wallet className="h-3.5 w-3.5" />
