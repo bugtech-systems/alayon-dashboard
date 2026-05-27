@@ -62,7 +62,7 @@ const ItemsTemplate = ({
             >
               <ItemFull
                 disabled={isPendingApproval}
-                currencyCode={cart?.currency_code}
+                currencyCode={cart?.currency_code || 'php'}
                 showBorders={showBorders}
                 variant={variant}
                 item={

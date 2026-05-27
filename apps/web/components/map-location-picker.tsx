@@ -372,7 +372,7 @@ export function MapLocationPicker({
         setIsLocating(false);
       },
       (error) => {
-        console.error("Geolocation error:", error);
+        console?.log("Geolocation error:", error);
         let errorMessage = "Unable to get your location. ";
         switch (error.code) {
           case error.PERMISSION_DENIED:

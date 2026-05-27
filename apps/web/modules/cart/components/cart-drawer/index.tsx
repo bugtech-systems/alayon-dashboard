@@ -305,7 +305,7 @@ const CartDrawer = ({
                     <span className="text-sm font-medium">
                       {convertToLocale({
                         amount: subtotal,
-                        currency_code: cart?.currency_code,
+                        currency_code: cart?.currency_code || 'php',
                       })}
                     </span>
                   </div>
@@ -320,7 +320,7 @@ const CartDrawer = ({
                       <span className="text-sm font-medium">
                         -{convertToLocale({
                           amount: discountTotal,
-                          currency_code: cart?.currency_code,
+                          currency_code: cart?.currency_code || 'php',
                         })}
                       </span>
                     </div>
@@ -338,7 +338,7 @@ const CartDrawer = ({
                       <span className="text-sm font-medium">
                         {convertToLocale({
                           amount: shippingTotal,
-                          currency_code: cart?.currency_code,
+                          currency_code: cart?.currency_code || 'php',
                         })}
                       </span>
                     )}
@@ -359,7 +359,7 @@ const CartDrawer = ({
                             <span className="text-sm font-medium">
                               {convertToLocale({
                                 amount: taxAmount,
-                                currency_code: cart?.currency_code,
+                                currency_code: cart?.currency_code || 'php',
                               })}
                             </span>
                           </div>
@@ -388,7 +388,7 @@ const CartDrawer = ({
                       <span className="text-lg font-bold text-primary">
                         {convertToLocale({
                           amount: totalWithTax,
-                          currency_code: cart?.currency_code,
+                          currency_code: cart?.currency_code || 'php',
                         })}
                       </span>
                       {shippingTotal > 0 && (
@@ -464,7 +464,7 @@ const CartDrawer = ({
                 <span className="text-base font-bold text-primary">
                   {convertToLocale({
                     amount: totalWithTax,
-                    currency_code: cart?.currency_code,
+                    currency_code: cart?.currency_code || 'php',
                   })}
                 </span>
               </div>

@@ -1,22 +1,38 @@
 "use client";
 
+import Addresses from "./addresses";
 import Shipping from "./shipping";
 import Payment from "./payment";
+import Review from "./review";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
-import { CheckoutProvider, useCheckout } from "./checkout-context";
-import Addresses from "./addresses";
-import Review from "./review";
+import { useCheckout, CheckoutProvider } from "./checkout-context";
 
-export default function ClientCheckoutForm({ cart }: { cart: any }) {
+export default function ClientCheckoutForm({
+  cart,
+  customer,
+  shippingMethods,
+  paymentMethods,
+}: {
+  cart: any
+  customer: any
+  shippingMethods: any[]
+  paymentMethods: any[]
+}) {
   return (
-    <CheckoutProvider cart={cart}>
+    <CheckoutProvider
+      cart={cart}
+      customer={customer}
+      shippingMethods={shippingMethods}
+      paymentMethods={paymentMethods}
+    >
       <CheckoutContent />
     </CheckoutProvider>
   );
 }
 
 function CheckoutContent() {
+  // Use the context to get status flags
   const {
     isUpdatingCart,
     updateSuccess,
@@ -33,7 +49,7 @@ function CheckoutContent() {
         <p className="text-muted-foreground">Complete your order information</p>
       </div>
 
-      {/* Status indicators */}
+      {/* Status indicators (same as before) */}
       {isUpdatingCart && (
         <Alert className="mb-6 bg-blue-50 border-blue-200">
           <Loader2 className="h-4 w-4 animate-spin text-blue-600" />

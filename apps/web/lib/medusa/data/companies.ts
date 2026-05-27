@@ -39,7 +39,6 @@ export const retrieveCompany = async (companyId: string) => {
       next,
     }
   )
-  console.log(company, 'ccaaaaa')
   return company
 }
 

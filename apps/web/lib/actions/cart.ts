@@ -73,6 +73,7 @@ export async function getOrSetCart(countryCode: string) {
   if (!cart) {
     const body = {
       region_id: region.id,
+      currency_code: "php",
       metadata: {
         company_id: customer?.employee?.company_id,
       },

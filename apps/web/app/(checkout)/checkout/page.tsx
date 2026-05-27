@@ -1,8 +1,8 @@
 // app/checkout/page.tsx
 import { CheckoutNav } from "@/components/layout/checkout-nav";
-import { CheckoutForm } from "@/components/store/checkout/checkout-form";
+import  CheckoutForm  from "@/components/store/checkout/client-checkout-form";
 import { OrderSummary } from "@/components/store/checkout/order-summary";
-import { retrieveCart, listShippingMethods, getPaymentProviders } from "@/lib/actions";
+import { retrieveCart, listShippingMethods, getPaymentProviders, retrieveCustomer } from "@/lib/actions";
 import { HttpTypes } from "@medusajs/types";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -81,10 +81,8 @@ async function CheckoutContent({ cartId }: { cartId: string }) {
   }
 
   // Fetch available shipping methods and payment providers for Medusa checkout flow
-  const [shippingMethods, paymentProviders] = await Promise.all([
-    listShippingMethods(cart.region_id),
-    getPaymentProviders(cart.region_id)
-  ]);
+  const customer = await retrieveCustomer()
+
 
   return (
     <>
@@ -95,7 +93,6 @@ async function CheckoutContent({ cartId }: { cartId: string }) {
           <div className="sticky top-0 z-10 bg-gray-50 pt-4 pb-2">
             <OrderSummary 
               cart={cart} 
-              shippingMethods={shippingMethods}
               className="max-h-[50vh] overflow-y-auto shadow-md"
             />
           </div>
@@ -105,8 +102,7 @@ async function CheckoutContent({ cartId }: { cartId: string }) {
         <div className="order-2">
           <CheckoutForm 
             cart={cart} 
-            shippingMethods={shippingMethods}
-            paymentProviders={paymentProviders}
+            customer={customer}
           />
         </div>
       </div>
@@ -117,8 +113,7 @@ async function CheckoutContent({ cartId }: { cartId: string }) {
         <div className="lg:col-span-2">
           <CheckoutForm 
             cart={cart} 
-            shippingMethods={shippingMethods}
-            paymentProviders={paymentProviders}
+            customer={customer}
           />
         </div>
         

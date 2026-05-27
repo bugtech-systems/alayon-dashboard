@@ -18,29 +18,27 @@ import {
 } from "@/lib/medusa/data/cookies"
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL  ||
+  process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ||
   "https://api.sharewin.pro";
 
+const SECRET_KEY = process.env.NEXT_PUBLIC_MEDUSA_SECRET_KEY!
+const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY!
+
+
+// ----------------------------------------------------------------------
+// Existing functions (retrieveCustomer, updateCustomer, signout, etc.)
+// Keep them unchanged.
+// ----------------------------------------------------------------------
 
 export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
   const authHeaders = await getAuthHeaders()
-
   if (!authHeaders) return null
-
-  const headers = {
-    ...authHeaders,
-  }
-
-  const next = {
-    ...(await getCacheOptions("customers")),
-  }
-
+  const headers = { ...authHeaders }
+  const next = { ...(await getCacheOptions("customers")) }
   return await sdk.client
     .fetch<{ customer: B2BCustomer }>(`/store/customers/me`, {
       method: "GET",
-      query: {
-        fields: "*employee, *orders",
-      },
+      query: { fields: "*employee, *orders" },
       headers,
       next,
     })
@@ -49,145 +47,21 @@ export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
 }
 
 export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
-
+  const headers = { ...(await getAuthHeaders()) }
   const updateRes = await sdk.store.customer
     .update(body, {}, headers)
     .then(({ customer }) => customer)
     .catch(medusaError)
-
   const cacheTag = await getCacheTag("customers")
   revalidateTag(cacheTag, "max")
-
   return updateRes
 }
-
-// export async function signup(_currentState: unknown, formData: FormData) {
-//   const password = formData.get("password") as string
-//   const customerForm = {
-//     email: formData.get("email") as string,
-//     first_name: formData.get("first_name") as string,
-//     last_name: formData.get("last_name") as string,
-//     phone: formData.get("phone") as string,
-//     company_name: formData.get("company_name") as string,
-//   }
-
-//   try {
-//     const token = await sdk.auth.register("customer", "emailpass", {
-//       email: customerForm.email,
-//       password: password,
-//     })
-
-//     const customHeaders = { authorization: `Bearer ${token}` }
-
-//     const { customer: createdCustomer } = await sdk.store.customer.create(
-//       customerForm,
-//       {},
-//       customHeaders
-//     )
-
-//     const loginToken = await sdk.auth.login("customer", "emailpass", {
-//       email: customerForm.email,
-//       password,
-//     })
-
-//     setAuthToken(loginToken as string)
-
-//     const companyForm = {
-//       name: formData.get("company_name") as string,
-//       email: formData.get("email") as string,
-//       phone: formData.get("company_phone") as string,
-//       address: formData.get("company_address") as string,
-//       city: formData.get("company_city") as string,
-//       state: formData.get("company_state") as string,
-//       zip: formData.get("company_zip") as string,
-//       country: formData.get("company_country") as string,
-//       currency_code: formData.get("currency_code") as string,
-//     }
-
-//     const createdCompany = await createCompany(companyForm)
-
-//     const createdEmployee = await createEmployee({
-//       company_id: createdCompany?.id as string,
-//       customer_id: createdCustomer.id,
-//       is_admin: true,
-//       spending_limit: 0,
-//     }).catch((err) => {
-//       console.log("error creating employee", err)
-//     })
-
-//     const cacheTag = await getCacheTag("customers")
-//     revalidateTag(cacheTag, "max")
-
-//     await transferCart()
-
-//     return {
-//       customer: createdCustomer,
-//       company: createdCompany,
-//       employee: createdEmployee,
-//     }
-//   } catch (error: any) {
-//     console.log("error", error)
-//     return error.toString()
-//   }
-// }
-
-// export async function login(_currentState: unknown, formData: FormData) {
-//   const email = formData.get("email") as string
-//   const password = formData.get("password") as string
-
-//   try {
-//     await sdk.auth
-//       .login("customer", "emailpass", { email, password })
-//       .then(async (token) => {
-//         track("customer_logged_in")
-//         setAuthToken(token as string)
-
-//         const [customerCacheTag, productsCacheTag, cartsCacheTag] =
-//           await Promise.all([
-//             getCacheTag("customers"),
-//             getCacheTag("products"),
-//             getCacheTag("carts"),
-//           ])
-
-//         revalidateTag(customerCacheTag, "max")
-
-//         const customer = await retrieveCustomer()
-//         const cart = await retrieveCart()
-
-//         if (customer?.employee?.company_id) {
-//           await updateCart({
-//             metadata: {
-//               ...cart?.metadata,
-//               company_id: customer.employee.company_id,
-//             },
-//           })
-//         }
-
-//         revalidateTag(productsCacheTag, "max")
-//         revalidateTag(cartsCacheTag, "max")
-//       })
-//   } catch (error: any) {
-//     return error.toString()
-//   }
-
-//   try {
-//     await transferCart()
-//   } catch (error: any) {
-//     return error.toString()
-//   }
-// }
 
 export async function signout(countryCode: string, customerId: string) {
   await sdk.auth.logout()
   removeAuthToken()
   track("customer_logged_out")
-
-  // remove next line if want the cart to persist after logout
   await removeCartId()
-
   const [authCacheTag, customerCacheTag, productsCacheTag, cartsCacheTag] =
     await Promise.all([
       getCacheTag("auth"),
@@ -195,30 +69,19 @@ export async function signout(countryCode: string, customerId: string) {
       getCacheTag("products"),
       getCacheTag("carts"),
     ])
-
   revalidateTag(authCacheTag, "max")
   revalidateTag(customerCacheTag, "max")
   revalidateTag(productsCacheTag, "max")
   revalidateTag(cartsCacheTag, "max")
-
   redirect(`/${countryCode}/account`)
 }
 
 export async function transferCart() {
   const cartId = await getCartId()
-
-  if (!cartId) {
-    return
-  }
-
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
-
+  if (!cartId) return
+  const headers = { ...(await getAuthHeaders()) }
   await sdk.store.cart.transferCart(cartId, {}, headers)
-
   const cartCacheTag = await getCacheTag("carts")
-
   revalidateTag(cartCacheTag, "max")
 }
 
@@ -238,11 +101,7 @@ export const addCustomerAddress = async (
     country_code: formData.get("country_code") as string,
     phone: formData.get("phone") as string,
   }
-
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
-
+  const headers = { ...(await getAuthHeaders()) }
   return sdk.store.customer
     .createAddress(address, {}, headers)
     .then(async () => {
@@ -250,28 +109,18 @@ export const addCustomerAddress = async (
       revalidateTag(cacheTag, "max")
       return { success: true, error: null }
     })
-    .catch((err) => {
-      return { success: false, error: err.toString() }
-    })
+    .catch((err) => ({ success: false, error: err.toString() }))
 }
 
-export const deleteCustomerAddress = async (
-  addressId: string
-): Promise<void> => {
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
-
+export const deleteCustomerAddress = async (addressId: string): Promise<void> => {
+  const headers = { ...(await getAuthHeaders()) }
   await sdk.store.customer
     .deleteAddress(addressId, headers)
     .then(async () => {
       const cacheTag = await getCacheTag("customers")
       revalidateTag(cacheTag, "max")
-      return { success: true, error: null }
     })
-    .catch((err) => {
-      return { success: false, error: err.toString() }
-    })
+    .catch((err) => console.error(err))
 }
 
 export const updateCustomerAddress = async (
@@ -279,7 +128,6 @@ export const updateCustomerAddress = async (
   formData: FormData
 ): Promise<any> => {
   const addressId = currentState.addressId as string
-
   const address = {
     first_name: formData.get("first_name") as string,
     last_name: formData.get("last_name") as string,
@@ -292,11 +140,7 @@ export const updateCustomerAddress = async (
     country_code: formData.get("country_code") as string,
     phone: formData.get("phone") as string,
   }
-
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
-
+  const headers = { ...(await getAuthHeaders()) }
   return sdk.store.customer
     .updateAddress(addressId, address, {}, headers)
     .then(async () => {
@@ -304,37 +148,158 @@ export const updateCustomerAddress = async (
       revalidateTag(cacheTag, "max")
       return { success: true, error: null }
     })
-    .catch((err) => {
-      return { success: false, error: err.toString() }
-    })
+    .catch((err) => ({ success: false, error: err.toString() }))
 }
 
-// lib/actions.ts
+// ----------------------------------------------------------------------
+// NEW / REFINED FUNCTIONS for phone/email lookup and guest creation
+// ----------------------------------------------------------------------
+
+/**
+ * Create a new guest customer.
+ * @param customerData - Customer details (email optional, phone required)
+ * @returns The created customer object or null on error.
+ */
 export async function createGuestCustomer(customerData: {
-  email: string;
+  email?: string;
   first_name: string;
   last_name: string;
   phone: string;
+  cart_id: string;
 }) {
   try {
-    console.log(await getAuthHeaders(), 'auth head')
-    const response = await fetch(`${BASE_URL}/store/customers`, {
-      method: 'POST',
+    const payload = {
+      email: customerData.email || `guest_${Date.now()}@example.com`,
+      first_name: customerData.first_name,
+      last_name: customerData.last_name,
+      phone: customerData.phone,
+      cart_id: customerData?.cart_id,
+      metadata: { is_guest: true },
+    };
+
+
+    console.log(payload, 'CREAATE CUSTOMM')
+    const response = await fetch(`${BASE_URL}/store/customers/phone`, {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        ...(await getAuthHeaders())
+      "x-publishable-api-key": PUBLISHABLE_KEY,
+      "Content-Type": "application/json",
       },
-      body: JSON.stringify(customerData),
+      body: JSON.stringify(payload),
     });
-    
+
     if (!response.ok) {
-      throw new Error('Failed to create customer');
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+        console.error("Medusa customer creation error details:", errorData);
+      } catch (e) {
+        // response body not JSON
+      }
+      throw new Error(errorMessage);
     }
-    
+
     const { customer } = await response.json();
+    const cacheTag = await getCacheTag("customers");
+    revalidateTag(cacheTag, "max");
     return customer;
+  } catch (error: any) {
+    console.error("Error creating guest customer:", error);
+    // Return a structured error object instead of null
+    return { error: error.message || "Failed to create customer" };
+  }
+}
+
+/**
+ * Look up a customer by phone using the custom lookup endpoint.
+ * @param phone - Customer phone number
+ * @returns Customer object or null
+ */
+export async function getCustomerByPhone(phone: string) {
+  try {
+    const response = await fetch(`${BASE_URL}/store/customers/lookup?phone=${encodeURIComponent(phone)}`, {
+      headers: {
+        ...(await getAuthHeaders()),
+      },
+      cache: "no-store", // Always check fresh for checkout
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.customer || null;
   } catch (error) {
-    console.error('Error creating guest customer:', error);
+    console.error("Error in getCustomerByPhone:", error);
     return null;
   }
+}
+
+/**
+ * Look up a customer by email using the custom lookup endpoint.
+ * @param email - Customer email
+ * @returns Customer object or null
+ */
+export async function getCustomerByEmail(email: string) {
+  try {
+    const response = await fetch(`${BASE_URL}/store/customers/lookup?email=${encodeURIComponent(email)}`, {
+      headers: {
+        ...(await getAuthHeaders()),
+      },
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.customer || null;
+  } catch (error) {
+    console.error("Error in getCustomerByEmail:", error);
+    return null;
+  }
+}
+
+/**
+ * Look up a customer by phone or email. Tries phone first, then email if provided.
+ * @param phone - Required phone number
+ * @param email - Optional email address
+ * @returns Customer object or null
+ */
+export async function getCustomerByPhoneOrEmail(phone: string, email?: string) {
+  // First try by phone
+  let customer = await getCustomerByPhone(phone);
+  if (customer) return customer;
+
+  // If phone not found and email is provided, try by email
+  if (email) {
+    customer = await getCustomerByEmail(email);
+    if (customer) {
+      // Found by email – optionally update the customer's phone number
+      // to link this phone to the existing account.
+      if (!customer.phone || customer.phone !== phone) {
+        await updateCustomerPhone(customer.id, phone).catch((err) =>
+          console.error("Failed to update customer phone:", err)
+        );
+      }
+      return customer;
+    }
+  }
+  return null;
+}
+
+/**
+ * Update a customer's phone number.
+ * @param customerId - ID of the customer
+ * @param phone - New phone number
+ * @returns Updated customer object
+ */
+export async function updateCustomerPhone(customerId: string, phone: string) {
+  const headers = { ...(await getAuthHeaders()) };
+  // Use the store API to update the customer (requires authentication)
+  const response = await sdk.store.customer.update(
+    { phone },
+    {},
+    headers
+  );
+  const updatedCustomer = response.customer;
+  // Revalidate cache
+  const cacheTag = await getCacheTag("customers");
+  revalidateTag(cacheTag, "max");
+  return updatedCustomer;
 }
