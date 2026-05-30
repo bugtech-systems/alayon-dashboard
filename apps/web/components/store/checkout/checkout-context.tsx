@@ -554,16 +554,16 @@ const handleSubmit = useCallback(
   ]
 );
 
-  // --- Redirect on successful order ---
-  useEffect(() => {
-    if (orderState?.success) {
-      if (orderState.redirect_url) {
-        window.location.href = orderState.redirect_url;
-      } else if (orderState.order_id) {
-        window.location.href = `/order/confirmation/${orderState.order_id}`;
-      }
-    }
-  }, [orderState]);
+  // // --- Redirect on successful order ---
+  // useEffect(() => {
+  //   if (orderState?.success) {
+  //     if (orderState.redirect_url) {
+  //       window.location.href = orderState.redirect_url;
+  //     } else if (orderState.order_id) {
+  //       window.location.href = `/order/confirmation/${orderState.order_id}`;
+  //     }
+  //   }
+  // }, [orderState]);
 
   const value: CheckoutContextType = {
     cart,

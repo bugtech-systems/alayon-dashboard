@@ -229,22 +229,22 @@ console.log(firstName, lastName, address, city, phone, barangay, 'FOOORM')
 
   const delivery = await createDelivery(cart?.id, cart?.metadata?.company_id);
 
-  track("order_completed", {
-    order_id: response?.order.id ?? response?.id,
-  })
+
 
   console.log(delivery, 'DELIVERY', response)
-    revalidateTag("carts", "max")
-  revalidateTag("orders", "max")
-  revalidateTag("approvals", "max")
+  // revalidateTag("orders", "max")
+  // revalidateTag("approvals", "max")
 //     // Optional: Clear cart from localStorage by setting cookie (if you still use cookies)
     const cookieStore = await cookies();
     cookieStore.set("_medusa_cart_id", "", { maxAge: 0 });
     cookieStore.set("_medusa_delivery_id", delivery.id);
+    revalidateTag("carts", "max")
 
 
     // Return success response
-    
+  //     track("order_completed", {
+  //   order_id: response?.order.id ?? response?.id,
+  // })
     redirect(`/your-order?id=${delivery.id}`);
     
 }

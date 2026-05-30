@@ -1,9 +1,7 @@
 // app/checkout/page.tsx
-import { CheckoutNav } from "@/components/layout/checkout-nav";
 import  CheckoutForm  from "@/components/store/checkout/client-checkout-form";
 import { OrderSummary } from "@/components/store/checkout/order-summary";
-import { retrieveCart, listShippingMethods, getPaymentProviders, retrieveCustomer } from "@/lib/actions";
-import { HttpTypes } from "@medusajs/types";
+import { retrieveCart, retrieveCustomer } from "@/lib/actions";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -172,13 +170,10 @@ export default async function CheckoutPage({ searchParams }: CheckoutPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <CheckoutNav />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         <Suspense fallback={<CheckoutSkeleton />}>
           <CheckoutContent cartId={cartId} />
         </Suspense>
       </div>
-    </div>
   );
 }
