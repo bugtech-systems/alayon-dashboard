@@ -22,6 +22,9 @@ export default function ClientCheckoutForm({
   return (
     <CheckoutProvider
       cart={cart}
+      customer={customer}
+      shippingMethods={shippingMethods}
+      paymentMethods={paymentMethods}
     >
       <CheckoutContent />
     </CheckoutProvider>
@@ -107,7 +110,7 @@ function CheckoutContent() {
           <Shipping />
         </div>
         <div className="space-y-6">
-          <Payment />
+          {/* <Payment /> */}
           <Review />
         </div>
       </div>
