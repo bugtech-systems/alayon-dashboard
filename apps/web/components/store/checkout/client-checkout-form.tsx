@@ -22,9 +22,6 @@ export default function ClientCheckoutForm({
   return (
     <CheckoutProvider
       cart={cart}
-      customer={customer}
-      shippingMethods={shippingMethods}
-      paymentMethods={paymentMethods}
     >
       <CheckoutContent />
     </CheckoutProvider>

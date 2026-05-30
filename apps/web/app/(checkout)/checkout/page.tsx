@@ -22,8 +22,8 @@ interface CheckoutPageProps {
 
 async function CheckoutContent({ cartId }: { cartId: string }) {
   const cart = await retrieveCart(cartId);
-  
-  if (!cart) {
+    console.log(cart, cartId, 'CARRT')
+  if (cart && !cart?.id) {
     return (
       <div className="container mx-auto px-4 py-12">
         <Alert variant="destructive">
@@ -42,7 +42,7 @@ async function CheckoutContent({ cartId }: { cartId: string }) {
     );
   }
 
-  if (!cart.items?.length) {
+  if (!cart?.items?.length) {
     return (
       <div className="container mx-auto px-4 py-12">
         <Alert>
@@ -61,7 +61,7 @@ async function CheckoutContent({ cartId }: { cartId: string }) {
     );
   }
 
-  if (cart.completed_at) {
+  if (cart?.completed_at) {
     return (
       <div className="container mx-auto px-4 py-12">
         <Alert>

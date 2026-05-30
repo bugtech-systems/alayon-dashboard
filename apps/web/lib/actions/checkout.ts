@@ -234,15 +234,15 @@ console.log(firstName, lastName, address, city, phone, barangay, 'FOOORM')
   })
 
   console.log(delivery, 'DELIVERY', response)
+    revalidateTag("carts", "max")
+  revalidateTag("orders", "max")
+  revalidateTag("approvals", "max")
 //     // Optional: Clear cart from localStorage by setting cookie (if you still use cookies)
     const cookieStore = await cookies();
     cookieStore.set("_medusa_cart_id", "", { maxAge: 0 });
     cookieStore.set("_medusa_delivery_id", delivery.id);
 
 
-  revalidateTag("carts", "max")
-  revalidateTag("orders", "max")
-  revalidateTag("approvals", "max")
     // Return success response
     
     redirect(`/your-order?id=${delivery.id}`);
