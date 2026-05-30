@@ -5,7 +5,6 @@ import medusaError from "@/lib/medusa/util/medusa-error"
 import { StoreApprovalResponse } from "@/types/approval"
 import { B2BCart } from "@/types/global"
 import { HttpTypes, StoreCart } from "@medusajs/types"
-import { track } from "@vercel/analytics/server"
 import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import {
@@ -13,7 +12,6 @@ import {
   getCacheOptions,
   getCacheTag,
   getCartId,
-  removeCartId,
   setCartId,
 } from "@/lib/medusa/data/cookies"
 import { retrieveCustomer } from "./customer"
