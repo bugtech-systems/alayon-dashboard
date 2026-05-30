@@ -64,7 +64,7 @@ export async function initiatePaymentSession(
     .initiatePaymentSession(cart as any, data, {}, headers)
     .then(async (resp) => {
       const cartCacheTag = await getCacheOptions("carts")
-      revalidateTag(cartCacheTag)
+      revalidateTag("carts", "max")
       return resp
     })
     .catch(medusaError);
@@ -179,8 +179,10 @@ export async function createDelivery(cartId: string, company_id: any) {
 export async function placeOrder(
   prevState: any, data: FormData
 ) {
-  
-  const cart = await retrieveCart();
+
+
+  const cart_id = data.get("cart_id")?.toString();
+  const cart = await retrieveCart(cart_id);
 
   console.log(cart, 'CAAARRTT')
   if (!cart) {
@@ -223,28 +225,28 @@ console.log(firstName, lastName, address, city, phone, barangay, 'FOOORM')
   // const ordersTag = await getCacheOptions("orders")
   // const approvalsTag = await getCacheOptions("approvals")
 
-  const response = await sdk.store.cart
-    .complete(cart?.id, {}, {...(await getAuthHeaders())})
-    .catch(medusaError) as any
 
   const delivery = await createDelivery(cart?.id, cart?.metadata?.company_id);
 
 
 
-  console.log(delivery, 'DELIVERY', response)
+  console.log(delivery, 'DELIVERY')
   // revalidateTag("orders", "max")
   // revalidateTag("approvals", "max")
 //     // Optional: Clear cart from localStorage by setting cookie (if you still use cookies)
     const cookieStore = await cookies();
     cookieStore.set("_medusa_cart_id", "", { maxAge: 0 });
     cookieStore.set("_medusa_delivery_id", delivery.id);
-    revalidateTag("carts", "max")
+    // revalidateTag("carts", "max")
+  const response = await sdk.store.cart
+    .complete(cart?.id, {}, {...(await getAuthHeaders())})
+    .catch(medusaError) as any
 
 
     // Return success response
-  //     track("order_completed", {
-  //   order_id: response?.order.id ?? response?.id,
-  // })
+      track("order_completed", {
+    order_id: response?.order.id ?? response?.id,
+  })
     redirect(`/your-order?id=${delivery.id}`);
     
 }

@@ -1,5 +1,4 @@
 import { CheckoutNav } from "@/components/layout/checkout-nav";
-import { NavigationHeader } from "@/components/layout/templates/nav";
 import { Suspense } from "react";
 import { TooltipProvider } from "@workspace/ui/components/tooltip";
 

@@ -1,7 +1,4 @@
 import { CheckoutNav } from "@/components/layout/checkout-nav";
-import { NavigationHeader } from "@/components/layout/templates/nav";
-import { useN8nQuery } from "@/hooks/useN8nQuery";
-import { retrieveCart } from "@/lib/actions";
 
 
 export default async function RootLayout({
