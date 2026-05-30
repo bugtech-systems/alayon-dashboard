@@ -32,7 +32,7 @@ export const getProductsById = async ({
         id: ids,
         region_id: regionId,
         fields:
-          "*variants,*variants.calculated_price,*variants.inventory_quantity,*company",
+          "*variants,*variants.calculated_price,*variants.inventory_quantity,*company"
       },
       headers,
       next,
@@ -63,7 +63,7 @@ export const getProductByHandle = async (handle: string, regionId?: string) => {
       headers,
       next,
     })
-    .then(({ products }) => products[0])
+    .then(({ products }) => ({...products[0], company: Array.isArray(products[0].company) ? products[0].company[0] : products[0].company}))
 }
 
 export const listProducts = async ({

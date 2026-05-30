@@ -19,7 +19,7 @@ export default function ProductActions({
     <>
       <div className="flex flex-col gap-y-2 w-full">
         <ProductPrice product={product} />
-        <ProductVariantsTable product={product} region={region} company={company}/>
+        <ProductVariantsTable product={product} region={region} company={Array.isArray(company) ? company[0] : company}/>
       </div>
     </>
   )

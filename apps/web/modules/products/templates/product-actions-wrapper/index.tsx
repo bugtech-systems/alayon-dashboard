@@ -23,6 +23,6 @@ export default async function ProductActionsWrapper({
   if (!product) {
     return null
   }
-
+console.log(company, 'COMMAPAAA')
   return <ProductActions product={product} region={region} company={company} />
 }
