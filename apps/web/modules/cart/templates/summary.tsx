@@ -34,7 +34,7 @@ const Summary = ({ customer, spendLimitExceeded }: SummaryProps) => {
     ? checkoutStep
       ? `/checkout?step=${checkoutStep}`
       : "/checkout"
-    : "/account"
+    : "/checkout"
 
   return (
     <div className="space-y-4">
@@ -46,7 +46,7 @@ const Summary = ({ customer, spendLimitExceeded }: SummaryProps) => {
           <span className="text-sm font-medium">
             {convertToLocale({
               amount: subtotal,
-              currency_code: cart?.currency_code,
+              currency_code: cart?.currency_code || 'php',
             })}
           </span>
         </div>
@@ -61,7 +61,7 @@ const Summary = ({ customer, spendLimitExceeded }: SummaryProps) => {
             <span className="text-sm text-green-600">
               -{convertToLocale({
                 amount: discountTotal,
-                currency_code: cart?.currency_code,
+                currency_code: cart?.currency_code || 'php',
               })}
             </span>
           </div>
@@ -77,7 +77,7 @@ const Summary = ({ customer, spendLimitExceeded }: SummaryProps) => {
             <span className="text-sm font-medium">
               {convertToLocale({
                 amount: shippingTotal,
-                currency_code: cart?.currency_code,
+                currency_code: cart?.currency_code || 'php',
               })}
             </span>
           </div>
@@ -90,7 +90,7 @@ const Summary = ({ customer, spendLimitExceeded }: SummaryProps) => {
             <span className="text-sm font-medium">
               {convertToLocale({
                 amount: taxTotal,
-                currency_code: cart?.currency_code,
+                currency_code: cart?.currency_code || 'php',
               })}
             </span>
           </div>
@@ -106,14 +106,14 @@ const Summary = ({ customer, spendLimitExceeded }: SummaryProps) => {
           {hasDiscounts && (
             <p className="text-xs text-green-600 mt-0.5">You saved {convertToLocale({
               amount: discountTotal,
-              currency_code: cart?.currency_code,
+              currency_code: cart?.currency_code || 'php',
             })}</p>
           )}
         </div>
         <span className="text-xl font-bold text-primary">
           {convertToLocale({
             amount: total,
-            currency_code: cart?.currency_code,
+            currency_code: cart?.currency_code || 'php',
           })}
         </span>
       </div>
@@ -126,8 +126,7 @@ const Summary = ({ customer, spendLimitExceeded }: SummaryProps) => {
             disabled={!cart?.items?.length || spendLimitExceeded}
             size="lg"
           >
-            {customer ? (
-              spendLimitExceeded ? (
+              { spendLimitExceeded ? (
                 <>
                   <AlertCircle className="h-4 w-4" />
                   Limit Exceeded
@@ -137,9 +136,6 @@ const Summary = ({ customer, spendLimitExceeded }: SummaryProps) => {
                   <Lock className="h-4 w-4" />
                   Proceed to Checkout
                 </>
-              )
-            ) : (
-              "Sign in to Checkout"
             )}
           </Button>
         </LocalizedClientLink>

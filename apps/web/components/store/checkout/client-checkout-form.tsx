@@ -16,13 +16,12 @@ export default function ClientCheckoutForm({
 }: {
   cart: any
   customer: any
-  shippingMethods: any[]
-  paymentMethods: any[]
+  shippingMethods?: any[]
+  paymentMethods?: any[]
 }) {
   return (
     <CheckoutProvider
       cart={cart}
-      customer={customer}
       shippingMethods={shippingMethods}
       paymentMethods={paymentMethods}
     >

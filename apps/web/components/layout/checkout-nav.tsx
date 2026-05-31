@@ -53,7 +53,7 @@ const featuredProducts = [
   },
 ];
 
-export function CheckoutNav({products}: any) {
+export function CheckoutNav() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname();
@@ -119,33 +119,7 @@ export function CheckoutNav({products}: any) {
                   </nav>
 
                   {/* Featured Products */}
-                  <div className="mt-6 p-4 border-t">
-                    <h4 className="text-sm font-medium text-muted-foreground mb-4">Featured Products</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      {products.map((product) => (
-                        <Link key={product.id} href={`/products/${product.slug}`} className="group">
-                          <div className="aspect-[4/5] bg-gray-100 rounded-lg overflow-hidden">
-                            <img
-                              src={product.image}
-                              alt={product.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            />
-                          </div>
-                          <div className="mt-2">
-                            <p className="text-xs line-clamp-2">{product.title}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-sm font-semibold">{currencySymbolMap['php']}{product.price.toFixed(2)}</span>
-                              {product.compareAtPrice && (
-                                <span className="text-xs text-muted-foreground line-through">
-                                  {currencySymbolMap['php']}{product.compareAtPrice.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
+
                 </SheetContent>
               </Sheet>
 

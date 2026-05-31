@@ -1,7 +1,7 @@
 // app/checkout/page.tsx
 import  CheckoutForm  from "@/components/store/checkout/client-checkout-form";
 import { OrderSummary } from "@/components/store/checkout/order-summary";
-import { retrieveCart, retrieveCustomer } from "@/lib/actions";
+import { getPaymentProviders, listShippingMethods, retrieveCart, retrieveCustomer } from "@/lib/actions";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -19,7 +19,7 @@ interface CheckoutPageProps {
 }
 
 async function CheckoutContent({ cartId }: { cartId: string }) {
-  const cart = await retrieveCart(cartId);
+  const cart = await retrieveCart(cartId) as any;
     console.log(cart, cartId, 'CARRT')
   if (cart && !cart?.id) {
     return (
@@ -80,7 +80,11 @@ async function CheckoutContent({ cartId }: { cartId: string }) {
 
   // Fetch available shipping methods and payment providers for Medusa checkout flow
   const customer = await retrieveCustomer()
-
+  // Fetch available shipping methods and payment providers for Medusa checkout flow
+  const [shippingMethods, paymentProviders] = await Promise.all([
+    listShippingMethods(cart?.region_id),
+    getPaymentProviders(cart?.region_id)
+  ]);
 
   return (
     <>
@@ -101,6 +105,8 @@ async function CheckoutContent({ cartId }: { cartId: string }) {
           <CheckoutForm 
             cart={cart} 
             customer={customer}
+            shippingMethods={shippingMethods}
+            paymentProviders={paymentProviders}
           />
         </div>
       </div>
@@ -112,6 +118,8 @@ async function CheckoutContent({ cartId }: { cartId: string }) {
           <CheckoutForm 
             cart={cart} 
             customer={customer}
+            shippingMethods={shippingMethods}
+            paymentProviders={paymentProviders}
           />
         </div>
         

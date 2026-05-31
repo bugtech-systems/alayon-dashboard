@@ -1,7 +1,7 @@
 // app/(checkout)/your-order/page.tsx
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -39,6 +39,9 @@ import {
 import { cn } from "@/lib/utils";
 import { retrieveDelivery, retrieveDriver } from "@/lib/data";
 import { markOrderAsCompleted } from "@/lib/actions/order-actions";
+
+// Force dynamic rendering to prevent static generation
+export const dynamic = 'force-dynamic';
 
 // ====================== TYPES ======================
 type DeliveryStatus =
@@ -484,7 +487,7 @@ function DesktopTimeline({ currentStatus, progressPercentage, estimatedRemaining
 
 function OrderItem({ item, isMobile = false }: any) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const itemTotal = item.quantity * item.unit_price;
+  const itemTotal = (item.quantity || 0) * (item.unit_price || 0);
   const itemTax = item.tax_total || 0;
 
   if (isMobile) {
@@ -619,8 +622,8 @@ function ReturnToShopModal({
   );
 }
 
-// ====================== MAIN PAGE COMPONENT ======================
-export default function OrderStatusPage({ id, showMarkAsCompleted = false }: { id?: any; showMarkAsCompleted?: boolean }) {
+// ====================== MAIN ORDER STATUS COMPONENT ======================
+function OrderStatusContent({ id, showMarkAsCompleted = false }: { id?: any; showMarkAsCompleted?: boolean }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const deliveryId = (id || searchParams.get("id")) as string;
@@ -636,7 +639,11 @@ export default function OrderStatusPage({ id, showMarkAsCompleted = false }: { i
 
   const fetchData = useCallback(
     async (showRefreshIndicator = false) => {
-      if (!deliveryId) return;
+      if (!deliveryId) {
+        setLoading(false);
+        setError("No order ID provided");
+        return;
+      }
       try {
         if (showRefreshIndicator) setIsRefreshing(true);
         const deliveryData = (await retrieveDelivery(deliveryId)) as any;
@@ -711,6 +718,18 @@ export default function OrderStatusPage({ id, showMarkAsCompleted = false }: { i
     setShowReturnModal(false);
   };
 
+  // Safely calculate totals with null checks - FIXED: added defensive checks
+  const items = delivery?.cart?.items || [];
+  const subtotal = items.reduce((total, item) => total + (item.quantity || 0) * (item.unit_price || 0), 0);
+  const deliveryFee = delivery?.delivery_fee || 0;
+  let taxAmount = delivery?.tax_amount || 0;
+  let totalAmount = delivery?.total || subtotal + deliveryFee + taxAmount;
+  
+  if (taxAmount === 0 && subtotal > 0) {
+    taxAmount = (subtotal + deliveryFee) * 0.12;
+    totalAmount = subtotal + deliveryFee + taxAmount;
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -737,17 +756,6 @@ export default function OrderStatusPage({ id, showMarkAsCompleted = false }: { i
         </Card>
       </div>
     );
-  }
-
-  // Calculate totals
-  const subtotal =
-    delivery.cart?.items?.reduce((total, item) => total + item.quantity * item.unit_price, 0) || 0;
-  const deliveryFee = delivery.delivery_fee || 0;
-  let taxAmount = delivery.tax_amount || 0;
-  let totalAmount = delivery.total || subtotal + deliveryFee + taxAmount;
-  if (taxAmount === 0 && subtotal > 0) {
-    taxAmount = (subtotal + deliveryFee) * 0.12;
-    totalAmount = subtotal + deliveryFee + taxAmount;
   }
 
   const currentStatus = delivery.delivery_status;
@@ -863,30 +871,43 @@ export default function OrderStatusPage({ id, showMarkAsCompleted = false }: { i
               deliveredAt={deliveredAt}
             />
 
-            {/* Order Items */}
+            {/* Order Items - FIXED: Added null checks for items.map */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
                   <Package2 className="h-4 w-4 text-primary lg:h-5 lg:w-5" />
                   Order Items
                   <span className="ml-auto text-sm font-normal text-muted-foreground">
-                    {delivery.cart?.items?.length || 0} items
+                    {items.length} items
                   </span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 lg:hidden">
-                  {delivery.cart?.items?.map((item) => (
-                    <OrderItem key={item.id} item={item} isMobile />
-                  ))}
+                  {items.length > 0 ? (
+                    items.map((item) => (
+                      <OrderItem key={item.id} item={item} isMobile />
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No items found</p>
+                  )}
                 </div>
                 <div className="hidden space-y-2 lg:block">
-                  {delivery.cart?.items?.map((item) => (
-                    <OrderItem key={item.id} item={item} isMobile={false} />
-                  ))}
+                  {items.length > 0 ? (
+                    items.map((item) => (
+                      <OrderItem key={item.id} item={item} isMobile={false} />
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No items found</p>
+                  )}
                 </div>
                 <Separator className="my-4" />
-                <OrderSummary subtotal={subtotal} deliveryFee={deliveryFee} taxAmount={taxAmount} total={totalAmount} />
+                <OrderSummary 
+                  subtotal={subtotal} 
+                  deliveryFee={deliveryFee} 
+                  taxAmount={taxAmount} 
+                  total={totalAmount} 
+                />
               </CardContent>
             </Card>
           </div>
@@ -1074,5 +1095,21 @@ export default function OrderStatusPage({ id, showMarkAsCompleted = false }: { i
         onDismiss={handleDismissModal}
       />
     </div>
+  );
+}
+
+// ====================== MAIN PAGE EXPORT ======================
+export default function OrderStatusPage({ id, showMarkAsCompleted = false }: { id?: any; showMarkAsCompleted?: boolean }) {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <OrderStatusContent id={id} showMarkAsCompleted={showMarkAsCompleted} />
+    </Suspense>
   );
 }
