@@ -8,6 +8,7 @@ import { Menu, Search, User, ShoppingCart, ArrowLeft, Home } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { currencySymbolMap } from "@/lib/constants";
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -52,7 +53,7 @@ const featuredProducts = [
   },
 ];
 
-export function CheckoutNav() {
+export function CheckoutNav({products}: any) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const pathname = usePathname();
@@ -121,8 +122,8 @@ export function CheckoutNav() {
                   <div className="mt-6 p-4 border-t">
                     <h4 className="text-sm font-medium text-muted-foreground mb-4">Featured Products</h4>
                     <div className="grid grid-cols-2 gap-4">
-                      {featuredProducts.map((product) => (
-                        <Link key={product.id} href={`/product/${product.slug}`} className="group">
+                      {products.map((product) => (
+                        <Link key={product.id} href={`/products/${product.slug}`} className="group">
                           <div className="aspect-[4/5] bg-gray-100 rounded-lg overflow-hidden">
                             <img
                               src={product.image}
@@ -133,10 +134,10 @@ export function CheckoutNav() {
                           <div className="mt-2">
                             <p className="text-xs line-clamp-2">{product.title}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="text-sm font-semibold">${product.price.toFixed(2)}</span>
+                              <span className="text-sm font-semibold">{currencySymbolMap['php']}{product.price.toFixed(2)}</span>
                               {product.compareAtPrice && (
                                 <span className="text-xs text-muted-foreground line-through">
-                                  ${product.compareAtPrice.toFixed(2)}
+                                  {currencySymbolMap['php']}{product.compareAtPrice.toFixed(2)}
                                 </span>
                               )}
                             </div>

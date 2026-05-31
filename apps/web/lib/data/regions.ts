@@ -35,7 +35,7 @@ export const retrieveRegion = async (
 const regionMap = new Map<string, HttpTypes.StoreRegion>()
 
 export const getRegion = async (
-  countryCode: string
+  countryCode: string = 'ph'
 ): Promise<HttpTypes.StoreRegion | null> => {
   try {
     if (regionMap.has(countryCode)) {
@@ -56,7 +56,7 @@ export const getRegion = async (
 
     const region = countryCode
       ? regionMap.get(countryCode)
-      : regionMap.get("us")
+      : regionMap.get("ph")
 
     return region ?? null
   } catch (e: any) {

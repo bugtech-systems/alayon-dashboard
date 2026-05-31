@@ -2,13 +2,7 @@ import { retrieveCustomer } from "@/lib/data/customer"
 import AccountButton from "@/modules/account/components/account-button"
 import CartButton from "@/modules/cart/components/cart-button"
 import LocalizedClientLink from "@/modules/common/components/localized-client-link"
-import FilePlus from "@/modules/common/icons/file-plus"
-import { MegaMenuWrapper } from "@/modules/layout/components/mega-menu"
-import { RequestQuoteConfirmation } from "@/modules/quotes/components/request-quote-confirmation"
-import { RequestQuotePrompt } from "@/modules/quotes/components/request-quote-prompt"
 import SkeletonAccountButton from "@/modules/skeletons/components/skeleton-account-button"
-import SkeletonCartButton from "@/modules/skeletons/components/skeleton-cart-button"
-import SkeletonMegaMenu from "@/modules/skeletons/components/skeleton-mega-menu"
 import { Suspense } from "react"
 import { Menu, Search, User } from "lucide-react"
 import {
@@ -20,9 +14,10 @@ import {
   SheetClose,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import { LocationDialogWrapper } from "@/components/location/location-dialog-wrapper"
 import { AccountSwitcher } from "@/components/sidebar/account-switcher"
+import { fetchRandomFeaturedProducts } from "@/lib/data/products"
+import { currencySymbolMap } from "@/lib/constants"
 
 // Navigation items
 const navigation = [
@@ -32,43 +27,12 @@ const navigation = [
 ]
 
 // Featured products for mobile menu
-const featuredProducts = [
-  {
-    id: 1,
-    title: "Acid Wash Drop Shoulder Hoodie – Vintage Streetwear Unisex Pullover",
-    price: 1599.00,
-    compareAtPrice: 1999.00,
-    image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=500&fit=crop",
-    slug: "acid-wash-drop-shoulder-hoodie"
-  },
-  {
-    id: 2,
-    title: "Classic Black Drop Shoulder Hoodie – Essential Streetwear Staple",
-    price: 1299.00,
-    compareAtPrice: 1799.00,
-    image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400&h=500&fit=crop",
-    slug: "classic-black-drop-shoulder-hoodie"
-  },
-  {
-    id: 3,
-    title: "Heavyweight Premium Drop Shoulder Hoodie – 480 GSM Ultra-Thick",
-    price: 1899.00,
-    compareAtPrice: 2499.00,
-    image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=500&fit=crop",
-    slug: "heavyweight-premium-drop-shoulder-hoodie"
-  },
-  {
-    id: 4,
-    title: "Oversized Drop Shoulder Hoodie – Premium Streetwear Unisex Pullover",
-    price: 1499.00,
-    compareAtPrice: 1999.00,
-    image: "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?w=400&h=500&fit=crop",
-    slug: "oversized-drop-shoulder-hoodie"
-  },
-]
+
 
 // Client component for mobile menu and interactive elements
-function MobileMenu() {
+async function MobileMenu() {
+    const products = await fetchRandomFeaturedProducts({countryCode: 'ph'});
+    console.log(products[0], 'PRODDS')
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -99,8 +63,8 @@ function MobileMenu() {
         <div className="mt-6 p-4 border-t">
           <h4 className="text-sm font-medium text-muted-foreground mb-4">Featured Products</h4>
           <div className="grid grid-cols-2 gap-4">
-            {featuredProducts.map((product) => (
-              <LocalizedClientLink key={product.id} href={`/product/${product.slug}`} className="group">
+            {products.map((product) => (
+              <LocalizedClientLink key={product.id} href={`/products/${product.slug}`} className="group">
                 <div className="aspect-[4/5] bg-gray-100 rounded-lg overflow-hidden">
                   <img
                     src={product.image}
@@ -111,10 +75,10 @@ function MobileMenu() {
                 <div className="mt-2">
                   <p className="text-xs line-clamp-2">{product.title}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm font-semibold">${product.price.toFixed(2)}</span>
+                    <span className="text-sm font-semibold">{currencySymbolMap['php']}{product.price.toFixed(2)}</span>
                     {product.compareAtPrice && (
                       <span className="text-xs text-muted-foreground line-through">
-                        ${product.compareAtPrice.toFixed(2)}
+                        {currencySymbolMap['php']}{product.compareAtPrice.toFixed(2)}
                       </span>
                     )}
                   </div>
