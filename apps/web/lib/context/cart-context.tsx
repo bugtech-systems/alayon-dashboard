@@ -28,6 +28,7 @@ import {
   useState,
   useTransition,
 } from "react"
+import { setCartId } from "../data/cookies"
 
 export type AddToCartEventPayload = {
   lineItems: {

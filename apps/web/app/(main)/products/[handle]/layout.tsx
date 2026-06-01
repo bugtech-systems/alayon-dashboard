@@ -33,7 +33,6 @@ export default async function PageLayout(props: { children: React.ReactNode, par
   }
 
 
-
   return (
     <>
     <StoreNavigationHeader company={company}/>

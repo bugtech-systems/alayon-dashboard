@@ -435,7 +435,7 @@ const CartDrawer = ({
         {items.length > 0 && (
           <DrawerFooter className="border-t bg-gray-50/50 p-3 space-y-2 sticky bottom-0 bg-white">
             <div className="space-y-2">
-              <LocalizedClientLink href={`/cart?cart_id=${cart?.id}`}>
+              <LocalizedClientLink href={`/cart`}>
                 <Button 
                   variant="outline" 
                   className="w-full text-sm h-9"

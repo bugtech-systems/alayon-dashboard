@@ -184,7 +184,6 @@ export async function placeOrder(
   const cart_id = data.get("cart_id")?.toString();
   const cart = await retrieveCart(cart_id);
 
-  console.log(cart, 'CAAARRTT')
   if (!cart) {
     throw new Error("No existing cart found when placing an order")
   }
@@ -224,22 +223,22 @@ console.log(firstName, lastName, address, city, phone, barangay, 'FOOORM')
   // const cartsTag = await getCacheOptions("carts")
   // const ordersTag = await getCacheOptions("orders")
   // const approvalsTag = await getCacheOptions("approvals")
-  const response = await sdk.store.cart
-    .complete(cart?.id, {}, {...(await getAuthHeaders())})
-    .catch(medusaError) as any
+  // const response = await sdk.store.cart
+  //   .complete(cart?.id, {}, {...(await getAuthHeaders())})
+  //   .catch(medusaError) as any
 
 
-    // Return success response
-      track("order_completed", {
-    order_id: response?.order.id ?? response?.id,
-  })
+  //   // Return success response
+  //     track("order_completed", {
+  //   order_id: response?.order.id ?? response?.id,
+  // })
 
 
   const delivery = await createDelivery(cart?.id, cart?.metadata?.company_id);
 
 
 
-  console.log(delivery, 'DELIVERY')
+  console.log(delivery, cart,'DELIVERY')
   // revalidateTag("orders", "max")
   // revalidateTag("approvals", "max")
 //     // Optional: Clear cart from localStorage by setting cookie (if you still use cookies)

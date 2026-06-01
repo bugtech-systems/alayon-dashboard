@@ -75,8 +75,8 @@ export async function retrieveCart(id?: string) {
 
 export async function retrieveCompanyCart(id?: string) {
   const cachedId = await getCachedId()
-
-  if (!id) {
+  const cartId = await getCartId()
+  if (!id || !cartId) {
     return null
   }
 
@@ -94,7 +94,7 @@ export async function retrieveCompanyCart(id?: string) {
       method: "GET",
       query: {
         fields:
-          "*items, *region, *items.product, *items.variant, +items.thumbnail, +items.metadata, *promotions, *company, *company.approval_settings, *customer, *approvals, +completed_at, *approval_status",
+          "*items, *region, *items.product, *items.variant, +items.thumbnail, +items.metadata, *promotions, *company, *company.approval_settings, *customer,  +completed_at",
       },
       headers,
       next,
@@ -104,9 +104,13 @@ export async function retrieveCompanyCart(id?: string) {
     })
     .catch(() => {
       return null
-    })
+    }) as any
+    console.log(company, 'ccccoompacart11')
 
-
+ 
+    // const cartCacheTag = await getCacheTag("carts")
+    // revalidateTag(cartCacheTag, "max")
+    console.log(company, 'ccccoompacart')
     return company
 }
 
@@ -133,11 +137,9 @@ export async function getOrSetCart(countryCode: string = 'ph', companyId?: strin
 
     const {cart: cartData} = await sdk.store.cart.create(body, {}, headers)
     console.log(cartData, 'carrt resp newwwwss')
-
+    setCartId(cartData?.id)
     const cartCacheTag = await getCacheTag("carts")
     revalidateTag(cartCacheTag, "max")
-    
-    setCartId(cartData?.id)
     cart = cartData;
   }
 
@@ -147,6 +149,7 @@ export async function getOrSetCart(countryCode: string = 'ph', companyId?: strin
     const cartCacheTag = await getCacheTag("carts")
     revalidateTag(cartCacheTag, "max")
   }
+    setCartId(cart?.id)
 
   return cart
 }
@@ -243,7 +246,7 @@ export async function addToCartBulk({
     headers["x-publishable-api-key"] =
       process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
   }
-
+  setCartId(cart?.id)
   console.log(lineItems, countryCode, 'addding', companyId)
   await fetch(
     `${process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL}/store/carts/${cart.id}/line-items/bulk`,

@@ -32,7 +32,6 @@ const navigation = [
 // Client component for mobile menu and interactive elements
 async function MobileMenu() {
     const products = await fetchRandomFeaturedProducts({countryCode: 'ph'});
-    console.log(products[0], 'PRODDS')
   return (
     <Sheet>
       <SheetTrigger asChild>

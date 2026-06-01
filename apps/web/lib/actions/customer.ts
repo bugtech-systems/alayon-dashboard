@@ -188,19 +188,22 @@ export async function createGuestCustomer(customerData: {
       body: JSON.stringify(payload),
     });
 
+    console.log(response, 'RESSESES')
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       try {
         const errorData = await response.json();
+        console.log(errorData, 'ERRR')
         errorMessage = errorData.message || errorMessage;
         console.error("Medusa customer creation error details:", errorData);
+        return null
       } catch (e) {
         // response body not JSON
       }
-      throw new Error(errorMessage);
+              return null
     }
 
-    const { customer } = await response.json();
+    const customer = await response.json();
     const cacheTag = await getCacheTag("customers");
     revalidateTag(cacheTag, "max");
     return customer;

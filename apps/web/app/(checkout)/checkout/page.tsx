@@ -169,7 +169,7 @@ function CheckoutSkeleton() {
 export default async function CheckoutPage({ searchParams }: CheckoutPageProps) {
   const cookieSession = await cookies();
   const params = await searchParams;
-  const cartId = params.cart_id || cookieSession.get("_medusa_cart_id")?.value;
+  const cartId = cookieSession.get("_medusa_cart_id")?.value;
   
   console.log(cartId, 'Checkout Cart ID', params.cart_id);
   
