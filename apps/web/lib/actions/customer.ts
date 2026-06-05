@@ -160,51 +160,27 @@ export const updateCustomerAddress = async (
  * @param customerData - Customer details (email optional, phone required)
  * @returns The created customer object or null on error.
  */
-export async function createGuestCustomer(customerData: {
-  email?: string;
-  first_name: string;
-  last_name: string;
-  phone: string;
-  cart_id: string;
-}) {
+export async function createCustomer(customerData: any) {
   try {
-    const payload = {
-      email: customerData.email || `guest_${Date.now()}@example.com`,
-      first_name: customerData.first_name,
-      last_name: customerData.last_name,
-      phone: customerData.phone,
-      cart_id: customerData?.cart_id,
-      metadata: { is_guest: true },
-    };
+    const payload = customerData;
 
 
     console.log(payload, 'CREAATE CUSTOMM')
-    const response = await fetch(`${BASE_URL}/store/customers/phone`, {
+ const  customer  = await sdk.client.fetch<{
+      customer: any;
+    }>(`/dashboard/customer`, {
       method: "POST",
+      body: payload,
       headers: {
-      "x-publishable-api-key": PUBLISHABLE_KEY,
-      "Content-Type": "application/json",
+        "Content-Type": "application/json",
+        ...(await getAuthHeaders()),
       },
-      body: JSON.stringify(payload),
     });
 
-    console.log(response, 'RESSESES')
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      try {
-        const errorData = await response.json();
-        console.log(errorData, 'ERRR')
-        errorMessage = errorData.message || errorMessage;
-        console.error("Medusa customer creation error details:", errorData);
-        return null
-      } catch (e) {
-        // response body not JSON
-      }
-              return null
-    }
+    console.log(customer, 'RESSESES')
 
-    const customer = await response.json();
-    const cacheTag = await getCacheTag("customers");
+
+    const cacheTag = await getCacheTag("customer");
     revalidateTag(cacheTag, "max");
     return customer;
   } catch (error: any) {
@@ -305,4 +281,53 @@ export async function updateCustomerPhone(customerId: string, phone: string) {
   const cacheTag = await getCacheTag("customers");
   revalidateTag(cacheTag, "max");
   return updatedCustomer;
+}
+
+export async function createGuestCustomer(customerData: any) {
+  try {
+    const payload = {
+      ...customerData,
+      email: customerData.email || `guest_${customerData.phone}@example.com`,
+      first_name: customerData.first_name,
+      last_name: customerData.last_name,
+      phone: customerData.phone,
+      cart_id: customerData?.cart_id,
+      metadata: { is_guest: true },
+    };
+
+
+    console.log(payload, 'CREAATE CUSTOMM')
+    const response = await fetch(`${BASE_URL}/store/customers/phone`, {
+      method: "POST",
+      headers: {
+      "x-publishable-api-key": PUBLISHABLE_KEY,
+      "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    console.log(response, 'RESSESES')
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        console.log(errorData, 'ERRR')
+        errorMessage = errorData.message || errorMessage;
+        console.error("Medusa customer creation error details:", errorData);
+        return null
+      } catch (e) {
+        // response body not JSON
+      }
+              return null
+    }
+
+    const customer = await response.json();
+    const cacheTag = await getCacheTag("customers");
+    revalidateTag(cacheTag, "max");
+    return customer;
+  } catch (error: any) {
+    console.error("Error creating guest customer:", error);
+    // Return a structured error object instead of null
+    return { error: error.message || "Failed to create customer" };
+  }
 }

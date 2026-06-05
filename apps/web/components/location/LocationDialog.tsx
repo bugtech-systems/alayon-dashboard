@@ -20,6 +20,7 @@ import { listBarangays, listMunicipalities } from '@/lib/actions/regions';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Separator } from '@/components/ui/separator';
 import { MapLocationPicker } from '@/components/map-location-picker';
+import { createCustomer } from '@/lib/actions';
 
 // Types
 interface Municipality {
@@ -239,14 +240,22 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
         coordinates: formData.coordinates,
         mapAddress: formData.mapAddress,
         fullName: `${formData.firstName} ${formData.lastName}`,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
         phone: formData.phone,
         email: formData.email,
         timestamp: Date.now(),
       };
       
+      let customer = await createCustomer(userLocation)
+      
+
+      console.log(userLocation, customer, 'CUSTOM')
+
       setUserLocation(userLocation);
       setSuccess(true);
       
+
       // Save to localStorage
       localStorage.setItem('userLocation', JSON.stringify(userLocation));
       
