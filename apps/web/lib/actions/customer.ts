@@ -168,7 +168,7 @@ export async function createCustomer(customerData: any) {
     console.log(payload, 'CREAATE CUSTOMM')
  const  customer  = await sdk.client.fetch<{
       customer: any;
-    }>(`/dashboard/customer`, {
+    }>(`/dashboard/customers`, {
       method: "POST",
       body: payload,
       headers: {
