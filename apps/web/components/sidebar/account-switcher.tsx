@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { BadgeCheck, Bell, CreditCard, LogOut, User } from "lucide-react";
+import { BadgeCheck, Bell, CreditCard, LogOut, ShoppingBasket, User } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -82,14 +82,16 @@ return (
             <BadgeCheck />
             Account
           </DropdownMenuItem>
-          {/* <DropdownMenuItem>
-            <CreditCard />
-            Billing
+          <DropdownMenuItem
+                      onClick={() => redirect('/cart')}
+          >
+            <ShoppingBasket />
+            Cart
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          {/* <DropdownMenuItem>
             <Bell />
             Notifications
-          </DropdownMenuItem> */}
+          </DropdownMenuItem>  */}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>

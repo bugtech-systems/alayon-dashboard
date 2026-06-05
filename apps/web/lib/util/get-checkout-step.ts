@@ -16,6 +16,6 @@ export function getCheckoutStep(cart: B2BCart) {
   ) {
     return "payment"
   } else {
-    return null
+    return "review"
   }
 }

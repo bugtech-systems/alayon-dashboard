@@ -1,6 +1,6 @@
 import { retrieveCustomer } from "@/lib/data/customer"
 import AccountButton from "@/modules/account/components/account-button"
-import CartButton from "@/modules/cart/components/cart-button"
+import CartButton from "@/modules/carts/components/cart-button"
 import LocalizedClientLink from "@/modules/common/components/localized-client-link"
 import SkeletonAccountButton from "@/modules/skeletons/components/skeleton-account-button"
 import { Suspense } from "react"
@@ -122,7 +122,6 @@ function SearchModal() {
 
 export async function NavigationHeader() {
     const customer = await retrieveCustomer() as any;
-console.log(customer, "USSS")
   return (
     <>
     <LocationDialogWrapper/>

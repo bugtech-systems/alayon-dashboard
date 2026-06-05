@@ -5,9 +5,9 @@ import { useCart } from "@/lib/context/cart-context"
 import { checkSpendingLimit } from "@/lib/medusa/util/check-spending-limit"
 import { getCheckoutStep } from "@/lib/medusa/util/get-checkout-step"
 import { convertToLocale } from "@/lib/medusa/util/money"
-import AppliedPromotions from "@/modules/cart/components/applied-promotions"
-import ApprovalStatusBanner from "@/modules/cart/components/approval-status-banner"
-import ItemsTemplate from "@/modules/cart/templates/items"
+import AppliedPromotions from "@/modules/carts/components/applied-promotions"
+import ApprovalStatusBanner from "@/modules/carts/components/approval-status-banner"
+import ItemsTemplate from "@/modules/carts/templates/items"
 import Button from "@/modules/common/components/button"
 import LocalizedClientLink from "@/modules/common/components/localized-client-link"
 import FreeShippingPriceNudge from "@/modules/shipping/components/free-shipping-price-nudge"
@@ -172,8 +172,8 @@ const CartDrawer = ({
 
   const checkoutStep = cart?.id ? getCheckoutStep(cart) : undefined
   const checkoutPath = checkoutStep
-      ? `/checkout?step=${checkoutStep}&cart_id=${cart?.id}`
-      : `/checkout?cart_id=${cart?.id}`
+      ? `/check?step=${checkoutStep}&cart_id=${cart?.id}`
+      : `/check?cart_id=${cart?.id}`
 
   // Check if free shipping is applicable
   const hasFreeShipping = useMemo(() => {

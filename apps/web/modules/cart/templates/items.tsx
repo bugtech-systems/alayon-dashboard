@@ -1,105 +1,102 @@
-// modules/cart/templates/items.tsx
 "use client"
 
-import { getCartApprovalStatus } from "@/lib/util/get-cart-approval-status"
-import { convertToLocale } from "@/lib/util/money"
-import ItemFull from "@/modules/cart/components/item-full"
-import { B2BCart } from "@/types/global"
-import { StoreCartLineItem } from "@medusajs/types"
-import { cn } from "@/lib/utils"
-import { Package, ShoppingBag } from "lucide-react"
-import { useMemo } from "react"
+import { HttpTypes } from "@medusajs/types"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
+import { ShoppingBag, Package, Truck, Clock, AlertCircle } from "lucide-react"
+import Link from "next/link"
+import Item from "../components/item"
 
 type ItemsTemplateProps = {
-  cart: B2BCart | any
-  showBorders?: boolean
-  showTotal?: boolean
-  variant?: "default" | "compact"
+  cart?: HttpTypes.StoreCart
 }
 
-const ItemsTemplate = ({
-  cart,
-  showBorders = true,
-  showTotal = true,
-  variant = "default",
-}: ItemsTemplateProps) => {
+const ItemsTemplate = ({ cart }: ItemsTemplateProps) => {
   const items = cart?.items
-  const totalQuantity = useMemo(
-    () => cart?.items?.reduce((acc, item) => acc + item.quantity, 0),
-    [cart?.items]
-  )
-
-  const { isPendingAdminApproval, isPendingSalesManagerApproval } =
-    getCartApprovalStatus(cart)
-
-  const isPendingApproval =
-    isPendingAdminApproval || isPendingSalesManagerApproval
+  const currencyCode = cart?.currency_code
 
   if (!items || items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-          <ShoppingBag className="h-8 w-8 text-gray-400" />
+      <div className="flex min-h-[500px] flex-col items-center justify-center gap-6 py-12">
+        <div className="rounded-full bg-muted p-6">
+          <ShoppingBag className="h-10 w-10 text-muted-foreground" />
         </div>
-        <p className="text-sm text-muted-foreground">Your cart is empty</p>
+        <div className="max-w-md space-y-3 text-center">
+          <h3 className="text-xl font-semibold">Your cart is empty</h3>
+          <p className="text-sm text-muted-foreground">
+            Looks like you haven't added any items to your cart yet.
+            Start exploring our products to find something you'll love.
+          </p>
+          <Button asChild className="mt-4">
+            <Link href="/products">Browse Products</Link>
+          </Button>
+        </div>
       </div>
     )
   }
 
+  // Sort items by created date (newest first)
+  const sortedItems = [...items].sort((a, b) => {
+    return (a.created_at ?? "") > (b.created_at ?? "") ? -1 : 1
+  })
+
+
+
   return (
-    <div className="w-full flex flex-col gap-y-3">
-      <div className="flex flex-col gap-y-3 w-full">
-        {items.map((item: StoreCartLineItem, index: number) => {
-          const isLast = index === items.length - 1
-          
-          return (
-            <div
-              key={item.id}
-              className={cn(
-                variant === "compact" && "py-2",
-                showBorders && !isLast && "border-b border-gray-100 pb-3"
-              )}
-            >
-              <ItemFull
-                disabled={isPendingApproval}
-                currencyCode={cart?.currency_code || 'php'}
-                showBorders={showBorders}
-                variant={variant}
-                item={
-                  item as StoreCartLineItem & {
-                    metadata?: { note?: string }
-                  }
-                }
-              />
-            </div>
-          )
-        })}
-      </div>
-      
-      {showTotal && (
-        <div className={cn(
-          "mt-4 pt-3",
-          showBorders && "border-t border-gray-100"
-        )}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Total items</p>
-              <p className="text-sm font-medium text-gray-900">
-                {totalQuantity} {totalQuantity === 1 ? 'item' : 'items'}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground">Total amount</p>
-              <p className="text-base font-bold text-primary">
-                {convertToLocale({
-                  amount: cart?.item_total,
-                  currency_code: cart?.currency_code,
-                })}
-              </p>
-            </div>
-          </div>
+    <div className="space-y-6 p-3">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+            Shopping Cart
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {items.length} item{items.length !== 1 ? 's' : ''} in your cart
+          </p>
         </div>
-      )}
+      </div>
+
+
+      {/* Desktop View - No Border Table */}
+      <div className="hidden md:block">
+        <ScrollArea className="max-h-[700px]">
+          <Table>
+            <TableHeader className="sticky top-0 bg-background z-10">
+              <TableRow className="border-b bg-muted/30 hover:bg-muted/30">
+                <TableHead className="w-[100px]">Product</TableHead>
+                <TableHead>Details</TableHead>
+                <TableHead className="w-[140px] text-center">Quantity</TableHead>
+                <TableHead className="w-[120px] text-right">Unit Price</TableHead>
+                <TableHead className="w-[120px] text-right">Total</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedItems.map((item, index) => (
+                <Item
+                  key={item.id}
+                  item={item}
+                  currencyCode={currencyCode!}
+                  isLast={index === sortedItems.length - 1}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </div>
+
+      {/* Mobile View - No Border Cards */}
+      <div className="space-y-4 md:hidden">
+        {sortedItems.map((item) => (
+          <Item
+            key={item.id}
+            item={item}
+            currencyCode={currencyCode!}
+            isMobile={true}
+          />
+        ))}
+      </div>
     </div>
   )
 }

@@ -87,18 +87,7 @@ const ShippingAddress = ({
           <form action={handleSubmit}>
             <div className="pb-8">
               <ShippingAddressForm customer={customer} cart={cart} />
-              <div className="flex flex-col gap-y-2 items-end">
-                <SubmitButton
-                  className="mt-6"
-                  data-testid="submit-address-button"
-                >
-                  Next step
-                </SubmitButton>
-                <ErrorMessage
-                  error={error}
-                  data-testid="address-error-message"
-                />
-              </div>
+              
             </div>
           </form>
         ) : (

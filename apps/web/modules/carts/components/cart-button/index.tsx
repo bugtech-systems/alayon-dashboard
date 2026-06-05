@@ -3,7 +3,7 @@ import { retrieveCompanyCart } from "@/lib/data/cart"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { getProductByHandle } from "@/lib/data/products"
 import { listCartFreeShippingPrices } from "@/lib/medusa/data/fulfillment"
-import CartDrawer from "@/modules/cart/components/cart-drawer"
+import CartDrawer from "@/modules/carts/components/cart-drawer"
 import { StoreFreeShippingPrice } from "@/types/shipping-option/http"
 
 export default async function CartButton({ company }: any) {

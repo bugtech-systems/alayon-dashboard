@@ -1,6 +1,6 @@
 import { retrieveCustomer } from "@/lib/data/customer"
 import AccountButton from "@/modules/account/components/account-button"
-import CartButton from "@/modules/cart/components/cart-button"
+import CartButton from "@/modules/carts/components/cart-button"
 import LocalizedClientLink from "@/modules/common/components/localized-client-link"
 import FilePlus from "@/modules/common/icons/file-plus"
 import { MegaMenuWrapper } from "@/modules/layout/components/mega-menu"

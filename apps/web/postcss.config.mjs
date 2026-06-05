@@ -48,6 +48,33 @@ const config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+            maxWidth: {
+        "8xl": "100rem",
+      },
+      screens: {
+        "2xsmall": "320px",
+        xsmall: "512px",
+        small: "1024px",
+        medium: "1280px",
+        large: "1440px",
+        xlarge: "1680px",
+        "2xlarge": "1920px",
+      },
+      fontSize: {
+        "3xl": "2rem",
+      },
+      fontFamily: {
+        sans: [
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Ubuntu",
+          "sans-serif",
+        ],
+      },
       keyframes: {
         "accordion-down": {
           from: { height: 0 },
@@ -63,7 +90,7 @@ const config = {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
     },
-    plugins: { "@tailwindcss/postcss": {} },
+    plugins: { "@tailwindcss/postcss": {}},
 };
 
 export default config;

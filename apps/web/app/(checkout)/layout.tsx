@@ -19,7 +19,7 @@ export default function CheckoutLayout({
           </LocalizedClientLink>
         </nav>
       </div> */}
-      <div className="h-[100vh] relative bg-neutral-100" data-testid="checkout-container">
+      <div className="h-[100vh] relative bg-neutral-100" >
         {children}
       </div>
     </div>

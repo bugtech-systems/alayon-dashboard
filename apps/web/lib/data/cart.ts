@@ -5,7 +5,6 @@ import medusaError from "@/lib/util/medusa-error"
 import { StoreApprovalResponse } from "@/types/approval"
 import { B2BCart } from "@/types/global"
 import { HttpTypes, StoreCart } from "@medusajs/types"
-import { track } from "@vercel/analytics/server"
 import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import {
@@ -14,7 +13,6 @@ import {
   getCacheOptions,
   getCacheTag,
   getCartId,
-  getCompanyId,
   removeCartId,
   setCartId,
   setCompanyId,
@@ -105,12 +103,10 @@ export async function retrieveCompanyCart(id?: string) {
     .catch(() => {
       return null
     }) as any
-    console.log(company, 'ccccoompacart11')
 
  
     // const cartCacheTag = await getCacheTag("carts")
     // revalidateTag(cartCacheTag, "max")
-    console.log(company, 'ccccoompacart')
     return company
 }
 
@@ -550,6 +546,59 @@ export async function setContactDetails(
   }
 }
 
+// TODO: Pass a POJO instead of a form entity here
+export async function setAddresses(currentState: unknown, formData: FormData) {
+  try {
+    if (!formData) {
+      throw new Error("No form data found when setting addresses")
+    }
+    const cartId = getCartId()
+    if (!cartId) {
+      throw new Error("No existing cart found when setting addresses")
+    }
+
+    const data = {
+      shipping_address: {
+        first_name: formData.get("shipping_address.first_name"),
+        last_name: formData.get("shipping_address.last_name"),
+        address_1: formData.get("shipping_address.address_1"),
+        address_2: "",
+        company: formData.get("shipping_address.company"),
+        postal_code: formData.get("shipping_address.postal_code"),
+        city: formData.get("shipping_address.city"),
+        country_code: formData.get("shipping_address.country_code"),
+        province: formData.get("shipping_address.province"),
+        phone: formData.get("shipping_address.phone"),
+      },
+      email: formData.get("email"),
+    } as any
+
+    const sameAsBilling = formData.get("same_as_billing")
+    if (sameAsBilling === "on") data.billing_address = data.shipping_address
+
+    if (sameAsBilling !== "on")
+      data.billing_address = {
+        first_name: formData.get("billing_address.first_name"),
+        last_name: formData.get("billing_address.last_name"),
+        address_1: formData.get("billing_address.address_1"),
+        address_2: "",
+        company: formData.get("billing_address.company"),
+        postal_code: formData.get("billing_address.postal_code"),
+        city: formData.get("billing_address.city"),
+        country_code: formData.get("billing_address.country_code"),
+        province: formData.get("billing_address.province"),
+        phone: formData.get("billing_address.phone"),
+      }
+    await updateCart(data)
+  } catch (e: any) {
+    return e.message
+  }
+
+  redirect(
+    `/check?step=delivery`
+  )
+}
+
 export async function placeOrder(
   cartId?: string, company_id?: string
 ): Promise<HttpTypes.StoreCompleteCartResponse> {
@@ -567,19 +616,19 @@ export async function placeOrder(
   const ordersTag = await getCacheTag("orders")
   const approvalsTag = await getCacheTag("approvals")
 
-  const response = await sdk.store.cart
-    .complete(id, {}, headers)
-    .catch(medusaError)
+  // const response = await sdk.store.cart
+  //   .complete(id, {}, headers)
+  //   .catch(medusaError)
 
-  if (response.type === "cart") {
-    return response
-  }
+  // if (response.type === "cart") {
+  //   return response
+  // }
 
   let delivery = await createDelivery(id, company_id)
 
-  track("order_completed", {
-    order_id: response.order.id,
-  })
+  // track("order_completed", {
+  //   order_id: response.order.id,
+  // })
 
   revalidateTag(cartsTag, "max")
   revalidateTag(ordersTag, "max")

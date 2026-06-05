@@ -1,5 +1,5 @@
 import { retrieveCustomer } from "@/lib/data/customer"
-import ItemsPreviewTemplate from "@/modules/cart/templates/preview"
+import ItemsPreviewTemplate from "@/modules/carts/templates/preview"
 import CheckoutTotals from "@/modules/checkout/components/checkout-totals"
 import PromotionCode from "@/modules/checkout/components/promotion-code"
 import Review from "@/modules/checkout/components/review"

@@ -69,7 +69,7 @@ export default function AboutPage() {
                 size="lg"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 font-heading text-lg tracking-wider"
               >
-                <Link href="/products">
+                <Link href="/catalog">
                   EXPLORE PRODUCTS
                   <ArrowRight className="ml-2 w-5 h-5" />
                 </Link>

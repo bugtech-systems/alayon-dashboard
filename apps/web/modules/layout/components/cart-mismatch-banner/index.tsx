@@ -12,7 +12,6 @@ function CartMismatchBanner(props: { customer: B2BCustomer; cart: B2BCart }) {
   const [actionText, setActionText] = useState("Connect cart")
 
 
-  console.log(customer, cart, 'caaarrtt', !!cart.customer?.id, !customer)
   if (!customer || !!cart.customer?.id) {
     return
   }
