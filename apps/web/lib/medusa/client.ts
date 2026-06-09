@@ -1,6 +1,5 @@
 
 // lib/medusa/client.ts
-import Medusa from '@medusajs/medusa-js'
 import { sdk } from './config'
 import type {
   MedusaProduct,
@@ -35,7 +34,7 @@ export async function getProducts(options?: {
 }): Promise<{ products: MedusaProduct[]; count: number }> {
   let region = await getRegion('ph');
   const params: Record<string, any> = {
-    fields: "variants.prices.*,company.*",
+    fields: "variants.prices.*,companies.*",
     limit: options?.limit ?? 20,
     offset: options?.offset ?? 0,
     region_id: region?.id
@@ -101,7 +100,7 @@ export async function getProductByHandle(handle) {
         handle,
         region_id: region[0].id,
         fields:
-          "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags,*company",
+          "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags,*companies",
       },
       headers,
       next,

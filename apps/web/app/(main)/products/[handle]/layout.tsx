@@ -1,12 +1,9 @@
-import { getRegion } from "@/lib/actions/regions"
-import { retrieveCart, retrieveCompanyCart } from "@/lib/data/cart"
-import { setCartId } from "@/lib/data/cookies"
+import { retrieveCart } from "@/lib/data/cart"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { listCartFreeShippingPrices } from "@/lib/data/fulfillment"
 import { getProductByHandle } from "@/lib/data/products"
 import { getBaseURL } from "@/lib/util/env"
 import CartMismatchBanner from "@/modules/layout/components/cart-mismatch-banner"
-import { NavigationHeader } from "@/modules/layout/templates/nav"
 import { StoreNavigationHeader } from "@/modules/layout/templates/store-nav"
 import FreeShippingPriceNudge from "@/modules/shipping/components/free-shipping-price-nudge"
 import { StoreFreeShippingPrice } from "@/types/shipping-option/http"
@@ -23,9 +20,9 @@ export default async function PageLayout(props: { children: React.ReactNode, par
   const params = await props.params
   const product = await getProductByHandle(params?.handle) as any;
   const company = product?.company;
+  console.log(customer, params, product, 'paaagrra',company)
 
   const cart = await retrieveCart();
-
 
 
   if (cart) {

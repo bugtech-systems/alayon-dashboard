@@ -32,7 +32,7 @@ export const getProductsById = async ({
         id: ids,
         region_id: regionId,
         fields:
-          "*variants,*variants.calculated_price,*variants.inventory_quantity,*company"
+          "*variants,*variants.calculated_price,*variants.inventory_quantity,*companies"
       },
       headers,
       next,
@@ -58,12 +58,12 @@ export const getProductByHandle = async (handle: string, regionId?: string) => {
         handle,
         region_id: region?.id,
         fields:
-          "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags,*company",
+          "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags,*companies",
       },
       headers,
       next,
     })
-    .then(({ products }) => ({...products[0], company: Array.isArray(products[0].company) ? products[0].company[0] : products[0].company}))
+    .then(({ products }) => ({...products[0], company: Array.isArray(products[0].companies) ? products[0].companies[0] : products[0].companies}))
 }
 
 export const listProducts = async ({
