@@ -86,7 +86,7 @@ jobs:
             sudo chown -R $USER:$USER ~/apps/alayon-dashboard
             
             echo "Installing dependencies..."
-            pnpm install
+            pnpm install --frozen-lockfile --prefer-offline
             
             cd apps/web
             
