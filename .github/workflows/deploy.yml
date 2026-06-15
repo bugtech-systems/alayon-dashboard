@@ -30,7 +30,7 @@ jobs:
       - name: Build storefront
         run: |
           cd apps/web
-          pnpm run build
+          npm run build:verbose
         env:
           NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
           NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}
