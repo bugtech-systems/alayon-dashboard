@@ -60,25 +60,7 @@ jobs:
             
             cd apps/web
             
-            # Create .env.production file on EC2
-            cat > .env.production << 'EOF'
-            NODE_ENV=production
-            NEXT_PUBLIC_MEDUSA_BACKEND_URL=${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
-            NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL }}
-            NEXT_PUBLIC_DEFAULT_REGION=${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
-            NEXT_PUBLIC_N8N=${{ vars.NEXT_PUBLIC_N8N }}
-            NEXT_PUBLIC_N8N_WEBHOOK_BASE=${{ vars.NEXT_PUBLIC_N8N_WEBHOOK_BASE }}
-            NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
-            NEXT_PUBLIC_MEDUSA_SECRET_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_SECRET_KEY }}
-            REVALIDATE_SECRET=${{ secrets.REVALIDATE_SECRET }}
-            NEXT_PUBLIC_MEDUSA_PAYMENTS_PUBLISHABLE_KEY=
-            NEXT_PUBLIC_MEDUSA_PAYMENTS_ACCOUNT_ID=
-            EOF
-            
-            # Fix permissions for the .env file
-            chmod 600 .env.production
-            
-            pnpm run build
+            npm run build
             
             cd ~/apps/alayon-dashboard
             pm2 restart alayon-store || pm2 start "cd apps/web && npm run start" --name "alayon-store"
