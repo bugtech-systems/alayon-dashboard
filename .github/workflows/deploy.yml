@@ -27,44 +27,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Debug - Check environment variables
-        run: |
-          echo "Checking variables (from vars context):"
-          echo "NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}"
-          echo "NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}"
-          echo "NEXT_PUBLIC_DEFAULT_REGION: ${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}"
-          
-          # Verify they are not empty
-          if [ -z "${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}" ]; then
-            echo "❌ ERROR: NEXT_PUBLIC_MEDUSA_BACKEND_URL is empty!"
-            exit 1
-          fi
- 
-      - name: Build storefront
+      - name: Build storefront (GitHub Actions)
         run: |
           cd apps/web
-          
-          # Create .env file with all variables
-          cat > .env.production << EOF
-          NEXT_PUBLIC_MEDUSA_BACKEND_URL=${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
-          NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL }}
-          NEXT_PUBLIC_DEFAULT_REGION=${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
-          NEXT_PUBLIC_N8N=${{ vars.NEXT_PUBLIC_N8N }}
-          NEXT_PUBLIC_N8N_WEBHOOK_BASE=${{ vars.NEXT_PUBLIC_N8N_WEBHOOK_BASE }}
-          NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
-          NEXT_PUBLIC_MEDUSA_SECRET_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_SECRET_KEY }}
-          REVALIDATE_SECRET=${{ secrets.REVALIDATE_SECRET }}
-          EOF
-          
-          # Display env file (hide secrets)
-          echo "Environment file created:"
-          cat .env.production | sed 's/\(KEY=\).*/\1***HIDDEN***/g' | sed 's/\(SECRET=\).*/\1***HIDDEN***/g'
-          
-          # Now build
-          npm run build
-          
+          pnpm run build
         env:
-          # Pass variables explicitly
           NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
           NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}
           NEXT_PUBLIC_DEFAULT_REGION: ${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
@@ -85,36 +52,29 @@ jobs:
             
             echo "=== Starting deployment to EC2 ==="
             
-            # Load NVM (Node Version Manager)
+            # Load NVM if installed
             export NVM_DIR="$HOME/.nvm"
             if [ -s "$NVM_DIR/nvm.sh" ]; then
-              echo "Loading NVM..."
-              \. "$NVM_DIR/nvm.sh"
-              \. "$NVM_DIR/bash_completion" 2>/dev/null || true
+                echo "Loading NVM..."
+                \. "$NVM_DIR/nvm.sh"
+                nvm use 20 || nvm install 20
             else
-              echo "❌ NVM not found. Please install NVM on EC2 instance"
-              exit 1
+                echo "NVM not found, installing..."
+                curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+                export NVM_DIR="$HOME/.nvm"
+                [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+                nvm install 20
+                nvm alias default 20
             fi
             
-            # Set Node.js version (adjust to your version)
-            echo "Setting up Node.js version..."
-            nvm use 20 || nvm install 20
-            
-            # Verify Node.js and npm are available
-            echo "Node version: $(node --version)"
-            echo "npm version: $(npm --version)"
-            
-            # Install pnpm if not available
+            # Install pnpm if not installed
             if ! command -v pnpm &> /dev/null; then
-              echo "Installing pnpm..."
-              npm install -g pnpm
+                echo "Installing pnpm..."
+                npm install -g pnpm
             fi
             
-            # Install pm2 if not available (system-wide for persistence)
-            if ! command -v pm2 &> /dev/null; then
-              echo "Installing PM2..."
-              npm install -g pm2
-            fi
+            echo "Node version: $(node --version)"
+            echo "pnpm version: $(pnpm --version)"
             
             cd ~/apps/alayon-dashboard
             
@@ -129,37 +89,24 @@ jobs:
             
             cd apps/web
             
-            echo "Creating environment file on EC2..."
-            cat > .env.production << 'EOF'
+            echo "Creating environment file..."
+            cat > .env.production << EOF
             NODE_ENV=production
-            NEXT_PUBLIC_MEDUSA_BACKEND_URL=https://api.alayon.store
-            NEXT_PUBLIC_BASE_URL=https://alayon.store
-            NEXT_PUBLIC_DEFAULT_REGION=ph
-            NEXT_PUBLIC_N8N=https://n8n.sharewin.pro
-            NEXT_PUBLIC_N8N_WEBHOOK_BASE=https://n8n.sharewin.pro
+            NEXT_PUBLIC_MEDUSA_BACKEND_URL=${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
+            NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL }}
+            NEXT_PUBLIC_DEFAULT_REGION=${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
+            NEXT_PUBLIC_N8N=${{ vars.NEXT_PUBLIC_N8N }}
+            NEXT_PUBLIC_N8N_WEBHOOK_BASE=${{ vars.NEXT_PUBLIC_N8N_WEBHOOK_BASE }}
             NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
-            NEXT_PUBLIC_MEDUSA_SECRET_KEY=
+            NEXT_PUBLIC_MEDUSA_SECRET_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_SECRET_KEY }}
             REVALIDATE_SECRET=${{ secrets.REVALIDATE_SECRET }}
             EOF
-             
+            
             echo "Building on EC2..."
             npm run build
             
             echo "Starting PM2 process..."
-            # Stop existing process if running
-            pm2 stop alayon-store 2>/dev/null || true
-            
-            # Start with clean state
-            pm2 start npm --name "alayon-store" -- start
-            
-            # Save PM2 configuration
+            pm2 restart alayon-store || pm2 start "cd apps/web && npm run start" --name "alayon-store"
             pm2 save
             
-            # Setup PM2 to start on system boot (idempotent)
-            pm2 startup | grep -v "PM2" | bash 2>/dev/null || true
-            
             echo "=== Deployment completed! ==="
-            
-            # Show running processes
-            echo "Current PM2 processes:"
-            pm2 list
