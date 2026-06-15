@@ -141,7 +141,7 @@ jobs:
             NEXT_PUBLIC_MEDUSA_SECRET_KEY=
             REVALIDATE_SECRET=${{ secrets.REVALIDATE_SECRET }}
             EOF
-            
+             
             echo "Building on EC2..."
             npm run build
             
