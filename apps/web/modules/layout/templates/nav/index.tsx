@@ -127,7 +127,7 @@ export async function NavigationHeader() {
     <LocationDialogWrapper/>
       {/* Announcement Bar */}
       <div className="bg-primary text-primary-foreground py-3 text-center text-sm">
-        <p>Welcome to our store</p>
+        <p>Welcome to our stores</p>
       </div>
 
       {/* Main Header */}
