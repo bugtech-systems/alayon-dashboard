@@ -84,13 +84,39 @@ jobs:
             set -e
             
             echo "=== Starting deployment to EC2 ==="
-            cd ~/apps/alayon-dashboard
             
-            # Ensure pnpm is available
+            # Load NVM (Node Version Manager)
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              echo "Loading NVM..."
+              \. "$NVM_DIR/nvm.sh"
+              \. "$NVM_DIR/bash_completion" 2>/dev/null || true
+            else
+              echo "❌ NVM not found. Please install NVM on EC2 instance"
+              exit 1
+            fi
+            
+            # Set Node.js version (adjust to your version)
+            echo "Setting up Node.js version..."
+            nvm use 20 || nvm install 20
+            
+            # Verify Node.js and npm are available
+            echo "Node version: $(node --version)"
+            echo "npm version: $(npm --version)"
+            
+            # Install pnpm if not available
             if ! command -v pnpm &> /dev/null; then
               echo "Installing pnpm..."
               npm install -g pnpm
             fi
+            
+            # Install pm2 if not available (system-wide for persistence)
+            if ! command -v pm2 &> /dev/null; then
+              echo "Installing PM2..."
+              npm install -g pm2
+            fi
+            
+            cd ~/apps/alayon-dashboard
             
             echo "Pulling latest changes..."
             git pull origin development
@@ -111,17 +137,29 @@ jobs:
             NEXT_PUBLIC_DEFAULT_REGION=ph
             NEXT_PUBLIC_N8N=https://n8n.sharewin.pro
             NEXT_PUBLIC_N8N_WEBHOOK_BASE=https://n8n.sharewin.pro
-            NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_***
+            NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
             NEXT_PUBLIC_MEDUSA_SECRET_KEY=
-            REVALIDATE_SECRET=***
+            REVALIDATE_SECRET=${{ secrets.REVALIDATE_SECRET }}
             EOF
             
             echo "Building on EC2..."
             npm run build
             
             echo "Starting PM2 process..."
-            pm2 restart alayon-store || pm2 start npm --name "alayon-store" -- start
+            # Stop existing process if running
+            pm2 stop alayon-store 2>/dev/null || true
             
+            # Start with clean state
+            pm2 start npm --name "alayon-store" -- start
+            
+            # Save PM2 configuration
             pm2 save
             
+            # Setup PM2 to start on system boot (idempotent)
+            pm2 startup | grep -v "PM2" | bash 2>/dev/null || true
+            
             echo "=== Deployment completed! ==="
+            
+            # Show running processes
+            echo "Current PM2 processes:"
+            pm2 list
