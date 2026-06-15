@@ -86,6 +86,12 @@ jobs:
             echo "=== Starting deployment to EC2 ==="
             cd ~/apps/alayon-dashboard
             
+            # Ensure pnpm is available
+            if ! command -v pnpm &> /dev/null; then
+              echo "Installing pnpm..."
+              npm install -g pnpm
+            fi
+            
             echo "Pulling latest changes..."
             git pull origin development
             
@@ -100,21 +106,22 @@ jobs:
             echo "Creating environment file on EC2..."
             cat > .env.production << 'EOF'
             NODE_ENV=production
-            NEXT_PUBLIC_MEDUSA_BACKEND_URL=${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
-            NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL }}
-            NEXT_PUBLIC_DEFAULT_REGION=${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
-            NEXT_PUBLIC_N8N=${{ vars.NEXT_PUBLIC_N8N }}
-            NEXT_PUBLIC_N8N_WEBHOOK_BASE=${{ vars.NEXT_PUBLIC_N8N_WEBHOOK_BASE }}
-            NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
-            NEXT_PUBLIC_MEDUSA_SECRET_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_SECRET_KEY }}
-            REVALIDATE_SECRET=${{ secrets.REVALIDATE_SECRET }}
+            NEXT_PUBLIC_MEDUSA_BACKEND_URL=https://api.alayon.store
+            NEXT_PUBLIC_BASE_URL=https://alayon.store
+            NEXT_PUBLIC_DEFAULT_REGION=ph
+            NEXT_PUBLIC_N8N=https://n8n.sharewin.pro
+            NEXT_PUBLIC_N8N_WEBHOOK_BASE=https://n8n.sharewin.pro
+            NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_***
+            NEXT_PUBLIC_MEDUSA_SECRET_KEY=
+            REVALIDATE_SECRET=***
             EOF
             
             echo "Building on EC2..."
             npm run build
             
             echo "Starting PM2 process..."
-            pm2 restart alayon-store || pm2 start "cd apps/web && npm run start" --name "alayon-store"
+            pm2 restart alayon-store || pm2 start npm --name "alayon-store" -- start
+            
             pm2 save
             
             echo "=== Deployment completed! ==="
