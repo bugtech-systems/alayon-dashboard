@@ -3,7 +3,7 @@ name: Deploy Medusa Storefront to EC2
 on:
   push:
     branches:
-      - development  # Triggers deployment on push to main branch
+      - development  # Triggers deployment on push to development branch
   workflow_dispatch:  # Allows manual triggering from GitHub UI
 
 jobs:
@@ -19,11 +19,18 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8  # or your preferred pnpm version
+
       - name: Install dependencies
         run: pnpm install
 
       - name: Build storefront
-        run: npm run build
+        run: |
+          cd apps/web
+          pnpm run build
         env:
           NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${{ secrets.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
 
@@ -40,14 +47,18 @@ jobs:
             # Pull latest changes
             git pull origin development
             
-            # Install dependencies
+            # Install dependencies from root (for monorepo)
             pnpm install
             
-            # Build the application
-            npm run build
+            # Navigate to web app directory and build
+            cd apps/web
+            pnpm run build
             
-            # Restart the process with PM2
-            pm2 restart alayon-store || pm2 start npm --name "alayon-store" -- start
+            # Return to root and restart process with PM2
+            cd ~/apps/alayon-dashboard
+            
+            # Restart the process with PM2 (make sure it's running from apps/web)
+            pm2 restart alayon-store || pm2 start "cd apps/web && npm run start" --name "alayon-store"
             
             # Save PM2 process list
             pm2 save
