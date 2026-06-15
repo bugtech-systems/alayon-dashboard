@@ -27,11 +27,44 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Debug - Check environment variables
+        run: |
+          echo "Checking variables (from vars context):"
+          echo "NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}"
+          echo "NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}"
+          echo "NEXT_PUBLIC_DEFAULT_REGION: ${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}"
+          
+          # Verify they are not empty
+          if [ -z "${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}" ]; then
+            echo "❌ ERROR: NEXT_PUBLIC_MEDUSA_BACKEND_URL is empty!"
+            exit 1
+          fi
+
       - name: Build storefront
         run: |
           cd apps/web
+          
+          # Create .env file with all variables
+          cat > .env.production << EOF
+          NEXT_PUBLIC_MEDUSA_BACKEND_URL=${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
+          NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL }}
+          NEXT_PUBLIC_DEFAULT_REGION=${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
+          NEXT_PUBLIC_N8N=${{ vars.NEXT_PUBLIC_N8N }}
+          NEXT_PUBLIC_N8N_WEBHOOK_BASE=${{ vars.NEXT_PUBLIC_N8N_WEBHOOK_BASE }}
+          NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_MEDUSA_SECRET_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_SECRET_KEY }}
+          REVALIDATE_SECRET=${{ secrets.REVALIDATE_SECRET }}
+          EOF
+          
+          # Display env file (hide secrets)
+          echo "Environment file created:"
+          cat .env.production | sed 's/\(KEY=\).*/\1***HIDDEN***/g' | sed 's/\(SECRET=\).*/\1***HIDDEN***/g'
+          
+          # Now build
           npm run build:verbose
+          
         env:
+          # Pass variables explicitly
           NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
           NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}
           NEXT_PUBLIC_DEFAULT_REGION: ${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
@@ -48,22 +81,40 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
+            
+            echo "=== Starting deployment to EC2 ==="
             cd ~/apps/alayon-dashboard
+            
+            echo "Pulling latest changes..."
             git pull origin development
             
-            # Fix permissions before anything else
+            echo "Fixing permissions..."
             sudo chown -R $USER:$USER ~/apps/alayon-dashboard
-            chmod -R 755 ~/apps/alayon-dashboard
-            chmod -R 644 ~/apps/alayon-dashboard/apps/web/*.d.ts || true
             
+            echo "Installing dependencies..."
             pnpm install
             
             cd apps/web
             
+            echo "Creating environment file on EC2..."
+            cat > .env.production << 'EOF'
+            NODE_ENV=production
+            NEXT_PUBLIC_MEDUSA_BACKEND_URL=${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
+            NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL }}
+            NEXT_PUBLIC_DEFAULT_REGION=${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
+            NEXT_PUBLIC_N8N=${{ vars.NEXT_PUBLIC_N8N }}
+            NEXT_PUBLIC_N8N_WEBHOOK_BASE=${{ vars.NEXT_PUBLIC_N8N_WEBHOOK_BASE }}
+            NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
+            NEXT_PUBLIC_MEDUSA_SECRET_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_SECRET_KEY }}
+            REVALIDATE_SECRET=${{ secrets.REVALIDATE_SECRET }}
+            EOF
+            
+            echo "Building on EC2..."
             npm run build
             
-            cd ~/apps/alayon-dashboard
+            echo "Starting PM2 process..."
             pm2 restart alayon-store || pm2 start "cd apps/web && npm run start" --name "alayon-store"
             pm2 save
             
-            echo "Deployment completed successfully!"
+            echo "=== Deployment completed! ==="
