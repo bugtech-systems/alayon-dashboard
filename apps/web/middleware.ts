@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { HttpTypes } from "@medusajs/types";
 
 // ---------- Configuration ----------
-const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
+const BACKEND_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL; 
 const PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
 const DEFAULT_COUNTRY = "ph";            // fallback country code
 const DEFAULT_CURRENCY = "php";          // fallback currency
