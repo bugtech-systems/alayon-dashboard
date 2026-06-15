@@ -47,6 +47,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          command_timeout: 30m  # Increase from 10m to 30m
           script: |
             set -e
             
