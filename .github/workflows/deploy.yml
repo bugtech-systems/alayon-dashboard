@@ -20,7 +20,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install
 
       - name: Build storefront
         run: npm run build
@@ -41,7 +41,7 @@ jobs:
             git pull origin development
             
             # Install dependencies
-            npm ci
+            pnpm install
             
             # Build the application
             npm run build
