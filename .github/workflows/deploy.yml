@@ -3,13 +3,13 @@ name: Deploy Medusa Storefront to EC2
 on:
   push:
     branches:
-      - development  # Triggers deployment on push to development branch
-  workflow_dispatch:  # Allows manual triggering from GitHub UI
+      - development
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-     
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 8  # or your preferred pnpm version
+          version: 8
 
       - name: Install dependencies
         run: pnpm install
@@ -30,9 +30,16 @@ jobs:
       - name: Build storefront
         run: |
           cd apps/web
-          npm run build
+          pnpm run build
         env:
-          NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${{ secrets.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
+          NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
+          NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}
+          NEXT_PUBLIC_DEFAULT_REGION: ${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
+          NEXT_PUBLIC_N8N: ${{ vars.NEXT_PUBLIC_N8N }}
+          NEXT_PUBLIC_N8N_WEBHOOK_BASE: ${{ vars.NEXT_PUBLIC_N8N_WEBHOOK_BASE }}
+          NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_MEDUSA_SECRET_KEY: ${{ secrets.NEXT_PUBLIC_MEDUSA_SECRET_KEY }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -41,29 +48,40 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            # Navigate to the storefront directory
             cd ~/apps/alayon-dashboard
-            
-            # Pull latest changes
             git pull origin development
             
-            # Install dependencies from root (for monorepo)
+            # Fix permissions before anything else
+            sudo chown -R $USER:$USER ~/apps/alayon-dashboard
+            chmod -R 755 ~/apps/alayon-dashboard
+            chmod -R 644 ~/apps/alayon-dashboard/apps/web/*.d.ts || true
+            
             pnpm install
             
-            # Navigate to web app directory and build
             cd apps/web
-            npm run build
             
-            # Return to root and restart process with PM2
+            # Create .env.production file on EC2
+            cat > .env.production << 'EOF'
+            NODE_ENV=production
+            NEXT_PUBLIC_MEDUSA_BACKEND_URL=${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
+            NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL }}
+            NEXT_PUBLIC_DEFAULT_REGION=${{ vars.NEXT_PUBLIC_DEFAULT_REGION }}
+            NEXT_PUBLIC_N8N=${{ vars.NEXT_PUBLIC_N8N }}
+            NEXT_PUBLIC_N8N_WEBHOOK_BASE=${{ vars.NEXT_PUBLIC_N8N_WEBHOOK_BASE }}
+            NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY }}
+            NEXT_PUBLIC_MEDUSA_SECRET_KEY=${{ secrets.NEXT_PUBLIC_MEDUSA_SECRET_KEY }}
+            REVALIDATE_SECRET=${{ secrets.REVALIDATE_SECRET }}
+            NEXT_PUBLIC_MEDUSA_PAYMENTS_PUBLISHABLE_KEY=
+            NEXT_PUBLIC_MEDUSA_PAYMENTS_ACCOUNT_ID=
+            EOF
+            
+            # Fix permissions for the .env file
+            chmod 600 .env.production
+            
+            pnpm run build
+            
             cd ~/apps/alayon-dashboard
-            
-            # Restart the process with PM2 (make sure it's running from apps/web)
             pm2 restart alayon-store || pm2 start "cd apps/web && npm run start" --name "alayon-store"
-            
-            # Save PM2 process list
             pm2 save
-            
-            # Optional: Reload Nginx if you're using it
-            # sudo systemctl reload nginx
             
             echo "Deployment completed successfully!"
