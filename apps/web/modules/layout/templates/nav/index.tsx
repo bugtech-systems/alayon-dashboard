@@ -145,7 +145,7 @@ export async function NavigationHeader() {
                 href="/" 
                 className="text-xl font-semibold hover:opacity-80 transition-opacity"
               >
-                Alayon
+                Alayon 
               </LocalizedClientLink>
             </div>
 
