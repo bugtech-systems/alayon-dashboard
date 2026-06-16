@@ -71,7 +71,7 @@ jobs:
             
             cd ~/apps/alayon-dashboard
             
-            git pull origin development
+            git fetch origin development && git reset --hard origin/development
             sudo chown -R $USER:$USER ~/apps/alayon-dashboard
             
             # Use no-frozen-lockfile on EC2 too
