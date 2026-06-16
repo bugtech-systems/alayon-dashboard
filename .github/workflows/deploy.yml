@@ -25,12 +25,21 @@ jobs:
           version: 8
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline
+        run: |
+          # Check if lockfile exists, if not generate it
+          if [ ! -f "pnpm-lock.yaml" ]; then
+            echo "No lockfile found, generating one..."
+            pnpm install --no-frozen-lockfile
+            # Generate lockfile without installing all dependencies
+            pnpm install --lockfile-only
+          fi
+          # Now install with frozen-lockfile
+          pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Build storefront (GitHub Actions)
+      - name: Build storefront
         run: |
           cd apps/web
-          pnpm run build
+          npm run build
         env:
           NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${{ vars.NEXT_PUBLIC_MEDUSA_BACKEND_URL }}
           NEXT_PUBLIC_BASE_URL: ${{ vars.NEXT_PUBLIC_BASE_URL }}
@@ -47,7 +56,7 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          command_timeout: 30m  # Increase from 10m to 30m
+          command_timeout: 30m
           script: |
             set -e
             
@@ -86,7 +95,13 @@ jobs:
             sudo chown -R $USER:$USER ~/apps/alayon-dashboard
             
             echo "Installing dependencies..."
-            pnpm install --frozen-lockfile --prefer-offline
+            # Handle missing lockfile on EC2
+            if [ ! -f "pnpm-lock.yaml" ]; then
+              echo "No lockfile on EC2, installing without frozen-lockfile..."
+              pnpm install --no-frozen-lockfile
+            else
+              pnpm install --frozen-lockfile --prefer-offline
+            fi
             
             cd apps/web
             
