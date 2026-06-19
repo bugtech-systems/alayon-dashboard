@@ -17,9 +17,12 @@ const Review = ({ cart, onPlaceOrder }: { cart: any; onPlaceOrder?: () => void }
 
   const previousStepsCompleted =
     cart.shipping_address &&
-    cart.shipping_methods?.length > 0 &&
+    cart?.shipping_methods == 0 ? true : cart.shipping_methods.length > 0 ? true : false &&
     (cart.payment_collection || paidByGiftcard)
 
+
+
+    console.log(cart, previousStepsCompleted, 'prevvss')
   if (!isOpen || !previousStepsCompleted) {
     return null
   }

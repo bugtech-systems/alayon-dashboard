@@ -15,7 +15,6 @@ export const metadata: Metadata = {
 }
 
 export default async function PageLayout(props: { children: React.ReactNode }) {
-  const customer = await retrieveCustomer().catch(() => null)
   const cart = await retrieveCart()
   let freeShippingPrices: StoreFreeShippingPrice[] = []
 

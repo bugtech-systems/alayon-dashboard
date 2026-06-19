@@ -28,7 +28,7 @@ const ShippingAddress = ({
     "shipping_address.company": cart?.shipping_address?.company || "",
     "shipping_address.postal_code": cart?.shipping_address?.postal_code || "",
     "shipping_address.city": cart?.shipping_address?.city || "",
-    "shipping_address.country_code": cart?.shipping_address?.country_code || "",
+    "shipping_address.country_code": cart?.shipping_address?.country_code || "ph",
     "shipping_address.province": cart?.shipping_address?.province || "",
     "shipping_address.phone": cart?.shipping_address?.phone || "",
     email: cart?.email || "",
@@ -60,8 +60,8 @@ const ShippingAddress = ({
         "shipping_address.company": address?.company || "",
         "shipping_address.postal_code": address?.postal_code || "",
         "shipping_address.city": address?.city || "",
-        "shipping_address.country_code": address?.country_code || "",
-        "shipping_address.province": address?.province || "",
+        "shipping_address.country_code": address?.country_code || "ph",
+        "shipping_address.province": address?.province || "leyte",
         "shipping_address.phone": address?.phone || "",
       }))
 
@@ -162,7 +162,7 @@ const ShippingAddress = ({
             data-testid="shipping-address-input"
           />
         </div>
-        
+{/*         
         <div>
           <Label htmlFor="shipping_address.company" className="text-sm font-medium text-gray-700 mb-1 block">
             Company
@@ -177,8 +177,8 @@ const ShippingAddress = ({
             data-testid="shipping-company-input"
           />
         </div>
-        
-        <div>
+         */}
+        {/* <div>
           <Label htmlFor="shipping_address.postal_code" className="text-sm font-medium text-gray-700 mb-1 block">
             Postal code *
           </Label>
@@ -192,7 +192,7 @@ const ShippingAddress = ({
             className="bg-gray-50 border-gray-200 focus:ring-blue-500 focus:border-blue-500"
             data-testid="shipping-postal-code-input"
           />
-        </div>
+        </div> */}
         
         <div>
           <Label htmlFor="shipping_address.city" className="text-sm font-medium text-gray-700 mb-1 block">
@@ -210,7 +210,7 @@ const ShippingAddress = ({
           />
         </div>
         
-        <div>
+        {/* <div>
           <Label htmlFor="shipping_address.country_code" className="text-sm font-medium text-gray-700 mb-1 block">
             Country *
           </Label>
@@ -223,7 +223,7 @@ const ShippingAddress = ({
             required
             data-testid="shipping-country-select"
           />
-        </div>
+        </div> */}
         
         <div>
           <Label htmlFor="shipping_address.province" className="text-sm font-medium text-gray-700 mb-1 block">

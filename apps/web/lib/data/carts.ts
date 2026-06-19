@@ -1,7 +1,8 @@
 import { sdk } from "../medusa/config";
-import { getAuthHeaders, getCacheHeaders } from "./cookies";
+import { getAuthHeaders, getCacheHeaders, getCartId } from "./cookies";
 
-export async function retrieveCart(cartId: string) {
+export async function retrieveCart(id?: string) {
+  const cartId = (id || (await getCartId())) as any
 
   const { cart } = await sdk.store.cart.retrieve(
     cartId,

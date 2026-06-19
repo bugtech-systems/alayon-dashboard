@@ -113,7 +113,8 @@ export async function retrieveCompanyCart(id?: string) {
 export async function getOrSetCart(countryCode: string = 'ph', companyId?: string) {
   let cart = await companyId ? await retrieveCompanyCart(companyId) : await retrieveCart() as any;
   const region = await getRegion(countryCode)
-  const session_id = await getCachedId()
+  const session_id = await getCachedId();
+  const isCustomer = String(session_id).includes('cus');
   if (!region) {
     throw new Error(`Region not found for country code: ${countryCode}`)
   }
@@ -123,6 +124,7 @@ export async function getOrSetCart(countryCode: string = 'ph', companyId?: strin
   }
 
   if (!cart) {
+
     const body = {
       region_id: region.id,
       metadata: {
@@ -131,8 +133,12 @@ export async function getOrSetCart(countryCode: string = 'ph', companyId?: strin
       },
     }
 
-    const {cart: cartData} = await sdk.store.cart.create(body, {}, headers)
+    const {cart: cartData} = await sdk.store.cart.create(body, {}, headers);
+
     console.log(cartData, 'carrt resp newwwwss')
+    if(isCustomer){
+    await assignCart(cartData?.id, session_id)
+    }
     setCartId(cartData?.id)
     const cartCacheTag = await getCacheTag("carts")
     revalidateTag(cartCacheTag, "max")
@@ -148,6 +154,33 @@ export async function getOrSetCart(countryCode: string = 'ph', companyId?: strin
     setCartId(cart?.id)
 
   return cart
+}
+
+export async function assignCart(id: any, customerId: any) {
+  const cartId = id || await getCartId()
+
+  if (!cartId) {
+    return
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+   const response = await sdk.client.fetch(`/dashboard/carts/${cartId}/customer`, {
+          method: "POST",
+          body: {customer_id: customerId},
+          headers: {
+            "Content-Type": "application/json",
+            ...headers,
+          },
+        });
+
+
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag, "max")
+  return response
 }
 
 export async function updateCart(data: HttpTypes.StoreUpdateCart) {

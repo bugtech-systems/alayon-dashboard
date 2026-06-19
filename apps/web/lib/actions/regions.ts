@@ -1,9 +1,9 @@
 "use server"
 
-import { sdk } from "@/lib/medusa/config"
+import { sdk } from "@/lib/config"
 import medusaError from "@/lib/medusa/util/medusa-error"
 import { HttpTypes } from "@medusajs/types"
-import { getCacheOptions } from "@/lib/medusa/data/cookies"
+import { getCacheOptions } from "@/lib/data/cookies"
 
 export const listRegions = async (): Promise<HttpTypes.StoreRegion[]> => {
   const next = {

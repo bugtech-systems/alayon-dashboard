@@ -20,7 +20,7 @@ import {
 } from "./cookies"
 import { n8nFetcher } from "@/hooks/useN8nQuery"
 
-export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
+export const retrieveCustomer = async (id?: any): Promise<B2BCustomer | any> => {
   const authHeaders = await getAuthHeaders()
 
   if (!authHeaders) return null
@@ -33,8 +33,21 @@ export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
     ...(await getCacheOptions("customers")),
   }
 
+console.log(id, 'RETRRVER')
+  if(id){
+    return await sdk.client
+    .fetch<{ customer: B2BCustomer }>(`/dashboard/customers/${id}`, {
 
-
+      method: "GET",
+      query: {
+        // fields: "",
+      },
+      headers,
+      next,
+    })
+    .then(({ customer }) => customer as B2BCustomer)
+    .catch(() => null)
+  } else {
   return await sdk.client
     .fetch<{ customer: B2BCustomer }>(`/store/customers/me`, {
       method: "GET",
@@ -46,7 +59,9 @@ export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
     })
     .then(({ customer }) => customer as B2BCustomer)
     .catch(() => null)
-}
+  }
+
+  }
 
 export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   const headers = {

@@ -1,4 +1,5 @@
-import { retrieveCart } from "@/lib/data/cart"
+import { retrieveCart, retrieveCompanyCart } from "@/lib/data/cart"
+import { getCachedId } from "@/lib/data/cookies"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { listCartFreeShippingPrices } from "@/lib/data/fulfillment"
 import { getProductByHandle } from "@/lib/data/products"
@@ -15,14 +16,17 @@ export const metadata: Metadata = {
 }
 
 export default async function PageLayout(props: { children: React.ReactNode, params: any }) {
-  const customer = await retrieveCustomer().catch(() => null)
+  const cacheId = await getCachedId();
+  console.log(cacheId, 'CACHEE')
+  const customer = await retrieveCustomer(cacheId).catch(() => null)
   let freeShippingPrices: StoreFreeShippingPrice[] = []
   const params = await props.params
+  console.log(customer, 'CUSTTOM')
   const product = await getProductByHandle(params?.handle) as any;
   const company = product?.company;
   console.log(customer, params, product, 'paaagrra',company)
 
-  const cart = await retrieveCart();
+  const cart = await retrieveCompanyCart(company?.id);
 
 
   if (cart) {
@@ -33,9 +37,9 @@ export default async function PageLayout(props: { children: React.ReactNode, par
   return (
     <>
     <StoreNavigationHeader company={company}/>
-          {customer && cart && (
+          {/* {customer && cart && (
         <CartMismatchBanner customer={customer} cart={cart} />
-      )}
+      )} */}
       {props.children}
       {/* <Footer /> */}
       {cart && freeShippingPrices && (

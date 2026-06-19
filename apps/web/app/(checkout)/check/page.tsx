@@ -1,6 +1,9 @@
 // app/checkout/page.tsx
+import { listMunicipalities } from "@/lib/actions/regions"
 import { retrieveCart } from "@/lib/data/cart"
+import { getCachedId } from "@/lib/data/cookies"
 import { retrieveCustomer } from "@/lib/data/customer"
+import { listBarangays } from "@/lib/data/regions"
 import { getCheckoutStep } from "@/lib/util/get-checkout-step"
 import PaymentWrapper from "@/modules/checkout/components/payment-wrapper"
 import CheckoutForm from "@/modules/checkout/template/checkout-form"
@@ -13,14 +16,16 @@ export const metadata: Metadata = {
 }
 
 export default async function Checkout() {
+  const cachedId = await getCachedId();
+  const customer = await retrieveCustomer(cachedId);
   const cart = await retrieveCart()
 
   if (!cart) {
     return notFound()
   }
 
-  const customer = await retrieveCustomer()
-  const currentStep = getCheckoutStep(cart)
+
+
   return (
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-6 md:py-12">

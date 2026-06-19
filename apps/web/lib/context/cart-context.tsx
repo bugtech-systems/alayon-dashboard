@@ -28,7 +28,6 @@ import {
   useState,
   useTransition,
 } from "react"
-import { setCartId } from "../data/cookies"
 
 export type AddToCartEventPayload = {
   lineItems: {
@@ -58,10 +57,10 @@ const CartContext = createContext<
 
 export function CartProvider({
   cart,
-  company,
   children,
+  company
 }: PropsWithChildren<{
-  cart: B2BCart | null
+  cart?: B2BCart | any
   company?: any
 }>) {
   const { countryCode = 'ph' } = useParams()
@@ -76,7 +75,7 @@ export function CartProvider({
 
   useEffect(() => {
     setIsUpdatingCart(false)
-  }, [cart, company])
+  }, [cart])
 
   const handleOptimisticAddToCart = useCallback(
     async (payload: AddToCartEventPayload | any) => {
@@ -188,7 +187,7 @@ export function CartProvider({
         })
       })
     },
-    [setOptimisticCart, cart?.approvals, countryCode, company]
+    [setOptimisticCart, cart?.approvals, countryCode]
   )
 
   useEffect(() => {
@@ -277,13 +276,11 @@ export function CartProvider({
       })
     })
      
-    console.log(company, 'CCCOMPPP STAT')
     if (!isOptimisticItemId(lineItem)) {
       setIsUpdatingCart(true)
       await updateLineItem({
         lineId: lineItem,
-        data: { quantity },
-        company: company
+        data: { quantity }
       }).catch((e) => {
         toast.error("Failed to update cart quantity")
         setOptimisticCart(prevCart)
@@ -318,7 +315,6 @@ export function CartProvider({
     <CartContext.Provider
       value={{
         cart: { ...optimisticCart, items: stableItems } as B2BCart,
-        company,
         handleDeleteItem,
         handleUpdateCartQuantity,
         handleEmptyCart,

@@ -19,7 +19,7 @@ export const listCartShippingMethods = async (cartId: string) => {
       `/store/shipping-options`,
       {
         method: "GET",
-        query: { cart_id: cartId },
+        query: {  },
         headers,
         next,
       }

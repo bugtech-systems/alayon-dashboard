@@ -66,6 +66,7 @@ export const getProductByHandle = async (handle: string, regionId?: string) => {
     .then(({ products }) => ({...products[0], company: Array.isArray(products[0].companies) ? products[0].companies[0] : products[0].companies}))
 }
 
+
 export const listProducts = async ({
   pageParam = 1,
   queryParams,

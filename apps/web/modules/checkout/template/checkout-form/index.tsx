@@ -152,9 +152,9 @@ export default function CheckoutForm({
 
   const handleNext = useCallback(() => {
     // Check if current step is complete
-    if (!isStepComplete(cart, currentStep)) {
-      return
-    }
+    // if (!isStepComplete(cart, currentStep)) {
+    //   return
+    // }
     
     const nextStep = getNextStep(currentStep)
     if (nextStep && nextStep !== currentStep) {

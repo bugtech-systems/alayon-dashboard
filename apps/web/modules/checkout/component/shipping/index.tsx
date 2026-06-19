@@ -129,7 +129,7 @@ const Shipping: React.FC<ShippingProps> = ({
   }
 
   const isShippingComplete = () => {
-    return cart.shipping_methods?.length > 0
+    return cart.shipping_methods?.length == 0 ? true : cart?.shipping_methods?.length > 0 ? true : false
   }
 
   const selectedMethod = _shippingMethods?.find(m => m.id === shippingMethodId) ||

@@ -129,13 +129,13 @@ function generateSecureId(): string {
  * Gets or creates a cache ID stored in cookies
  * @returns The cache ID (existing or newly generated)
  */
-export const getCachedId = async (): Promise<string> => {
-  const cookieStore = await nextCookies();
+export const getCachedId = async (id?: any): Promise<string> => {
+  const cookieStore = await nextCookies() as any;
   let cacheId = cookieStore.get(CACHE_ID_COOKIE_KEY)?.value;
   
   // If no cache ID exists, generate one
-  if (!cacheId) {
-    cacheId = generateSecureId();
+  if (!cacheId && id != cacheId) {
+    cacheId = (id || generateSecureId());
     
     // Save to cookies with appropriate options
     cookieStore.set(CACHE_ID_COOKIE_KEY, cacheId, {

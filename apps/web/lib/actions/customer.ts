@@ -16,6 +16,8 @@ import {
   removeCartId,
   setAuthToken,
 } from "@/lib/medusa/data/cookies"
+import { createSession } from "../data/sessions"
+import { getCachedId } from "../data/cookies"
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ||
@@ -166,8 +168,8 @@ export async function createCustomer(customerData: any) {
 
 
     console.log(payload, 'CREAATE CUSTOMM')
- const  customer  = await sdk.client.fetch<{
-      customer: any;
+ const {data}  = await sdk.client.fetch<{
+      data: any;
     }>(`/dashboard/customers`, {
       method: "POST",
       body: payload,
@@ -177,12 +179,13 @@ export async function createCustomer(customerData: any) {
       },
     });
 
-    console.log(customer, 'RESSESES')
+    console.log(data, 'RESSESES')
 
-
+     
     const cacheTag = await getCacheTag("customer");
+    getCachedId(data?.customerId)
     revalidateTag(cacheTag, "max");
-    return customer;
+    return data;
   } catch (error: any) {
     console.error("Error creating guest customer:", error);
     // Return a structured error object instead of null

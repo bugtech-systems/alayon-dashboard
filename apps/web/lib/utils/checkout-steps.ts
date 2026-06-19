@@ -37,7 +37,7 @@ export function getCheckoutStep(cart: B2BCart): CheckoutStep | null {
   const hasEmail = !!cart?.email
   const hasBillingAddress = cart?.same_as_shipping === true || !!cart?.billing_address?.address_1
   
-  if (!hasShippingAddress || !hasEmail || !hasBillingAddress) {
+  if (!hasShippingAddress || !hasBillingAddress) {
     return "address"
   }
   
@@ -61,21 +61,22 @@ export function getCheckoutStep(cart: B2BCart): CheckoutStep | null {
 
 // Check if a specific step is complete
 export function isStepComplete(cart: B2BCart, step: CheckoutStep): boolean {
-  switch (step) {
-    case "address":
-      const hasShippingAddress = !!cart?.shipping_address?.address_1
+  console.log(cart, "CAART")
+   const hasShippingAddress = !!cart?.shipping_address?.address_1
       const hasEmail = !!cart?.email
       const hasBillingAddress = cart?.same_as_shipping === true || !!cart?.billing_address?.address_1
-      return hasShippingAddress && hasEmail && hasBillingAddress
+  switch (step) {
+    case "address":
+      return hasShippingAddress && hasBillingAddress
     case "delivery":
-      return cart?.shipping_methods && cart.shipping_methods.length > 0
+      return  hasShippingAddress && hasBillingAddress && cart?.shipping_methods == 0 ? true : cart.shipping_methods.length > 0 ? true : false
     case "payment":
       return !!cart.payment_collection?.payment_sessions?.find(
         (paymentSession: any) => paymentSession.status === "pending"
       )
     case "review":
       // Review is only complete if both delivery AND payment are complete
-      const hasDelivery = cart?.shipping_methods && cart.shipping_methods.length > 0
+      const hasDelivery = cart?.shipping_methods == 0 ? true : cart.shipping_methods.length > 0 ? true : false && hasShippingAddress && hasBillingAddress
       const hasPayment = !!cart.payment_collection?.payment_sessions?.find(
         (paymentSession: any) => paymentSession.status === "pending"
       )

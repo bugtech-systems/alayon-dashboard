@@ -7,7 +7,6 @@ import { retrieveCart } from "../medusa/data/cart";
 import { getAuthHeaders, getCacheOptions, removeCartId } from "../medusa/data/cookies";
 import { DeliveryDTO } from "../types";
 import medusaError from "../medusa/util/medusa-error";
-import { track } from "@vercel/analytics/server"
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
