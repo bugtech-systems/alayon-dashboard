@@ -63,7 +63,7 @@ export const getProductByHandle = async (handle: string, regionId?: string) => {
       headers,
       next,
     })
-    .then(({ products }) => ({...products[0], company: Array.isArray(products[0].companies) ? products[0].companies.find(a => a?.id) : products[0].companies}))
+    .then(({ products }: any) => ({...products[0], company: Array.isArray(products[0].companies) ? products[0].companies.find((a: any) => a?.id) : products[0].companies}))
 }
 
 
