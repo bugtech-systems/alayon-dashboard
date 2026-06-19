@@ -7,7 +7,7 @@ function ThemeProvider({
   children,
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
-  return (
+  return ( 
     <NextThemesProvider
       attribute="class"
       defaultTheme="system"
