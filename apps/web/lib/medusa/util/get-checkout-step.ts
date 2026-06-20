@@ -1,6 +1,6 @@
 import { B2BCart } from "@/types/global"
 
-export function getCheckoutStep(cart: B2BCart) {
+export function getCheckoutStep(cart: any) {
   if (!cart?.shipping_address?.address_1) {
     return "address"
   } else if (cart?.shipping_methods?.length === 0) {
