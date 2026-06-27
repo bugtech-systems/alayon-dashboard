@@ -137,7 +137,7 @@ const isVariantInStock = (variant: VariantPrice | null): boolean => {
 const getProductImage = (product: Product | any): string => {
   if (product.thumbnail) return product.thumbnail;
   if (product.images && product.images.length > 0) return product.images[0].url;
-  return "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=600&h=800&fit=crop";
+  return "https://img.magnific.com/premium-vector/default-image-icon-vector-missing-picture-page-website-design-mobile-app-no-photo-available_87543-11093.jpg?w=360";
 };
 
 // Helper: Get hover image

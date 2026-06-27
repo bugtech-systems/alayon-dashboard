@@ -11,6 +11,7 @@ import { retrieveCart, updateCart } from "./cart"
 import { createCompany, createEmployee } from "./companies"
 import {
   getAuthHeaders,
+  getCachedId,
   getCacheOptions,
   getCacheTag,
   getCartId,
@@ -33,8 +34,22 @@ export const retrieveCustomer = async (id?: any): Promise<B2BCustomer | any> => 
     ...(await getCacheOptions("customers")),
   }
 
-console.log(id, 'RETRRVER')
-  if(id){
+  let customer = await sdk.client
+    .fetch<{ customer: B2BCustomer }>(`/store/customers/me`, {
+      method: "GET",
+      query: {
+        // fields: "",
+      },
+      headers,
+      next,
+    })
+    .then(({ customer }) => customer as B2BCustomer)
+    .catch(() => null)
+
+
+
+console.log(customer, id, 'RETRRVER')
+  if(id && !customer){
     return await sdk.client
     .fetch<{ customer: B2BCustomer }>(`/dashboard/customers/${id}`, {
 
@@ -48,17 +63,7 @@ console.log(id, 'RETRRVER')
     .then(({ customer }) => customer as B2BCustomer)
     .catch(() => null)
   } else {
-  return await sdk.client
-    .fetch<{ customer: B2BCustomer }>(`/store/customers/me`, {
-      method: "GET",
-      query: {
-        // fields: "",
-      },
-      headers,
-      next,
-    })
-    .then(({ customer }) => customer as B2BCustomer)
-    .catch(() => null)
+  return customer
   }
 
   }

@@ -1,10 +1,7 @@
 // app/checkout/page.tsx
-import { listMunicipalities } from "@/lib/actions/regions"
 import { retrieveCart } from "@/lib/data/cart"
-import { getCachedId } from "@/lib/data/cookies"
+import { getCachedId, getCachedIdIfExists } from "@/lib/data/cookies"
 import { retrieveCustomer } from "@/lib/data/customer"
-import { listBarangays } from "@/lib/data/regions"
-import { getCheckoutStep } from "@/lib/util/get-checkout-step"
 import PaymentWrapper from "@/modules/checkout/components/payment-wrapper"
 import CheckoutForm from "@/modules/checkout/template/checkout-form"
 import CheckoutSummary from "@/modules/checkout/template/checkout-summary"
@@ -16,10 +13,13 @@ export const metadata: Metadata = {
 }
 
 export default async function Checkout() {
-  const cachedId = await getCachedId();
-  const customer = await retrieveCustomer(cachedId);
-  const cart = await retrieveCart()
+  const cachedId = await getCachedIdIfExists(); 
+  const customerData = await retrieveCustomer();
 
+  const customer_id = String(cachedId).includes('cus') ? cachedId : customerData?.id;
+  const customer = await retrieveCustomer(customer_id);
+  const cart = await retrieveCart()
+console.log(customerData, cachedId, 'customer customer')
   if (!cart) {
     return notFound()
   }

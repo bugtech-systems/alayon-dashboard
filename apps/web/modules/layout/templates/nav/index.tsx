@@ -91,34 +91,7 @@ async function MobileMenu() {
   )
 }
 
-// Client component for search modal
-function SearchModal() {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center pt-20">
-      <div className="w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl">
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-3">
-            <Search className="h-5 w-5 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search for products..."
-              className="flex-1 outline-none text-lg"
-              autoFocus
-            />
-            <Button variant="ghost" size="sm">
-              Cancel
-            </Button>
-          </div>
-        </div>
-        <div className="p-4">
-          <p className="text-sm text-muted-foreground text-center">
-            Type to search for products
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
+
 
 export async function NavigationHeader() {
     const customer = await retrieveCustomer() as any;

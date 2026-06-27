@@ -145,6 +145,19 @@ export const getCachedId = async (id?: any): Promise<string> => {
       maxAge: 60 * 60 * 24 * 365, // 1 year
       path: '/', // Available across the entire site
     });
+  } 
+  
+  if (!cacheId){
+       cacheId = id;
+    
+    // Save to cookies with appropriate options
+    cookieStore.set(CACHE_ID_COOKIE_KEY, cacheId, {
+      httpOnly: true,  // Prevents client-side JavaScript access (more secure)
+      secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+      sameSite: 'lax',  // CSRF protection
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      path: '/', // Available across the entire site
+    });
   }
   
   return cacheId;

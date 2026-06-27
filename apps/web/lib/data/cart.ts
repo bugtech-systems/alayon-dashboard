@@ -10,6 +10,7 @@ import { redirect } from "next/navigation"
 import {
   getAuthHeaders,
   getCachedId,
+  getCachedIdIfExists,
   getCacheOptions,
   getCacheTag,
   getCartId,
@@ -20,13 +21,14 @@ import {
 import { retrieveCustomer } from "@/lib/data/customer"
 import { getRegion } from "@/lib/data/regions"
 import { DeliveryDTO } from "../types"
+import { track } from "@vercel/analytics/server"
 
-export async function createDelivery(cartId: string, company_id: any) {
+export async function createDelivery(data: any) {
   const { delivery } = await sdk.client.fetch<{
     delivery: DeliveryDTO;
   }>("/store/deliveries", {
     method: "POST",
-    body: { cart_id: cartId, company_id },
+    body: data,
     headers: {
       "Content-Type": "application/json",
       ...(await getAuthHeaders()),
@@ -72,7 +74,8 @@ export async function retrieveCart(id?: string) {
 }
 
 export async function retrieveCompanyCart(id?: string) {
-  const cachedId = await getCachedId()
+  const cachedId = await getCachedIdIfExists();
+  const customer = await retrieveCustomer();
   const cartId = await getCartId()
   if (!id || !cartId) {
     return null
@@ -87,7 +90,7 @@ export async function retrieveCompanyCart(id?: string) {
   }
 
   let company = await sdk.client
-    .fetch<HttpTypes.StoreCartResponse>(`/store/carts?company_id=${id}&session_id=${cachedId}`, {
+    .fetch<HttpTypes.StoreCartResponse>(`/store/carts?company_id=${id}&session_id=${customer?.id || cachedId}`, {
       credentials: "include",
       method: "GET",
       query: {
@@ -104,7 +107,6 @@ export async function retrieveCompanyCart(id?: string) {
       return null
     }) as any
 
- 
     // const cartCacheTag = await getCacheTag("carts")
     // revalidateTag(cartCacheTag, "max")
     return company
@@ -113,7 +115,9 @@ export async function retrieveCompanyCart(id?: string) {
 export async function getOrSetCart(countryCode: string = 'ph', companyId?: string) {
   let cart = await companyId ? await retrieveCompanyCart(companyId) : await retrieveCart() as any;
   const region = await getRegion(countryCode)
-  const session_id = await getCachedId();
+  const customer = await retrieveCustomer();
+  const session = await getCachedIdIfExists();
+  const session_id = customer?.id ?? session;
   const isCustomer = String(session_id).includes('cus');
   if (!region) {
     throw new Error(`Region not found for country code: ${countryCode}`)
@@ -260,8 +264,10 @@ export async function addToCartBulk({
   if(companyId){
   await setCompanyId(companyId)
   }
+
+  const customer = await retrieveCustomer();
   const cart = await getOrSetCart(countryCode, companyId)
-  console.log(cart, companyId, 'GETTTS SEEET')
+  console.log(cart, companyId, customer,'GETTTS SEEET')
   if (!cart) {
     throw new Error("Error retrieving or creating cart")
   }
@@ -405,12 +411,26 @@ export async function initiatePaymentSession(
     context?: Record<string, unknown>
   }
 ) {
+
+    // Generate unique idempotency key for this transaction
+  const idempotencyKey = `pos_${cart.id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  
+
+
   const headers = {
     ...(await getAuthHeaders()),
   }
+  // Add idempotency key to headers
+  const headersWithIdempotency = {
+    ...headers,
+    "Idempotency-Key": idempotencyKey,
+  };
+
 
   return sdk.store.payment
-    .initiatePaymentSession(cart as StoreCart, data, {}, headers)
+    .initiatePaymentSession(cart as StoreCart, {
+        provider_id: data?.provider_id || "pp_system_default",
+    }, {}, headersWithIdempotency)
     .then(async (resp) => {
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag, "max")
@@ -649,19 +669,21 @@ export async function placeOrder(
   const ordersTag = await getCacheTag("orders")
   const approvalsTag = await getCacheTag("approvals")
 
-  // const response = await sdk.store.cart
-  //   .complete(id, {}, headers)
-  //   .catch(medusaError)
+  const response = await sdk.store.cart
+    .complete(id, {}, headers)
+    .catch(medusaError)
 
-  // if (response.type === "cart") {
-  //   return response
-  // }
+  if (response.type === "cart") {
+    return response
+  }
 
-  let delivery = await createDelivery(id, company_id)
 
-  // track("order_completed", {
-  //   order_id: response.order.id,
-  // })
+  console.log(response.order, 'ordder')
+  track("order_completed", {
+    order_id: response.order.id,
+  })
+
+  let delivery = await createDelivery({cart_id: id, company_id, order_id: response.order.id})
 
   revalidateTag(cartsTag, "max")
   revalidateTag(ordersTag, "max")

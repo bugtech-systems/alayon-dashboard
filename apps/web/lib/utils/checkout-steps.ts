@@ -61,7 +61,6 @@ export function getCheckoutStep(cart: B2BCart): CheckoutStep | null {
 
 // Check if a specific step is complete
 export function isStepComplete(cart: B2BCart, step: CheckoutStep): boolean {
-  console.log(cart, "CAART")
    const hasShippingAddress = !!cart?.shipping_address?.address_1
       const hasEmail = !!cart?.email
       const hasBillingAddress = cart?.same_as_shipping === true || !!cart?.billing_address?.address_1

@@ -1,7 +1,6 @@
 import { CheckoutNav } from "@/components/layout/checkout-nav"
 import { retrieveCustomer } from "@/lib/data/customer"
 import AccountLayout from "@/modules/account/templates/account-layout"
-import Image from "next/image"
 
 export default async function AccountPageLayout({
   children,

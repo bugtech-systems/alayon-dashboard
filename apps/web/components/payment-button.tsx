@@ -62,7 +62,7 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
   }
 
   const paymentSession = cart.payment_collection?.payment_sessions?.[0]
-
+  console.log(paymentSession, 'PATN+N')
   // Return appropriate payment button based on provider
   switch (true) {
     case isManual(paymentSession?.provider_id):

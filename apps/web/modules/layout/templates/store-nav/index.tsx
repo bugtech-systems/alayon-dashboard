@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { fetchRandomFeaturedProducts, getProductByHandle } from "@/lib/data/products"
 import { currencySymbolMap } from "@/lib/constants"
+import { LocationDialogWrapper } from "@/components/location/location-dialog-wrapper"
 
 // Navigation items
 const navigation = [
@@ -130,6 +131,8 @@ export async function StoreNavigationHeader({company}: any) {
 
   return (
     <>
+        <LocationDialogWrapper/>
+    
       {/* Announcement Bar */}
       <div className="bg-primary text-primary-foreground py-3 text-center text-sm">
         <p>Welcome to our store</p>

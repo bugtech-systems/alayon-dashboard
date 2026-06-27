@@ -4,14 +4,13 @@ import { transferCart } from "@/lib/data/customer"
 import { ExclamationCircleSolid } from "@medusajs/icons"
 import { Button } from "@medusajs/ui"
 import { useState } from "react"
-import { B2BCart, B2BCustomer } from "types/global"
 
-function CartMismatchBanner(props: { customer: B2BCustomer; cart: B2BCart }) {
+function CartMismatchBanner(props: { customer: any; cart: any }) {
   const { customer, cart } = props
   const [isPending, setIsPending] = useState(false)
   const [actionText, setActionText] = useState("Connect cart")
 
-
+console.log(customer, cart, 'ccarrt', !customer || !!cart.customer?.id)
   if (!customer || !!cart.customer?.id) {
     return
   }
@@ -29,7 +28,7 @@ function CartMismatchBanner(props: { customer: B2BCustomer; cart: B2BCart }) {
   }
 
   return (
-    <div className="flex items-center justify-center small:p-4 p-2 text-center bg-orange-300 small:gap-2 gap-1 text-sm mt-2 text-orange-800">
+    <div className="z-99 flex items-center justify-center small:p-4 p-2 text-center bg-orange-300 small:gap-2 gap-1 text-sm mt-2 text-orange-800">
       <div className="flex flex-col small:flex-row small:gap-2 gap-1 items-center">
         <span className="flex items-center gap-1">
           <ExclamationCircleSolid className="inline" />

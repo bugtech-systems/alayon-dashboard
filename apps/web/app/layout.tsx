@@ -10,9 +10,9 @@ import { APP_CONFIG } from "@/config/app-config";
 import { ThemeBootScript } from "@/scripts/theme-boot";
 import { PREFERENCE_DEFAULTS } from "@/lib/preferences/preferences-config";
 import "@workspace/ui/globals.css"
-import { PreferencesStoreProvider } from "@/stores/preferences/preferences-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { fontVars } from "@/lib/fonts/registry";
+import { getCachedIdIfExists } from "@/lib/data/cookies";
 
 
 export const metadata: Metadata = {
@@ -22,12 +22,13 @@ export const metadata: Metadata = {
 
 
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
+      const cachedId = await getCachedIdIfExists();
+    
     const { theme_mode, theme_preset, content_layout, navbar_style, sidebar_variant, sidebar_collapsible, font } =
     PREFERENCE_DEFAULTS;
   return (
@@ -47,7 +48,7 @@ export default function RootLayout({
       <body className={`${fontVars} min-h-screen antialiased`}>
         <TooltipProvider>
           
-     <LocationProvider>
+     <LocationProvider isOpen={!cachedId}>
         <MedusaAuthProvider>
         <Providers>
             <AuthProvider>

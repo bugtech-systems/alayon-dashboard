@@ -6,7 +6,6 @@ import { LocationDialog } from "./LocationDialog";
 
 export function LocationDialogWrapper() {
   const { showLocationDialog, setShowLocationDialog } = useLocation();
-    console.log(showLocationDialog, 'aadada')
   return (
     <LocationDialog 
       open={showLocationDialog} 

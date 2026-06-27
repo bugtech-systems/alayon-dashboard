@@ -153,7 +153,6 @@ const StripePaymentButton = ({
 const ManualTestPaymentButton = ({ notReady, cart }: { notReady: boolean, cart: any }) => {
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  console.log(cart, "CAART")
   const onPaymentCompleted = async () => {
     await placeOrder(cart.id, cart?.company?.id)
       .catch((err) => {

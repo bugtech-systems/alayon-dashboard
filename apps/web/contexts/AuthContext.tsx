@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { getAuthHeaders, setAuthToken } from '@/lib/data/cookies';
 import { n8nFetcher } from '@/hooks/useN8nQuery';
 import { sdk } from '@/lib/config';
+import { loginUser } from '@/lib/data';
 
 interface AuthContextType {
   user: User | null;
@@ -181,7 +182,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   //     // body: { email, password, actorType },
   //   })
 
-    // console.log(res, 'rewee')
 
       const res = await n8nFetcher({"endpoint": "/webhook/auth/session", 
         method: "GET"
@@ -205,14 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
         console.log(actorType, "ACTOR TYPE")
       // Production login
-        const res = await n8nFetcher({"endpoint": "/webhook/auth", 
-        method: "POST",
-        body: {
-            email: credentials.email,
-            password: credentials.password,
-            actorType: actorType
-        }
-      })
+        const res = await loginUser({...credentials, actor_type: actorType })
         console.log(res, 'RRRSSS')
      let token = await sdk.auth.login(actorType, 'emailpass', {
         email: credentials.email,

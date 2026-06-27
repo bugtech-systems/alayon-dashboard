@@ -18,6 +18,7 @@ import {
 } from "@/lib/medusa/data/cookies"
 import { createSession } from "../data/sessions"
 import { getCachedId } from "../data/cookies"
+import { assignCart } from "../data/cart"
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ||
@@ -37,7 +38,7 @@ export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
   if (!authHeaders) return null
   const headers = { ...authHeaders }
   const next = { ...(await getCacheOptions("customers")) }
-  return await sdk.client
+  let customer = await sdk.client
     .fetch<{ customer: B2BCustomer }>(`/store/customers/me`, {
       method: "GET",
       query: { fields: "*employee, *orders" },
@@ -46,6 +47,10 @@ export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
     })
     .then(({ customer }) => customer as B2BCustomer)
     .catch(() => null)
+
+    console.log(customer, 'CCCCC')
+    await getCachedId(customer?.id)
+    return customer
 }
 
 export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {

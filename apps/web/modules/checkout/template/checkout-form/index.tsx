@@ -209,7 +209,6 @@ export default function CheckoutForm({
 
   const totalSteps = STEPS.length
   const isCurrentStepComplete = isStepComplete(cart, currentStep)
-console.log(cart, currentStep, isCurrentStepComplete, 'ccomp')
   return (
     <div id="checkout-form" className="relative">
       {/* Stepper Navigation */}

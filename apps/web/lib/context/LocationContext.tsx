@@ -24,11 +24,12 @@ export const useLocation = () => {
 
 interface LocationProviderProps {
   children: ReactNode;
+  isOpen?: Boolean;
 }
 
-export const LocationProvider: React.FC<LocationProviderProps> = ({ children }) => {
+export const LocationProvider: React.FC<LocationProviderProps> = ({ children, isOpen = false }) => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [showLocationDialog, setShowLocationDialog] = useState(false);
+  const [showLocationDialog, setShowLocationDialog] = useState(isOpen);
 
   useEffect(() => {
     // Check if location is already stored in localStorage

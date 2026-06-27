@@ -7,7 +7,6 @@ import { createSession, destroySession } from "../../lib/data/sessions";
 import { sdk } from "../medusa/config";
 import { getAuthHeaders, getCacheHeaders, getCacheTag, removeAuthToken } from "../medusa/data/cookies";
 import { track } from "@vercel/analytics";
-import { apiFetch } from "../apiClient";
 import { n8nFetcher } from "@/hooks/useN8nQuery";
 
 type FormState =

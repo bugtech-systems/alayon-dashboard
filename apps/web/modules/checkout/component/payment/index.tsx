@@ -24,7 +24,7 @@ const Payment = ({
   const activeSession = cart.payment_collection?.payment_sessions?.find(
     (paymentSession: any) => paymentSession.status === "pending"
   )
-console.log(availablePaymentMethods, 'AVVIAALl')
+console.log(availablePaymentMethods, activeSession, 'AVVIAALl')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cardBrand, setCardBrand] = useState<string | null>(null)
@@ -42,12 +42,12 @@ console.log(availablePaymentMethods, 'AVVIAALl')
   const setPaymentMethod = async (method: string) => {
     setError(null)
     setSelectedPaymentMethod(method)
-    if (isStripeLike(method)) {
-      await initiatePaymentSession(cart, {
-        provider_id: method,
-      })
-    }
+
   }
+
+
+console.log(selectedPaymentMethod,  'metth')
+
 
   const paidByGiftcard =
     cart?.gift_cards && cart?.gift_cards?.length > 0 && cart?.total === 0
@@ -73,12 +73,15 @@ console.log(availablePaymentMethods, 'AVVIAALl')
   const handleSubmit = async () => {
     setIsLoading(true)
     try {
+
+            console.log(selectedPaymentMethod, 'actiiiss')
+
       const shouldInputCard =
         isStripeLike(selectedPaymentMethod) && !activeSession
 
       const checkActiveSession =
         activeSession?.provider_id === selectedPaymentMethod
-
+      console.log(checkActiveSession, cart, 'actiii')
       if (!checkActiveSession) {
         await initiatePaymentSession(cart, {
           provider_id: selectedPaymentMethod,
