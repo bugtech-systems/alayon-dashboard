@@ -47,8 +47,6 @@ export const retrieveCustomer = async (id?: any): Promise<B2BCustomer | any> => 
     .catch(() => null)
 
 
-
-console.log(customer, id, 'RETRRVER')
   if(id && !customer){
     return await sdk.client
     .fetch<{ customer: B2BCustomer }>(`/dashboard/customers/${id}`, {
@@ -63,7 +61,7 @@ console.log(customer, id, 'RETRRVER')
     .then(({ customer }) => customer as B2BCustomer)
     .catch(() => null)
   } else {
-  return customer
+   return customer
   }
 
   }

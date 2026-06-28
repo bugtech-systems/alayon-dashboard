@@ -9,7 +9,7 @@ import {
 import { useRouter } from "next/navigation"
 import { apiFetch } from "@/lib/apiClient"
 import { retrieveCustomer } from "@/lib/actions"
-import { removeAuthToken, setAuthToken } from "@/lib/data/cookies"
+import { removeAuthToken, setAuthToken, setCachedId } from "@/lib/data/cookies"
 
 type User = {
   id: string
@@ -52,12 +52,17 @@ export function MedusaAuthProvider({ children }: { children: React.ReactNode }) 
 
       const res = await retrieveCustomer() as any;
       //   const userData = await resUser.json() as any;
+      console.log(res, 'RESSS')
         if(res.user || res.customer || res.company || res.driver){
-        setUser({...(res.user || res.customer || res.company || res.driver), actor_type: res.actor_type})
+          let customer = {...(res.user || res.customer || res.company || res.driver || res), actor_type: res.actor_type};
+        setUser(customer)
+        console.log(customer, 'CUSTOMMMSS')
         } 
+        
+
+        await setCachedId(res?.id)
 
         // fetchSession(res?.user?.id)
-      
     } catch {
       setUser(null)
     } finally {

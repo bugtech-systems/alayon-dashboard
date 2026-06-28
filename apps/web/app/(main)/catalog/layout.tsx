@@ -18,9 +18,9 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
   const cart = await retrieveCart()
   let freeShippingPrices: StoreFreeShippingPrice[] = []
 
-  if (cart) {
-    freeShippingPrices = await listCartFreeShippingPrices(cart.id)
-  }
+  // if (cart) {
+  //   freeShippingPrices = await listCartFreeShippingPrices(cart.id)
+  // }
 
 
   return (
@@ -28,13 +28,7 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
     <NavigationHeader/>
       {props.children}
       {/* <Footer /> */}
-      {cart && freeShippingPrices && (
-        <FreeShippingPriceNudge
-          variant="popup"
-          cart={cart as StoreCart}
-          freeShippingPrices={freeShippingPrices}
-        />
-      )}
+     
     </>
   )
 }

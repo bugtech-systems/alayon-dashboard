@@ -36,6 +36,7 @@ export const LocationProvider: React.FC<LocationProviderProps> = ({ children, is
     const storedLocation = localStorage.getItem('userLocation');
     if (storedLocation) {
       setUserLocation(JSON.parse(storedLocation));
+
     } else {
       // Show dialog if no location is stored
       setShowLocationDialog(true);

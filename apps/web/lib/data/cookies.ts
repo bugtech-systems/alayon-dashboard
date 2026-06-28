@@ -163,6 +163,20 @@ export const getCachedId = async (id?: any): Promise<string> => {
   return cacheId;
 };
 
+export const setCachedId = async (id?: any) => {
+  const cookieStore = await nextCookies() as any;
+  
+    
+    // Save to cookies with appropriate options
+    cookieStore.set(CACHE_ID_COOKIE_KEY, id, {
+      httpOnly: true,  // Prevents client-side JavaScript access (more secure)
+      secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+      sameSite: 'lax',  // CSRF protection
+      maxAge: 60 * 60 * 24, // 1 year
+      path: '/', // Available across the entire site
+    });
+};
+
 /**
  * Gets the cache ID without generating a new one if it doesn't exist
  * @returns The cache ID or null if not found

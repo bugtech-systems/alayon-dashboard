@@ -49,7 +49,7 @@ export const retrieveCustomer = async (): Promise<B2BCustomer | null> => {
     .catch(() => null)
 
     console.log(customer, 'CCCCC')
-    await getCachedId(customer?.id)
+    // await getCachedId(customer?.id)
     return customer
 }
 
