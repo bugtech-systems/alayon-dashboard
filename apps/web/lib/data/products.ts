@@ -6,6 +6,7 @@ import { getRegion } from "@/lib/data/regions"
 import { sortProducts } from "@/lib/util/sort-products"
 import { SortOptions } from "@/modules/store/components/refinement-list/sort-products"
 import { HttpTypes } from "@medusajs/types"
+import { cache } from "react"
 
 export const getProductsById = async ({
   ids,
@@ -40,97 +41,90 @@ export const getProductsById = async ({
     .then(({ products }) => products)
 }
 
-export const getProductByHandle = async (handle: string, regionId?: string) => {
-  let region = await getRegion('ph'); 
-
-  const headers = {
-    ...(await getAuthHeaders()),
+// Optional: Get single product with caching
+export const getProductByHandle = cache(async (handle: string, regionId?: string) => {
+  if (!handle || !regionId) {
+    return null
   }
 
-  const next = {
-    ...(await getCacheOptions("products")),
-  }
-  return await sdk.client
-    .fetch<{ products: HttpTypes.StoreProduct[] }>(`/store/products`, {
-      credentials: "include",
-      method: "GET",
-      query: {
-        handle,
-        region_id: region?.id,
-        fields:
-          "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags,*companies",
-      },
-      headers,
-      next,
-    })
-    .then(({ products }: any) => ({...products[0], company: Array.isArray(products[0].companies) ? products[0].companies.find((a: any) => a?.id) : products[0].companies}))
-}
-
-
-export const listProducts = async ({
-  pageParam = 1,
-  queryParams,
-  countryCode = 'ph',
-}: {
-  pageParam?: number
-  queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductParams
-  countryCode: string
-}): Promise<{
-  response: { products: HttpTypes.StoreProduct[]; count: number }
-  nextPage: number | null
-  queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductParams
-}> => {
-  const limit = queryParams?.limit || 12
-  const _pageParam = Math.max(pageParam, 1)
-  const offset = (_pageParam - 1) * limit
-  const region = await getRegion(countryCode)
-
-  if (!region) {
-    return {
-      response: { products: [], count: 0 },
-      nextPage: null,
-    }
-  }
-
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
-
-  const next = {
-    ...(await getCacheOptions("products")),
-  }
-
-  return sdk.client
-    .fetch<{ products: HttpTypes.StoreProduct[]; count: number }>(
-      `/store/products`,
+  try {
+    const headers = await getAuthHeaders()
+    
+    const { products } = await sdk.store.product.list(
       {
-        credentials: "include",
-        method: "GET",
-        query: {
-          limit,
-          offset,
-          region_id: region.id,
-          fields: "*variants.calculated_price",
-          ...queryParams,
+        handle: [handle],
+        region_id: regionId,
+        fields: "*variants.calculated_price,+variants.inventory_quantity,+variants.allow_backorder,+variants.manage_inventory,+tags,+options,+images,*companies",
+      },
+      {
+        next: { 
+          tags: [`product-${handle}`, "products"] 
         },
-        headers,
-        next,
+        ...headers,
       }
     )
-    .then(({ products, count }) => {
-      const nextPage = count > offset + limit ? pageParam + 1 : null
 
-      return {
-        response: {
-          products,
-          count,
+    if (!products || products.length === 0) {
+      return null
+    }
+
+    return products[0]
+  } catch (error) {
+    console.error(
+      `Failed to fetch product with handle ${handle}:`,
+      error instanceof Error ? error.message : "Unknown error"
+    )
+    return null
+  }
+})
+
+
+// Cache the product list function
+export const listProducts = cache(async ({
+  queryParams = {},
+  countryCode,
+}: {
+  queryParams?: HttpTypes.StoreProductParams & {
+    tags?: string[]
+  }
+  countryCode: string
+}) => {
+  try {
+    const headers = await getAuthHeaders()
+    const region = await getRegion(countryCode)
+    
+    if (!region) {
+      return { response: { products: [], count: 0 } }
+    }
+
+    // Merge with default params
+    const params = {
+      region_id: region.id,
+      limit: 12,
+      is_giftcard: false,
+      fields: "*variants.calculated_price,+variants.inventory_quantity,+variants.allow_backorder,+variants.manage_inventory,+tags,+options,+images",
+      ...queryParams,
+    }
+
+    const { products, count } = await sdk.store.product.list(
+      params,
+      {
+        next: { 
+          tags: ["products", `region-${region.id}`] 
         },
-        nextPage: nextPage,
-        queryParams,
+        ...headers,
       }
-    })
-}
+    )
 
+    return { response: { products, count } }
+  } catch (error) {
+    console.error(
+      `Failed to list products:`,
+      error instanceof Error ? error.message : "Unknown error"
+    )
+    return { response: { products: [], count: 0 } }
+  }
+})
 
 
 /**

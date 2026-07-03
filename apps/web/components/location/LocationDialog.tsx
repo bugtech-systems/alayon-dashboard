@@ -602,7 +602,7 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
     if (!newOpen && !success) {
       // Show confirmation before closing
       if (window.confirm('You haven\'t completed setting up your location. This is required to continue. Are you sure you want to close?')) {
-        onOpenChange(false);
+        // onOpenChange(false);
       }
       return;
     }
@@ -829,7 +829,7 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
             if (!success) {
               e.preventDefault();
               if (window.confirm('You haven\'t completed setting up your location. This is required to continue. Are you sure you want to close?')) {
-                onOpenChange(false);
+                // onOpenChange(false);
               }
             }
           }}
@@ -837,7 +837,7 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
             if (!success) {
               e.preventDefault();
               if (window.confirm('You haven\'t completed setting up your location. This is required to continue. Are you sure you want to close?')) {
-                onOpenChange(false);
+                // onOpenChange(false);
               }
             }
           }}

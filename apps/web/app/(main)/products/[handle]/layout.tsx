@@ -3,6 +3,7 @@ import { getCachedId, getCachedIdIfExists } from "@/lib/data/cookies"
 import { retrieveCustomer } from "@/lib/data/customer"
 import { listCartFreeShippingPrices } from "@/lib/data/fulfillment"
 import { getProductByHandle } from "@/lib/data/products"
+import { getRegion } from "@/lib/data/regions"
 import { getBaseURL } from "@/lib/util/env"
 import CartMismatchBanner from "@/modules/layout/components/cart-mismatch-banner"
 import { StoreNavigationHeader } from "@/modules/layout/templates/store-nav"
@@ -24,9 +25,11 @@ export default async function PageLayout(props: { children: React.ReactNode, par
   const customer = await retrieveCustomer(customer_id).catch(() => null)
   let freeShippingPrices: StoreFreeShippingPrice[] = []
   const params = await props.params
+  const region = await getRegion('ph')
+  
   console.log(customer, 'CUSTTOM', customerData)
-  const product = await getProductByHandle(params?.handle) as any;
-  const company = product?.company;
+  const product = await getProductByHandle(params?.handle, region?.id) as any;
+  const company = product?.companies[0];
 
   const cart = await retrieveCompanyCart(company?.id);
   console.log(customer, params, product, 'paaagrra',company, cart)

@@ -18,12 +18,17 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/product-card";
 import { getProducts } from "@/lib/medusa/client";
+import { listCategories } from "@/lib/data";
+import { Card, CardContent } from "./ui/card";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination";
 
 // Types
 interface Category {
   id: string;
   name: string;
   handle: string;
+  parent_category_id: string | null;
+  category_children?: Category[];
 }
 
 interface PriceRange {
@@ -40,18 +45,6 @@ const sortOptions = [
   { value: "name-desc", label: "Name: Z to A" },
 ];
 
-// Categories (these should ideally come from your Medusa API)
-const categories: Category[] = [
-  { id: "1", name: "Fresh Produce", handle: "fresh-produce" },
-  { id: "2", name: "Dairy & Eggs", handle: "dairy-eggs" },
-  { id: "3", name: "Meat & Seafood", handle: "meat-seafood" },
-  { id: "4", name: "Pantry Staples", handle: "pantry" },
-  { id: "5", name: "Beverages", handle: "beverages" },
-  { id: "6", name: "Snacks", handle: "snacks" },
-  { id: "7", name: "Frozen Foods", handle: "frozen" },
-  { id: "8", name: "Household", handle: "household" },
-];
-
 // Helper to safely parse URL params
 const safeParseInt = (value: string | null, defaultValue: number): number => {
   if (!value) return defaultValue;
@@ -59,7 +52,102 @@ const safeParseInt = (value: string | null, defaultValue: number): number => {
   return isNaN(parsed) ? defaultValue : parsed;
 };
 
-export function ProductCatalog({regionId}: any) {
+// Build category tree
+const buildCategoryTree = (categories: Category[]): Category[] => {
+  const categoryMap = new Map<string, Category>();
+  const rootCategories: Category[] = [];
+
+  // First pass: create map
+  categories.forEach(cat => {
+    categoryMap.set(cat.id, { ...cat, category_children: [] });
+  });
+
+  // Second pass: build tree
+  categories.forEach(cat => {
+    const category = categoryMap.get(cat.id)!;
+    if (cat.parent_category_id && categoryMap.has(cat.parent_category_id)) {
+      const parent = categoryMap.get(cat.parent_category_id)!;
+      if (!parent.category_children) parent.category_children = [];
+      parent.category_children.push(category);
+    } else {
+      rootCategories.push(category);
+    }
+  });
+
+  return rootCategories;
+};
+
+// Recursive category renderer
+const CategoryItem = ({ 
+  category, 
+  selectedCategories, 
+  onToggle,
+  level = 0 
+}: { 
+  category: Category; 
+  selectedCategories: string[]; 
+  onToggle: (id: string) => void;
+  level?: number;
+}) => {
+  const hasChildren = category.category_children && category.category_children.length > 0;
+  const isSelected = selectedCategories.includes(category.id);
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        {hasChildren && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-gray-400 hover:text-gray-600 transition-transform"
+            style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+          >
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        )}
+        <label 
+          className={cn(
+            "flex items-center gap-2 cursor-pointer group flex-1",
+            level > 0 && "ml-1"
+          )}
+        >
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => onToggle(category.id)}
+          />
+          <span className={cn(
+            "text-sm text-gray-600 group-hover:text-gray-900",
+            isSelected && "font-medium text-gray-900"
+          )}>
+            {category.name}
+          </span>
+          {hasChildren && (
+            <span className="text-xs text-gray-400">
+              ({category.category_children?.length})
+            </span>
+          )}
+        </label>
+      </div>
+      {hasChildren && isExpanded && (
+        <div className="ml-6 space-y-1 border-l-2 border-gray-100 pl-3">
+          {category.category_children?.map((child) => (
+            <CategoryItem
+              key={child.id}
+              category={child}
+              selectedCategories={selectedCategories}
+              onToggle={onToggle}
+              level={level + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export function ProductCatalog({ regionId }: { regionId: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -67,7 +155,9 @@ export function ProductCatalog({regionId}: any) {
   // State
   const [products, setProducts] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -75,7 +165,7 @@ export function ProductCatalog({regionId}: any) {
   
   // Filter states - initialized from URL on mount only
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<PriceRange | any>({ min: 0, max: 5000 });
+  const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 5000 });
   const [sortBy, setSortBy] = useState("newest");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [onSaleOnly, setOnSaleOnly] = useState(false);
@@ -88,6 +178,27 @@ export function ProductCatalog({regionId}: any) {
   const isUpdatingFromURL = useRef(false);
   const initialLoadDone = useRef(false);
   const fetchAbortController = useRef<AbortController | null>(null);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setIsCategoriesLoading(true);
+        const  product_categories = await listCategories() as any;
+
+
+        console.log(product_categories, 'PRODUCTSS')
+        const categoryTree = buildCategoryTree(product_categories);
+        setCategories(categoryTree);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      } finally {
+        setIsCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   // Initialize filters from URL (runs once on mount)
   useEffect(() => {
@@ -143,6 +254,18 @@ export function ProductCatalog({regionId}: any) {
     return () => clearTimeout(timeoutId);
   }, [currentPage, sortBy, selectedCategories, inStockOnly, onSaleOnly, priceRange, router, pathname]);
 
+  // Get all category IDs including children
+  const getAllCategoryIds = useCallback((categories: Category[]): string[] => {
+    let ids: string[] = [];
+    categories.forEach(cat => {
+      ids.push(cat.id);
+      if (cat.category_children) {
+        ids = ids.concat(getAllCategoryIds(cat.category_children));
+      }
+    });
+    return ids;
+  }, []);
+
   // Fetch products
   const fetchProducts = useCallback(async () => {
     // Cancel previous request
@@ -159,7 +282,7 @@ export function ProductCatalog({regionId}: any) {
     const params: any = {
       limit,
       offset,
-      fields: "*variants.calculated_price,+variants.inventory_quantity,+variants.allow_backorder",
+      fields: "*variants.calculated_price,+variants.inventory_quantity,+variants.allow_backorder,+variants.manage_inventory",
     };
 
     // Add sorting
@@ -183,16 +306,39 @@ export function ProductCatalog({regionId}: any) {
         params.order = "created_at DESC";
     }
 
-    // Add category filter if we have category IDs from Medusa
-    if (selectedCategories.length > 0) {
-      params.category_id = selectedCategories;
-    }
+    // Add category filter - include selected categories and their children
+    if (selectedCategories.length > 0 && categories.length > 0) {
+      // Get all category IDs including children of selected categories
+      const allCategoryIds = getAllCategoryIds(categories);
+      const selectedWithChildren = new Set<string>();
+      
+      selectedCategories.forEach(selectedId => {
+        selectedWithChildren.add(selectedId);
+        // Find all descendants
+        const findDescendants = (catList: Category[]) => {
+          catList.forEach(cat => {
+            if (cat.id === selectedId || selectedWithChildren.has(cat.id)) {
+              if (cat.category_children) {
+                cat.category_children.forEach(child => {
+                  selectedWithChildren.add(child.id);
+                  findDescendants([child]);
+                });
+              }
+            } else if (cat.category_children) {
+              findDescendants(cat.category_children);
+            }
+          });
+        };
+        findDescendants(categories);
+      });
 
+      params.category_id = Array.from(selectedWithChildren);
+    }
 
     try {
       const { products: fetchedProducts, count } = await getProducts(params);
       
-      // Process products - only use data from Medusa, no mock badges
+      // Process products - only use data from Medusa
       const processedProducts = fetchedProducts.map((product: any) => {
         // Calculate if product has any variant on sale
         const hasSaleVariant = product.variants?.some((variant: any) => 
@@ -200,16 +346,24 @@ export function ProductCatalog({regionId}: any) {
         );
         
         // Calculate if product is in stock
-        const isInStock = product.variants?.some((variant: any) => 
-          (variant.inventory_quantity && variant.inventory_quantity > 0) || 
-          variant.allow_backorder || 
-          !variant.manage_inventory
-        );
+        const isInStock = product.variants?.some((variant: any) => {
+          if (!variant.manage_inventory) return true;
+          if (variant.allow_backorder) return true;
+          return variant.inventory_quantity && variant.inventory_quantity > 0;
+        });
+        
+        // Get lowest price
+        let lowestPrice = Infinity;
+        product.variants?.forEach((variant: any) => {
+          const price = variant.calculated_price?.calculated_amount || 0;
+          if (price < lowestPrice) lowestPrice = price;
+        });
         
         return {
           ...product,
           hasSale: hasSaleVariant,
           inStock: isInStock,
+          lowestPrice: lowestPrice === Infinity ? 0 : lowestPrice,
         };
       });
       
@@ -226,13 +380,7 @@ export function ProductCatalog({regionId}: any) {
       
       if (priceRange.min > 0 || priceRange.max < 5000) {
         filtered = filtered.filter((product: any) => {
-          // Get lowest variant price
-          let lowestPrice = Infinity;
-          product.variants?.forEach((variant: any) => {
-            const price = variant.calculated_price?.calculated_amount || 0;
-            if (price < lowestPrice) lowestPrice = price;
-          });
-          return lowestPrice >= priceRange.min && lowestPrice <= priceRange.max;
+          return product.lowestPrice >= priceRange.min && product.lowestPrice <= priceRange.max;
         });
       }
       
@@ -249,11 +397,11 @@ export function ProductCatalog({regionId}: any) {
       setIsLoading(false);
       setIsInitialLoad(false);
     }
-  }, [currentPage, limit, sortBy, selectedCategories, inStockOnly, onSaleOnly, priceRange]);
+  }, [currentPage, limit, sortBy, selectedCategories, inStockOnly, onSaleOnly, priceRange, categories, getAllCategoryIds]);
 
   // Fetch products when dependencies change
   useEffect(() => {
-    if (!initialLoadDone.current) return;
+    if (!initialLoadDone.current || categories.length === 0) return;
     fetchProducts();
     
     return () => {
@@ -261,7 +409,7 @@ export function ProductCatalog({regionId}: any) {
         fetchAbortController.current.abort();
       }
     };
-  }, [fetchProducts]);
+  }, [fetchProducts, categories]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -295,31 +443,52 @@ export function ProductCatalog({regionId}: any) {
     return count;
   }, [selectedCategories.length, inStockOnly, onSaleOnly, priceRange.min, priceRange.max]);
 
+  const getCategoryName = useCallback((categoryId: string): string => {
+    const findCategory = (cats: Category[]): string | null => {
+      for (const cat of cats) {
+        if (cat.id === categoryId) return cat.name;
+        if (cat.category_children) {
+          const found = findCategory(cat.category_children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return findCategory(categories) || categoryId;
+  }, [categories]);
+
   // Filter Sidebar Component
   const FilterSidebar = () => (
     <div className="space-y-6">
       {/* Categories */}
       <div>
         <h3 className="font-semibold text-gray-900 mb-3">Categories</h3>
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {categories.map((category) => (
-            <label key={category.id} className="flex items-center gap-2 cursor-pointer group">
-              <Checkbox
-                checked={selectedCategories.includes(category.id)}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    setSelectedCategories([...selectedCategories, category.id]);
-                  } else {
-                    setSelectedCategories(selectedCategories.filter((c) => c !== category.id));
-                  }
+        {isCategoriesLoading ? (
+          <div className="space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-6 bg-gray-100 rounded animate-pulse" />
+            ))}
+          </div>
+        ) : categories.length > 0 ? (
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+            {categories.map((category) => (
+              <CategoryItem
+                key={category.id}
+                category={category}
+                selectedCategories={selectedCategories}
+                onToggle={(id) => {
+                  setSelectedCategories(prev =>
+                    prev.includes(id)
+                      ? prev.filter(c => c !== id)
+                      : [...prev, id]
+                  );
                 }}
               />
-              <span className="text-sm text-gray-600 group-hover:text-gray-900">
-                {category.name}
-              </span>
-            </label>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No categories found</p>
+        )}
       </div>
 
       {/* Price Range */}
@@ -331,7 +500,7 @@ export function ProductCatalog({regionId}: any) {
             min={0}
             max={5000}
             step={50}
-            onValueChange={(value) => setPriceRange({ min: value[0] as any, max: value[1]  as any})}
+            onValueChange={(value) => setPriceRange({ min: value[0], max: value[1] })}
             className="w-full"
           />
           <div className="flex items-center justify-between gap-2">
@@ -518,21 +687,18 @@ export function ProductCatalog({regionId}: any) {
         {/* Active Filter Tags */}
         {activeFilterCount > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
-            {selectedCategories.map((catId) => {
-              const category = categories.find((c) => c.id === catId);
-              return (
-                <span key={catId} className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 rounded-full">
-                  {category?.name}
-                  <button
-                    onClick={() => setSelectedCategories(selectedCategories.filter((c) => c !== catId))}
-                    className="hover:text-red-500"
-                    aria-label={`Remove ${category?.name} filter`}
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              );
-            })}
+            {selectedCategories.map((catId) => (
+              <span key={catId} className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 rounded-full">
+                {getCategoryName(catId)}
+                <button
+                  onClick={() => setSelectedCategories(selectedCategories.filter((c) => c !== catId))}
+                  className="hover:text-red-500"
+                  aria-label={`Remove category filter`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
             {inStockOnly && (
               <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 rounded-full">
                 In Stock
@@ -577,87 +743,112 @@ export function ProductCatalog({regionId}: any) {
           </div>
         )}
 
-        {/* Product Grid */}
-        {!isLoading && !error && (
-          <>
-            <div className={cn(
-              viewMode === "grid" 
-                ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" 
-                : "space-y-4"
-            )}>
-              {products.map((product, index) => (
-                <ProductCard key={product.id} product={product} index={index} regionId={regionId} />
-              ))}
-            </div>
+{!isLoading && !error && (
+  <>
+    {/* Product Grid/List View */}
+    <div className={cn(
+      viewMode === "grid" 
+        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6" 
+        : "space-y-4"
+    )}>
+      {products.map((product, index) => (
+        <ProductCard key={product.id} product={product} index={index} regionId={regionId} />
+      ))}
+    </div>
 
-            {/* Empty State */}
-            {products.length === 0 && (
-              <div className="text-center py-12">
-                <ShoppingBag className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-                <p className="text-gray-500">Try adjusting your filters or search criteria</p>
-                <button onClick={clearAllFilters} className="mt-4 text-primary hover:underline">
-                  Clear all filters
-                </button>
-              </div>
-            )}
+    {/* Empty State */}
+    {products.length === 0 && (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <div className="rounded-full bg-muted p-4 mb-4">
+            <ShoppingBag className="w-8 h-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">No products found</h3>
+          <p className="text-muted-foreground text-center max-w-sm mb-4">
+            Try adjusting your filters or search criteria to find what you're looking for.
+          </p>
+          <Button 
+            onClick={clearAllFilters} 
+            variant="outline"
+          >
+            Clear all filters
+          </Button>
+        </CardContent>
+      </Card>
+    )}
 
-            {/* Pagination */}
-            {totalPages > 1 && products.length > 0 && (
-              <div className="flex justify-center gap-2 mt-8 flex-wrap">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Previous
-                </button>
-                {[...Array(Math.min(totalPages, 5))].map((_, i) => {
-                  let pageNum: number;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={cn(
-                        "px-3 py-1 text-sm border rounded-md hover:bg-gray-50 transition-colors",
-                        currentPage === pageNum && "bg-primary text-white border-primary hover:bg-primary/90"
-                      )}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                {totalPages > 5 && currentPage < totalPages - 2 && (
-                  <span className="px-2 py-1 text-sm">...</span>
+    {/* Pagination */}
+    {totalPages > 1 && products.length > 0 && (
+      <div className="mt-8 flex justify-center">
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => handlePageChange(currentPage - 1)}
+                className={cn(
+                  "cursor-pointer",
+                  currentPage === 1 && "pointer-events-none opacity-50"
                 )}
-                {totalPages > 5 && currentPage < totalPages - 2 && (
-                  <button
-                    onClick={() => handlePageChange(totalPages)}
-                    className="px-3 py-1 text-sm border rounded-md hover:bg-gray-50"
+              />
+            </PaginationItem>
+            
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              let pageNum: number;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              
+              return (
+                <PaginationItem key={pageNum}>
+                  <PaginationLink
+                    onClick={() => handlePageChange(pageNum)}
+                    isActive={currentPage === pageNum}
+                    className="cursor-pointer"
                   >
-                    {totalPages}
-                  </button>
-                )}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Next
-                </button>
-              </div>
+                    {pageNum}
+                  </PaginationLink>
+                </PaginationItem>
+              );
+            })}
+            
+            {totalPages > 5 && currentPage < totalPages - 2 && (
+              <PaginationItem>
+                <PaginationEllipsis />
+              </PaginationItem>
             )}
-          </>
-        )}
+            
+            {totalPages > 5 && currentPage < totalPages - 2 && (
+              <PaginationItem>
+                <PaginationLink
+                  onClick={() => handlePageChange(totalPages)}
+                  className="cursor-pointer"
+                >
+                  {totalPages}
+                </PaginationLink>
+              </PaginationItem>
+            )}
+            
+            <PaginationItem>
+              <PaginationNext
+                onClick={() => handlePageChange(currentPage + 1)}
+                className={cn(
+                  "cursor-pointer",
+                  currentPage === totalPages && "pointer-events-none opacity-50"
+                )}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    )}
+  </>
+)}
       </div>
     </div>
   );

@@ -4,19 +4,20 @@ import { sdk } from "../medusa/config"
 import medusaError from "../medusa/util/medusa-error"
 import { HttpTypes } from "@medusajs/types"
 import { getCacheOptions } from "./cookies"
+import { cache } from "react"
 
-export const listRegions = async (): Promise<HttpTypes.StoreRegion[]> => {
-  const next = {
+export const listRegions = cache(async () => {
+  try {
+    const { regions } = await sdk.store.region.list(
+      {},
+      { next: { tags: ["regions"] } }
+    )
+    return regions || []
+  } catch (error) {
+    console.error("Failed to fetch regions:", error)
+    return []
   }
-
-  return sdk.client
-    .fetch<{ regions: HttpTypes.StoreRegion[] }>(`/store/regions`, {
-      method: "GET",
-      next,
-    })
-    .then(({ regions }: { regions: HttpTypes.StoreRegion[] }) => regions)
-    .catch(medusaError)
-}
+})
 
 export const retrieveRegion = async (
   id: string
@@ -35,35 +36,32 @@ export const retrieveRegion = async (
 
 const regionMap = new Map<string, HttpTypes.StoreRegion>()
 
-export const getRegion = async (
-  countryCode: string = 'ph'
-): Promise<HttpTypes.StoreRegion | null> => {
+
+
+export const getRegion = cache(async (countryCode: string) => {
+  if (!countryCode) return null
+
   try {
-    if (regionMap.has(countryCode)) {
-      return regionMap.get(countryCode) ?? null
-    }
-
     const regions = await listRegions()
-
-    if (!regions) {
+    
+    if (!regions || regions.length === 0) {
       return null
     }
 
-    regions.forEach((region) => {
-      region.countries?.forEach((c) => {
-        regionMap.set(c?.iso_2 ?? "", region)
-      })
-    })
+    // Find region by country code
+    const region = regions.find((r) =>
+      r.countries?.some((c) => c.iso_2 === countryCode.toLowerCase())
+    )
 
-    const region = countryCode
-      ? regionMap.get(countryCode)
-      : regionMap.get("ph")
-
-    return region ?? null
-  } catch (e: any) {
+    return region || regions[0] // Fallback to first region
+  } catch (error) {
+    console.error(
+      `Failed to get region for country ${countryCode}:`,
+      error instanceof Error ? error.message : "Unknown error"
+    )
     return null
   }
-}
+})
 
 
 export const listMunicipalities = async (): Promise<HttpTypes.StoreRegion[]> => {

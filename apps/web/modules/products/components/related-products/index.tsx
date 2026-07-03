@@ -2,12 +2,79 @@
 import { listProducts } from "@/lib/data/products"
 import { getRegion } from "@/lib/data/regions"
 import { HttpTypes } from "@medusajs/types"
-import Product from "../product-preview"
 import { ProductCard } from "@/components/product-card"
-import { Card, CardContent } from "@/components/ui/card"
-import { Package, ChevronRight } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 import LocalizedClientLink from "@/modules/common/components/localized-client-link"
-import { cn } from "@/lib/utils"
+import { cache } from "react"
+
+// Cache the related products fetch to prevent infinite loops
+const getCachedRelatedProducts = cache(async (
+  productId: string,
+  collectionId: string | null,
+  tagIds: string[],
+  regionId: string,
+  countryCode: string
+): Promise<HttpTypes.StoreProduct[]> => {
+  try {
+    const usedIds = new Set<string>([productId])
+    let allProducts: HttpTypes.StoreProduct[] = []
+    
+    // Strategy 1: Get products from same collection (highest relevance)
+    if (collectionId) {
+      const { response } = await listProducts({
+        queryParams: {
+          region_id: regionId,
+          fields: "*variants.calculated_price,+variants.inventory_quantity,+variants.allow_backorder,+variants.manage_inventory,+tags,+options,+images",
+        },
+        countryCode,
+      })
+      
+      const filtered = response.products.filter(p => !usedIds.has(p.id))
+      allProducts = [...filtered]
+      filtered.forEach(p => usedIds.add(p.id))
+    }
+
+    // Strategy 2: Get products with same tags (moderate relevance)
+    if (allProducts.length < 8 && tagIds.length > 0) {
+      const { response } = await listProducts({
+        queryParams: {
+          region_id: regionId,
+          fields: "*variants.calculated_price,+variants.inventory_quantity,+variants.allow_backorder,+variants.manage_inventory,+tags,+options,+images",
+        },
+        countryCode,
+      })
+      
+      const filtered = response.products.filter(p => !usedIds.has(p.id))
+      allProducts = [...allProducts, ...filtered]
+      filtered.forEach(p => usedIds.add(p.id))
+    }
+
+    // Strategy 3: Get recent products as fallback (lowest relevance)
+    if (allProducts.length < 8) {
+      const { response } = await listProducts({
+        queryParams: {
+          region_id: regionId,
+          limit: 12 - allProducts.length,
+          fields: "*variants.calculated_price,+variants.inventory_quantity,+variants.allow_backorder,+variants.manage_inventory,+tags,+options,+images",
+        },
+        countryCode,
+      })
+      
+      const filtered = response.products.filter(p => !usedIds.has(p.id))
+      allProducts = [...allProducts, ...filtered]
+    }
+
+    // Remove duplicates and limit to 8
+    const uniqueProducts = allProducts.filter(
+      (p, index, self) => index === self.findIndex((t) => t.id === p.id)
+    ).slice(0, 8)
+
+    return uniqueProducts
+  } catch (error) {
+    console.error("Error fetching related products:", error)
+    return []
+  }
+})
 
 type RelatedProductsProps = {
   product: HttpTypes.StoreProduct
@@ -18,74 +85,29 @@ export default async function RelatedProducts({
   product,
   countryCode,
 }: RelatedProductsProps) {
+  // Validate product
+  if (!product || !product.id) {
+    return null
+  }
+
+  // Get region with caching
   const region = await getRegion(countryCode)
 
   if (!region) {
     return null
   }
 
-  // Define related products logic
-  const queryParams: HttpTypes.StoreProductParams & {
-    tags?: string[]
-  } = {}
-  if (region?.id) {
-    queryParams.region_id = region.id
-  }
-  if (product.collection_id) {
-    queryParams.collection_id = [product.collection_id]
-  }
-  if (product.tags) {
-    queryParams.tag_id = product.tags
-      .map((t) => t.id)
-      .filter(Boolean) as string[]
-  }
-  queryParams.is_giftcard = false
+  // Get related products with caching - prevents infinite loop
+  const displayProducts = await getCachedRelatedProducts(
+    product.id,
+    product.collection_id || null,
+    product.tags?.map((t) => t.id).filter(Boolean) || [],
+    // region.id,
+    countryCode
+  )
 
-  const products = await listProducts({
-    queryParams,
-    countryCode,
-  }).then(({ response }) => {
-    return response.products.filter(
-      (responseProduct) => responseProduct.id !== product.id
-    )
-  })
-
-  // If no related products found, try to get products from the same collection or category
-  let displayProducts = products
-  if (!displayProducts.length && product.collection_id) {
-    const collectionProducts = await listProducts({
-      queryParams: {
-        collection_id: [product.collection_id],
-        region_id: region.id,
-        is_giftcard: false,
-      },
-      countryCode,
-    }).then(({ response }) => {
-      return response.products.filter(
-        (responseProduct) => responseProduct.id !== product.id
-      )
-    })
-    displayProducts = collectionProducts.slice(0, 8)
-  }
-
-  // If still no products, try to get recent products
-  if (!displayProducts.length) {
-    const recentProducts = await listProducts({
-      queryParams: {
-        region_id: region.id,
-        is_giftcard: false,
-        limit: 8,
-      },
-      countryCode,
-    }).then(({ response }) => {
-      return response.products.filter(
-        (responseProduct) => responseProduct.id !== product.id
-      )
-    })
-    displayProducts = recentProducts
-  }
-
-  if (!displayProducts.length) {
+  // If no related products found, return null
+  if (!displayProducts || displayProducts.length === 0) {
     return null
   }
 

@@ -1,6 +1,6 @@
 import { HttpTypes } from "@medusajs/types";
 import { sdk } from "../config";
-import { getAuthHeaders, getCacheHeaders } from "../data/cookies";
+import { getAuthHeaders, getCacheHeaders, getCacheOptions } from "../data/cookies";
 
 export async function listCategories(): Promise<
   HttpTypes.StoreProductCategory[]
@@ -12,12 +12,14 @@ export async function listCategories(): Promise<
       ...(await getCacheHeaders("categories")),
     }
   );
+
+  console.log(product_categories, 'PRODUCTS CATT')
   return product_categories as HttpTypes.StoreProductCategory[];
 }
 
 export const getCategoryByHandle = async (
   categoryHandle: string[]
-): Promise<HttpTypes.StoreProductCategory> => {
+) => {
   const handle = `${categoryHandle.join("/")}`
 
   const next = {

@@ -83,7 +83,6 @@ export default async function ProductPage(props: Props) {
   if (!pricedProduct) {
     notFound()
   }
-
   return (
     <ProductTemplate
       product={pricedProduct}
