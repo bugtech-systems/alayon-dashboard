@@ -27,12 +27,11 @@ export default async function PageLayout(props: { children: React.ReactNode, par
   const params = await props.params
   const region = await getRegion('ph')
   
-  console.log(customer, 'CUSTTOM', customerData)
   const product = await getProductByHandle(params?.handle, region?.id) as any;
-  const company = product?.companies[0];
+  const company = product?.companies?.filter((a: any) => { return a?.id})[0];
 
   const cart = await retrieveCompanyCart(company?.id);
-  console.log(customer, params, product, 'paaagrra',company, cart)
+  console.log(customer, params, product, 'paaagrra', company, cart)
 
 
   if (cart) {

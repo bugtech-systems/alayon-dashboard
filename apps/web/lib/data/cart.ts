@@ -260,12 +260,10 @@ export async function addToCartBulk({
   countryCode: string
   companyId?: string
 }) {
-  console.log(countryCode, lineItems, 'llssns', companyId)
   if(companyId){
   await setCompanyId(companyId)
   }
 
-  const customer = await retrieveCustomer();
   const cart = await getOrSetCart(countryCode, companyId)
   if (!cart) {
     throw new Error("Error retrieving or creating cart")

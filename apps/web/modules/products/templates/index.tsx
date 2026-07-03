@@ -470,7 +470,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
     notFound()
   }
 
-  let company = product?.companies[0]
+  let company = product?.companies?.filter((a: any) => a?.id)[0];
 
   console.log(product, 'prodducts')
   // Variant selection state

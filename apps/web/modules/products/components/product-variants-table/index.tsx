@@ -73,19 +73,16 @@ const ProductVariantsTable = ({
     }
 
     setIsAdding(true)
-          console.log( company, 'COMPP')
 
     try {
       const lineItems = Array.from(lineItemsMap.entries()).map(
-        ([variantId, { quantity, ...variant }]) => ({
-          companyId: company?.id,
+        ([variantId, {company, quantity, ...variant }]) => ({
           productVariant: {
             ...variant,
           },
           quantity,
         })
       )
-      console.log(lineItems, company, 'COMPP')
       addToCartEventBus.emitCartAdd({
         companyId: company?.id,
         lineItems,

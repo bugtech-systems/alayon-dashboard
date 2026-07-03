@@ -169,7 +169,7 @@ export function CartProvider({
         })
 
         setIsUpdatingCart(true)
-        
+        console.log(company, 'COMMP')
         await addToCartBulk({
           lineItems: payload.lineItems.map((lineItem: any) => ({
             variant_id: lineItem.productVariant.id,
