@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
@@ -13,7 +12,8 @@ import {
   Loader2,
   Search,
   Navigation,
-  Target
+  Target,
+  Move
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ interface MapLocationPickerProps {
   cityName?: string;
   disabled?: boolean;
   placeholder?: string;
+  open?: any;
 }
 
 const DEFAULT_CENTER: [number, number] = [11.2299, 125.0022];
@@ -64,22 +65,37 @@ const createGroundPinIcon = () => {
             }
           }
           
+          @keyframes pinPulse {
+            0%, 100% {
+              transform: scale(1);
+            }
+            50% {
+              transform: scale(1.1);
+            }
+          }
+          
           .pin-container {
             position: relative;
             cursor: pointer;
+            will-change: transform;
           }
           .pin-container.landing {
-            animation: pinLanding 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+            animation: pinLanding 0.5s cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
+          }
+          .pin-container.pulse {
+            animation: pinPulse 0.5s ease 0.3s forwards;
           }
           .pin-svg {
             filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
             transition: transform 0.15s ease;
+            will-change: transform;
           }
           .pin-container:hover .pin-svg {
             transform: scale(1.08);
           }
           .pin-shadow {
             transition: transform 0.15s ease;
+            will-change: transform;
           }
           .pin-container:hover .pin-shadow {
             transform: scale(1.05);
@@ -129,29 +145,109 @@ const createGroundPinIcon = () => {
 
 const groundPinIcon = createGroundPinIcon();
 
+// ==================== MAP CENTER CONTROLLER ====================
+
+function MapCenterController({ 
+  center, 
+  zoom,
+  onCenterChange 
+}: { 
+  center: [number, number] | null;
+  zoom: number;
+  onCenterChange?: (center: [number, number]) => void;
+}) {
+  const map = useMap();
+  const isFirstRender = useRef(true);
+  const lastCenterRef = useRef<string>("");
+  const animationRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!center) return;
+
+    const centerKey = `${center[0].toFixed(6)},${center[1].toFixed(6)}`;
+    
+    // Skip if center hasn't changed significantly (prevent vibrations)
+    if (lastCenterRef.current === centerKey) {
+      return;
+    }
+
+    // Clear any ongoing animation
+    if (animationRef.current) {
+      map.stop();
+      animationRef.current = null;
+    }
+
+    if (isFirstRender.current) {
+      // Instant set on first render
+      map.setView(center, zoom, { animate: false });
+      isFirstRender.current = false;
+    } else {
+      // Smooth fly animation with controlled duration
+      animationRef.current = map.flyTo(center, zoom, {
+        duration: 0.6,
+        easeLinearity: 0.3,
+        animate: true,
+      });
+    }
+
+    lastCenterRef.current = centerKey;
+
+    // Update center when map moves
+    const handleMoveEnd = () => {
+      const newCenter = map.getCenter();
+      const newCenterKey = `${newCenter.lat.toFixed(6)},${newCenter.lng.toFixed(6)}`;
+      if (newCenterKey !== lastCenterRef.current) {
+        onCenterChange?.([newCenter.lat, newCenter.lng]);
+      }
+    };
+
+    map.on('moveend', handleMoveEnd);
+
+    return () => {
+      map.off('moveend', handleMoveEnd);
+      if (animationRef.current) {
+        map.stop();
+        animationRef.current = null;
+      }
+    };
+  }, [map, center, zoom, onCenterChange]);
+
+  return null;
+}
+
 // ==================== PERSISTENT MARKER ====================
 
 function PersistentMarker({ 
   position, 
   onDragEnd,
   hasAnimated,
-  onAnimationComplete
+  onAnimationComplete,
+  onPositionChange
 }: { 
   position: [number, number] | null; 
   onDragEnd: (lat: number, lng: number) => void;
   hasAnimated: boolean;
   onAnimationComplete: () => void;
+  onPositionChange?: (lat: number, lng: number) => void;
 }) {
   const map = useMap();
   const markerRef = useRef<L.Marker | null>(null);
   const hasAnimatedRef = useRef(hasAnimated);
+  const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     if (!map) return;
     
+    // Clean up existing marker
     if (markerRef.current) {
       markerRef.current.remove();
       markerRef.current = null;
+    }
+    
+    // Clear any pending animation
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+      animationTimeoutRef.current = null;
     }
     
     if (position) {
@@ -163,25 +259,61 @@ function PersistentMarker({
       
       markerRef.current = marker;
       
+      // Handle animation only once
       if (!hasAnimatedRef.current) {
-        setTimeout(() => {
+        animationTimeoutRef.current = setTimeout(() => {
           const element = marker.getElement();
           if (element) {
             const container = element.querySelector('.pin-container');
             if (container) {
+              // Apply landing animation
               container.classList.add('landing');
+              
+              // Remove landing and apply pulse after animation
               setTimeout(() => {
                 container.classList.remove('landing');
-                onAnimationComplete();
+                container.classList.add('pulse');
+                
+                // Remove pulse after animation
+                setTimeout(() => {
+                  container.classList.remove('pulse');
+                  onAnimationComplete();
+                }, 500);
               }, 500);
             }
           }
-        }, 50);
+          animationTimeoutRef.current = null;
+        }, 100);
+        
         hasAnimatedRef.current = true;
       }
       
+      // Marker event handlers
+      marker.on('dragstart', () => {
+        const element = marker.getElement();
+        if (element) {
+          const container = element.querySelector('.pin-container');
+          if (container) {
+            container.style.transform = 'scale(1.1)';
+            container.style.transition = 'transform 0.15s ease';
+          }
+        }
+      });
+
+      marker.on('drag', () => {
+        const latLng = marker.getLatLng();
+        onPositionChange?.(latLng.lat, latLng.lng);
+      });
+
       marker.on('dragend', () => {
         const latLng = marker.getLatLng();
+        const element = marker.getElement();
+        if (element) {
+          const container = element.querySelector('.pin-container');
+          if (container) {
+            container.style.transform = 'scale(1)';
+          }
+        }
         onDragEnd(latLng.lat, latLng.lng);
       });
     }
@@ -191,8 +323,12 @@ function PersistentMarker({
         markerRef.current.remove();
         markerRef.current = null;
       }
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+        animationTimeoutRef.current = null;
+      }
     };
-  }, [map, position, onDragEnd, onAnimationComplete]);
+  }, [map, position, onDragEnd, onAnimationComplete, onPositionChange]);
   
   return null;
 }
@@ -216,7 +352,8 @@ function MapInner({
   selectedPosition,
   disabled,
   hasAnimated,
-  onAnimationComplete
+  onAnimationComplete,
+  onPositionChange
 }: { 
   onMapClick: (lat: number, lng: number) => void;
   onMarkerDragEnd: (lat: number, lng: number) => void;
@@ -224,6 +361,7 @@ function MapInner({
   disabled: boolean;
   hasAnimated: boolean;
   onAnimationComplete: () => void;
+  onPositionChange?: (lat: number, lng: number) => void;
 }) {
   return (
     <>
@@ -233,6 +371,7 @@ function MapInner({
         onDragEnd={onMarkerDragEnd}
         hasAnimated={hasAnimated}
         onAnimationComplete={onAnimationComplete}
+        onPositionChange={onPositionChange}
       />
     </>
   );
@@ -246,7 +385,8 @@ export function MapLocationPicker({
   barangayName,
   cityName = "Tacloban City",
   disabled = false,
-  placeholder = "Search for a location..."
+  placeholder = "Search for a location...",
+  open
 }: MapLocationPickerProps) {
   const [selectedPosition, setSelectedPosition] = useState<{ lat: number; lng: number } | null>(
     initialLocation ? { lat: initialLocation.lat, lng: initialLocation.lng } : null
@@ -260,14 +400,17 @@ export function MapLocationPicker({
       ? [initialLocation.lat, initialLocation.lng]
       : DEFAULT_CENTER
   );
+  const [mapZoom, setMapZoom] = useState(DEFAULT_ZOOM);
   const [mapKey, setMapKey] = useState(Date.now());
   const [hasAnimated, setHasAnimated] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [showMap, setShowMap] = useState(!!initialLocation); // Only show map if initial location exists
+  const [showMap, setShowMap] = useState(!!initialLocation);
+  const [isDragging, setIsDragging] = useState(false);
+  const isUpdatingRef = useRef(false);
 
   // Reverse geocode address from coordinates
   const reverseGeocode = useCallback(async (lat: number, lng: number): Promise<string> => {
-    const cacheKey = `${lat},${lng}`;
+    const cacheKey = `${lat.toFixed(6)},${lng.toFixed(6)}`;
     
     if (geocodeCache.has(cacheKey)) {
       const cachedAddress = geocodeCache.get(cacheKey)!;
@@ -325,34 +468,54 @@ export function MapLocationPicker({
 
   // Handle map click to place marker
   const handleMapClick = useCallback(async (lat: number, lng: number) => {
-    if (disabled) return;
+    if (disabled || isUpdatingRef.current) return;
     
+    isUpdatingRef.current = true;
     setShowSuccess(false);
     setSelectedPosition({ lat, lng });
     setMapCenter([lat, lng]);
+    setMapZoom(17);
     
     const fullAddress = await reverseGeocode(lat, lng);
     onLocationSelect({ lat, lng, address: fullAddress });
+    
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 100);
   }, [reverseGeocode, onLocationSelect, disabled]);
 
   // Handle marker drag end
   const handleMarkerDragEnd = useCallback(async (lat: number, lng: number) => {
-    if (disabled) return;
+    if (disabled || isUpdatingRef.current) return;
     
+    isUpdatingRef.current = true;
+    setIsDragging(false);
     setSelectedPosition({ lat, lng });
     setMapCenter([lat, lng]);
     
     const fullAddress = await reverseGeocode(lat, lng);
     onLocationSelect({ lat, lng, address: fullAddress });
+    
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 100);
   }, [reverseGeocode, onLocationSelect, disabled]);
 
-  // Handle current location via button click - THIS TRIGGERS MAP DISPLAY
+  // Handle position change during drag
+  const handlePositionChange = useCallback((lat: number, lng: number) => {
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+    setSelectedPosition({ lat, lng });
+  }, [isDragging]);
+
+  // Handle current location
   const handleGetCurrentLocation = useCallback(() => {
-    if (disabled || isLocating) return;
+    if (disabled || isLocating || isUpdatingRef.current) return;
     
     setIsLocating(true);
     setGeocodeError(null);
-    setShowMap(true); // Show map when location is requested
+    setShowMap(true);
     
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
@@ -363,13 +526,19 @@ export function MapLocationPicker({
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        isUpdatingRef.current = true;
         setMapCenter([latitude, longitude]);
+        setMapZoom(17);
         setSelectedPosition({ lat: latitude, lng: longitude });
         setShowSuccess(false);
         
         const fullAddress = await reverseGeocode(latitude, longitude);
         onLocationSelect({ lat: latitude, lng: longitude, address: fullAddress });
         setIsLocating(false);
+        
+        setTimeout(() => {
+          isUpdatingRef.current = false;
+        }, 100);
       },
       (error) => {
         console?.log("Geolocation error:", error);
@@ -409,10 +578,14 @@ export function MapLocationPicker({
     setMapKey(Date.now());
   }, [disabled]);
 
+  
+
   // Set initial location
   useEffect(() => {
-    if (initialLocation && !selectedPosition && !disabled) {
+    if (initialLocation && !selectedPosition && !disabled && !isUpdatingRef.current) {
+      isUpdatingRef.current = true;
       setMapCenter([initialLocation.lat, initialLocation.lng]);
+      setMapZoom(17);
       setSelectedPosition({ lat: initialLocation.lat, lng: initialLocation.lng });
       setShowMap(true);
       if (initialLocation.address) {
@@ -420,12 +593,20 @@ export function MapLocationPicker({
       } else {
         reverseGeocode(initialLocation.lat, initialLocation.lng);
       }
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 100);
     }
   }, [initialLocation, selectedPosition, reverseGeocode, disabled]);
 
+  // useEffect(() => {
+  //   // setMapKey(Date.now());
+  //   setShowMap(open)
+  // }, [initialLocation, open]);
+
   return (
     <div className="space-y-3">
-      {/* Location Button - Always visible */}
+      {/* Location Button */}
       <div className="flex gap-2">
         <Button
           type="button"
@@ -449,24 +630,35 @@ export function MapLocationPicker({
         </Button>
       </div>
 
-      {/* Map Container - Only shown after "Use my current location" is clicked OR if initial location exists */}
+      {/* Map Container */}
       {showMap && (
         <>
           <div className={cn(
             "relative h-[400px] w-full rounded-lg overflow-hidden border-2 transition-all shadow-md",
             disabled && "opacity-60 cursor-not-allowed",
-            selectedPosition ? "border-green-500 border-2" : "border-gray-200"
+            selectedPosition ? "border-green-500 border-2" : "border-gray-200",
+            isDragging && "border-blue-500"
           )}>
             <MapContainer
               key={mapKey}
               center={mapCenter}
-              zoom={DEFAULT_ZOOM}
+              zoom={mapZoom}
               style={{ height: "100%", width: "100%" }}
               zoomControl={true}
+              whenReady={() => {
+                // Reset animation state when map is ready
+                setHasAnimated(false);
+              }}
             >
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              
+              <MapCenterController 
+                center={mapCenter}
+                zoom={mapZoom}
+                onCenterChange={(center) => setMapCenter(center)}
               />
               
               <MapInner 
@@ -476,6 +668,7 @@ export function MapLocationPicker({
                 disabled={disabled}
                 hasAnimated={hasAnimated}
                 onAnimationComplete={handleAnimationComplete}
+                onPositionChange={handlePositionChange}
               />
             </MapContainer>
 
@@ -495,6 +688,14 @@ export function MapLocationPicker({
               </div>
             )}
 
+            {/* Drag Indicator */}
+            {isDragging && (
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1.5 rounded-md text-xs font-medium shadow-lg z-[1000] animate-in fade-in slide-in-from-top duration-300">
+                <Move className="h-3 w-3 inline mr-1" />
+                Dragging pin...
+              </div>
+            )}
+
             {/* Map Instructions */}
             {!selectedPosition && !disabled && !isLocating && (
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/85 text-white px-4 py-2 rounded-full text-xs font-medium shadow-lg flex items-center gap-2 z-[1000] whitespace-nowrap">
@@ -503,13 +704,10 @@ export function MapLocationPicker({
               </div>
             )}
           </div>
-
-         
-         
         </>
       )}
 
-      {/* Initial Prompt - Show when map is hidden and no location selected */}
+      {/* Initial Prompt */}
       {!showMap && !selectedPosition && !disabled && !isLocating && (
         <div className="p-6 bg-blue-50 rounded-lg border border-blue-200 text-center">
           <MapPin className="h-10 w-10 text-blue-500 mx-auto mb-3" />

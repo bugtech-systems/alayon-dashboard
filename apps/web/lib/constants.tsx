@@ -31,7 +31,7 @@ export const paymentInfoMap: Record<
     icon: <PayPal />,
   },
   pp_system_default: {
-    title: "Pay by invoice",
+    title: "Cash on Delivery",
     icon: <FilePlus />,
   },
   // Add more payment providers here

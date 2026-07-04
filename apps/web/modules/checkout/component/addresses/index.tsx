@@ -62,37 +62,28 @@ const Addresses = ({
         )}
       </div>
       {isOpen ? (
-        <form action={formAction}>
-          <div className="">
-            <ShippingAddress
-              customer={customer}
-              checked={sameAsBilling}
-              onChange={toggleSameAsBilling}
-              cart={cart}
-            />
+        <>
+          <ShippingAddress
+            customer={customer}
+            checked={sameAsBilling}
+            onChange={toggleSameAsBilling}
+            cart={cart}
+            formAction={formAction}
+            message={message}
+          />
 
-            {!sameAsBilling && (
-              <div>
-                <Heading
-                  level="h2"
-                  className="text-3xl-regular gap-x-4 pb-6 pt-8"
-                >
-                  Billing address
-                </Heading>
-
-                <BillingAddress cart={cart} />
-              </div>
-            )}
-                      <div className="flex gap-3 pt-4">
-            <SubmitButton 
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white w-full mt-6"
-            data-testid="submit-address-button">
-              Continue to delivery
-            </SubmitButton>
+          {!sameAsBilling && (
+            <div className="mt-8 pt-8 border-t border-gray-200">
+              <Heading
+                level="h2"
+                className="text-3xl-regular gap-x-4 pb-6"
+              >
+                Billing address
+              </Heading>
+              <BillingAddress cart={cart} />
             </div>
-            <ErrorMessage error={message} data-testid="address-error-message" />
-          </div>
-        </form>
+          )}
+        </>
       ) : (
         <div>
           <div className="text-small-regular">

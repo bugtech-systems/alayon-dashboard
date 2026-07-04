@@ -508,8 +508,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
     if (!selectedVariant) return false
     return (
       selectedVariant.inventory_quantity > 0 ||
-      selectedVariant.allow_backorder ||
-      !selectedVariant.manage_inventory
+      selectedVariant.allow_backorder
     )
   }, [selectedVariant])
 

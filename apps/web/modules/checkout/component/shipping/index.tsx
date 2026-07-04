@@ -3,7 +3,7 @@
 import { setShippingMethod } from "@/lib/data/cart"
 import { calculatePriceForShippingOption } from "@/lib/data/fulfillment"
 import { convertToLocale } from "@/lib/util/money"
-import { CheckCircle, Loader2, Truck, MapPin, ChevronLeft, ChevronRight } from "lucide-react"
+import { CheckCircle, Loader2, Truck, MapPin, ChevronLeft, ChevronRight, Navigation } from "lucide-react"
 import { HttpTypes } from "@medusajs/types"
 import { useEffect, useState } from "react"
 
@@ -13,6 +13,8 @@ import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { MapLocationPicker } from "@/components/map-location-picker"
+import { Badge } from "@workspace/ui/components/badge"
 
 const PICKUP_OPTION_ON = "__PICKUP_ON"
 const PICKUP_OPTION_OFF = "__PICKUP_OFF"
@@ -24,6 +26,28 @@ type ShippingProps = {
   onPrevious?: () => void
   currentStep?: number
   totalSteps?: number
+}
+
+interface UserLocation {
+  municipality: string
+  municipalityId: string
+  municipalityCode: string
+  barangay: string
+  barangayId: string
+  barangayCode: string
+  address: string
+  fullAddress: string
+  coordinates: {
+    lat: number
+    lng: number
+  }
+  mapAddress: string
+  fullName: string
+  first_name: string
+  last_name: string
+  phone: string
+  email: string
+  timestamp: number
 }
 
 function formatAddress(address: HttpTypes.StoreCartAddress) {
@@ -52,6 +76,9 @@ const Shipping: React.FC<ShippingProps> = ({
   const [shippingMethodId, setShippingMethodId] = useState<string | null>(
     cart.shipping_methods?.at(-1)?.shipping_option_id || null
   )
+  const [mapLocation, setMapLocation] = useState<{ lat: number; lng: number; address: string } | null>(null)
+  const [showMapPicker, setShowMapPicker] = useState(false)
+  const [isInitializing, setIsInitializing] = useState(true)
 
   const _shippingMethods = availableShippingMethods?.filter(
     (sm) => sm.service_zone?.fulfillment_set?.type !== "pickup"
@@ -62,6 +89,108 @@ const Shipping: React.FC<ShippingProps> = ({
   )
 
   const hasPickupOptions = !!_pickupMethods?.length
+
+  // Get address details from cart
+  const shippingAddress = cart?.shipping_address
+  const barangayName = shippingAddress?.address_2 || shippingAddress?.city || ""
+  const cityName = shippingAddress?.city || "Tacloban City"
+
+  // Auto-populate map location from cart or localStorage
+  useEffect(() => {
+    const initializeMapLocation = async () => {
+      let locationData: { lat: number; lng: number; address: string } | null = null
+
+      // Priority 1: Check cart shipping address for coordinates
+      if (cart?.shipping_address?.metadata?.coordinates) {
+        try {
+          const coords = cart.shipping_address.metadata.coordinates
+          if (coords?.lat && coords?.lng) {
+            locationData = {
+              lat: coords.lat,
+              lng: coords.lng,
+              address: cart.shipping_address.address_1 || 
+                       `${barangayName}, ${cityName}` ||
+                       `${coords.lat}, ${coords.lng}`
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing cart coordinates:', e)
+        }
+      }
+
+      // Priority 2: Check localStorage for user location
+      if (!locationData) {
+        try {
+          const storedLocation = localStorage.getItem('userLocation')
+          if (storedLocation) {
+            const parsed: UserLocation = JSON.parse(storedLocation)
+            // Check if location is recent (within 1 hour)
+            const isRecent = Date.now() - parsed.timestamp < 3600000
+            
+            if (parsed.coordinates?.lat && parsed.coordinates?.lng) {
+              locationData = {
+                lat: parsed.coordinates.lat,
+                lng: parsed.coordinates.lng,
+                address: parsed.mapAddress || parsed.fullAddress || 
+                         `${parsed.address}, ${parsed.barangay}, ${parsed.municipality}`
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error loading from localStorage:', e)
+        }
+      }
+
+      // Priority 3: Use cart address to geocode (fallback)
+      if (!locationData && cart?.shipping_address?.address_1 && cart?.shipping_address?.city) {
+        // Try to geocode the address
+        try {
+          const addressString = `${cart.shipping_address.address_1}, ${cart.shipping_address.city}, ${cart.shipping_address.province || ''}`.trim()
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addressString)}&limit=1`,
+            {
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'AlayonStore/1.0'
+              }
+            }
+          )
+          
+          if (response.ok) {
+            const data = await response.json()
+            if (data && data.length > 0) {
+              locationData = {
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon),
+                address: data[0].display_name || addressString
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error geocoding address:', e)
+        }
+      }
+
+      // Set the location if found
+      if (locationData) {
+        setMapLocation(locationData)
+        setShowMapPicker(true)
+      }
+
+      setIsInitializing(false)
+    }
+
+    initializeMapLocation()
+  }, [cart, barangayName, cityName])
+
+  // Save map location to cart metadata when it changes
+  useEffect(() => {
+    if (mapLocation && !isInitializing) {
+      // You can optionally save to cart metadata here
+      // This would require an API call to update cart metadata
+      console.log('Map location updated:', mapLocation)
+    }
+  }, [mapLocation, isInitializing])
 
   useEffect(() => {
     setIsLoadingPrices(true)
@@ -122,6 +251,12 @@ const Shipping: React.FC<ShippingProps> = ({
       })
   }
 
+  const handleLocationSelect = (location: { lat: number; lng: number; address: string }) => {
+    console.log(location, 'LOCAAA')
+    setMapLocation(location)
+    setShowMapPicker(true)
+  }
+
   const handleSubmit = () => {
     if (onNext) {
       onNext()
@@ -134,6 +269,20 @@ const Shipping: React.FC<ShippingProps> = ({
 
   const selectedMethod = _shippingMethods?.find(m => m.id === shippingMethodId) ||
                          _pickupMethods?.find(m => m.id === shippingMethodId)
+
+  // Show loading state while initializing
+  if (isInitializing) {
+    return (
+      <Card className="border-0 shadow-none p-3">
+        <CardContent className="px-0 py-8">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <span className="ml-3 text-gray-600">Loading delivery options...</span>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card className="border-0 shadow-none p-3">
@@ -157,6 +306,44 @@ const Shipping: React.FC<ShippingProps> = ({
 
       <CardContent className="px-0">
         <div className="space-y-6">
+          {/* Map Picker Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-gray-900">Delivery Location</h3>
+                <p className="text-sm text-gray-500">Pin your exact delivery location</p>
+              </div>
+              {mapLocation && (
+                <Badge variant="link" className="bg-green-100 text-green-700">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Pinned
+                </Badge>
+              )}
+            </div>
+
+            <MapLocationPicker
+              onLocationSelect={handleLocationSelect}
+              initialLocation={mapLocation || undefined}
+              barangayName={barangayName}
+              cityName={cityName}
+              disabled={false}
+              placeholder="Search for a location..."
+            />
+
+            {mapLocation && (
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-xs text-blue-700 flex items-start gap-2">
+                  <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <span className="font-medium">Pinned Location:</span> {mapLocation.address}
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Shipping Methods */}
           <div className="space-y-4">
             <div>
@@ -376,7 +563,7 @@ const Shipping: React.FC<ShippingProps> = ({
             )}
             <Button
               onClick={handleSubmit}
-              disabled={!isShippingComplete() || isLoading}
+              disabled={!isShippingComplete() || isLoading || !mapLocation}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               data-testid="submit-delivery-option-button"
             >

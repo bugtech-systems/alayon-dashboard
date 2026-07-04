@@ -32,7 +32,7 @@ console.log(customerData, cachedId, 'customer customer')
         <div className="flex flex-col lg:flex-row lg:gap-x-12">
           {/* Mobile Summary */}
           <div className="lg:hidden mb-8">
-            <CheckoutSummary cart={cart} isSticky={false} />
+            <CheckoutSummary cart={cart} isSticky={false} company={cart?.company} />
           </div>
 
           {/* Checkout Form */}
@@ -47,7 +47,7 @@ console.log(customerData, cachedId, 'customer customer')
 
           {/* Desktop Summary */}
           <div className="hidden lg:block lg:w-[400px] xl:w-[480px]">
-            <CheckoutSummary cart={cart} isSticky={true} />
+            <CheckoutSummary cart={cart} isSticky={true} company={cart?.company}/>
           </div>
         </div>
       </div>

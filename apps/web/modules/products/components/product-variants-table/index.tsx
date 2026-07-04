@@ -67,7 +67,7 @@ const ProductVariantsTable = ({
 
 
   const handleAddToCart = useCallback(async () => {
-    if (totalQuantity === 0) {
+    if (quantity === 0) {
       toast.error("Please select at least one item")
       return
     }
@@ -75,14 +75,16 @@ const ProductVariantsTable = ({
     setIsAdding(true)
 
     try {
-      const lineItems = Array.from(lineItemsMap.entries()).map(
-        ([variantId, {company, quantity, ...variant }]) => ({
+
+            const variant = product.variants?.find((v) => v.id === selectedVariantId)
+
+        let lineItems = [{
           productVariant: {
             ...variant,
           },
-          quantity,
-        })
-      )
+          quantity: totalQuantity,
+        }]
+      
       addToCartEventBus.emitCartAdd({
         companyId: company?.id,
         lineItems,
@@ -99,7 +101,7 @@ const ProductVariantsTable = ({
     } finally {
       setIsAdding(false)
     }
-  }, [totalQuantity, lineItemsMap, company, region.id])
+  }, [selectedVariantId, company, region.id, quantity])
 
   const isVariantSelected = useCallback((variantId: string) => {
     return lineItemsMap.has(variantId)
@@ -109,6 +111,21 @@ const ProductVariantsTable = ({
     return lineItemsMap.get(variantId)?.quantity || 0
   }, [lineItemsMap])
 
+
+    // Check if selected variant is in stock
+    const isInStock = useMemo(() => {
+            const variant = product.variants?.find((v) => v.id === selectedVariantId) as any
+console.log(variant?.inventory_quantity > 0, variant?.allow_backorder, !variant?.manage_inventory, 'HAHAHA')
+      if (!variant) return false
+      return (
+        variant.inventory_quantity > 0 ||
+        variant.allow_backorder
+      )
+    }, [selectedVariantId])
+
+
+
+
   // Check if product has variants
   if (!product.variants || product.variants.length === 0) {
     return (
@@ -117,6 +134,8 @@ const ProductVariantsTable = ({
       </div>
     )
   }
+
+  console.log(isInStock, 'IS IN STOCK')
 
   return (
     <div className="flex flex-col gap-6">
@@ -292,7 +311,7 @@ const ProductVariantsTable = ({
         variant="primary"
         className="w-full h-12 text-base font-medium"
         isLoading={isAdding}
-        disabled={totalQuantity === 0}
+        disabled={totalQuantity === 0 || !isInStock}
         data-testid="add-product-button"
       >
         <ShoppingBag
