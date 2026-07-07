@@ -13,11 +13,7 @@ export const metadata: Metadata = {
 export default async function PageLayout(props: { children: React.ReactNode }) {
   const cachedId = await getCachedIdIfExists();
 
-  let freeShippingPrices: StoreFreeShippingPrice[] = []
 
-  // if (cart) {
-  //   freeShippingPrices = await listCartFreeShippingPrices(cart.id)
-  // }
   return (
     <>
     <LocationProvider isOpen={!cachedId}>

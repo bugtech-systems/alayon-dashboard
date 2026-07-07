@@ -471,7 +471,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   }
 
   let company = product?.companies?.filter((a: any) => a?.id)[0];
-
+  console.log(company, "COMPPP")
   console.log(product, 'prodducts')
   // Variant selection state
   const [selectedVariant, setSelectedVariant] = useState<any>(null)

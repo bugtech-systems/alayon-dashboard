@@ -1,7 +1,6 @@
 import { retrieveCompanyCart } from "@/lib/data/cart"
 import { getCachedId, getCachedIdIfExists } from "@/lib/data/cookies"
 import { retrieveCustomer } from "@/lib/data/customer"
-import { listCartFreeShippingPrices } from "@/lib/data/fulfillment"
 import { getProductByHandle } from "@/lib/data/products"
 import { getRegion } from "@/lib/data/regions"
 import { getBaseURL } from "@/lib/util/env"
@@ -34,9 +33,6 @@ export default async function PageLayout(props: { children: React.ReactNode, par
   console.log(customer, params, product, 'paaagrra', company, cart)
 
 
-  if (cart) {
-    freeShippingPrices = await listCartFreeShippingPrices(cart.id)
-  }
 
 
   return (

@@ -1,6 +1,5 @@
 import { retrieveCart } from "@/lib/data/cart"
 import { retrieveCustomer } from "@/lib/data/customer"
-import { listCartFreeShippingPrices } from "@/lib/data/fulfillment"
 import { getBaseURL } from "@/lib/util/env"
 import CartMismatchBanner from "@/modules/layout/components/cart-mismatch-banner"
 import { LoginNavigationHeader } from "@/modules/layout/templates/login-nav"
@@ -19,9 +18,6 @@ export default async function PageLayout(props: { children: React.ReactNode }) {
   const cart = await retrieveCart()
   let freeShippingPrices: StoreFreeShippingPrice[] = []
 
-  if (cart) {
-    freeShippingPrices = await listCartFreeShippingPrices(cart.id)
-  }
 
 
   return (
