@@ -31,6 +31,8 @@ export default async function RootLayout({
     
     const { theme_mode, theme_preset, content_layout, navbar_style, sidebar_variant, sidebar_collapsible, font } =
     PREFERENCE_DEFAULTS;
+
+    console.log(cachedId, 'CACHED')
   return (
     <html  
       lang="en"
