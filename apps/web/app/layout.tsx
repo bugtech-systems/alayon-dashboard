@@ -52,7 +52,7 @@ export default async function RootLayout({
         <MedusaAuthProvider>
         <Providers>
             <AuthProvider>
- 
+  
           {children}
           </AuthProvider>
         </Providers>
