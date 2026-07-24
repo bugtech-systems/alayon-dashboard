@@ -177,7 +177,7 @@ export default function MerchantProfileTemplate({
         </div>
 
         {/* Stats Bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
+        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
           {stats.map((stat, idx) => (
             <Card key={idx} className="border-[#BAE6FD] shadow-sm">
               <CardContent className="p-4 flex items-center gap-3">
@@ -191,7 +191,7 @@ export default function MerchantProfileTemplate({
               </CardContent>
             </Card>
           ))}
-        </div>
+        </div> */}
 
         {/* Main Content with Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-10">
