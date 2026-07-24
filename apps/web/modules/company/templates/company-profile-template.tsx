@@ -13,100 +13,72 @@ import {
   MapPin,
   Phone,
   Mail,
-  Clock,
   Users,
-  Award,
-  Truck,
-  Shield,
   Heart,
   Share2,
-  Globe,
-  Briefcase,
   CheckCircle,
   Star,
-  Building2,
   Package,
   Store,
-  ChevronRight,
+  Clock,
+  Truck,
+  Shield,
+  Award,
 } from "lucide-react";
 import { ProductCard } from "@/components/product-card";
 import { cn } from "@/lib/utils";
 import { HttpTypes } from "@medusajs/types";
 
-interface MerchantProfileProps {
-  merchant: {
+// ---------- Real Company Type (based on your data) ----------
+interface Company {
+  id: string;
+  name: string;
+  logo_url?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  handle: string;
+  is_open?: boolean;
+  employees?: {
     id: string;
-    name: string;
-    description: string;
-    long_description?: string;
-    logo_url?: string;
-    cover_image?: string;
-    established_year?: number;
-    employees?: string;
-    location?: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-    website?: string;
-    social_media?: {
-      facebook?: string;
-      instagram?: string;
-      twitter?: string;
+    is_admin: boolean;
+    customer: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone: string;
     };
-    certifications?: string[];
-    awards?: string[];
-    business_hours?: {
-      monday_friday?: string;
-      saturday?: string;
-      sunday?: string;
-    };
-  };
+  }[];
+}
+
+interface MerchantProfileProps {
+  company: Company;
   products?: HttpTypes.StoreProduct[];
   region?: any;
-  countryCode?: string;
 }
 
 export default function MerchantProfileTemplate({
-  merchant,
+  company,
   products = [],
   region,
 }: MerchantProfileProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [isFollowing, setIsFollowing] = useState(false);
 
-  const featuredProducts = products.filter(
-    (p: any) => p.metadata?.featured === "true" || p.tags?.some((t: any) => t.value === "featured")
-  );
-  const regularProducts = products.filter((p) => !featuredProducts.includes(p));
-
-  const stats = [
-    {
-      label: "Years in Business",
-      value: new Date().getFullYear() - (merchant?.established_year || 2020),
-      icon: Building2,
-    },
-    { label: "Happy Customers", value: "10,000+", icon: Users },
-    { label: "Products", value: products.length.toString(), icon: Briefcase },
-    { label: "Satisfaction", value: "98%", icon: Star },
-  ];
+  // Admin employees (if needed elsewhere) but we show all team members
+  const teamMembers = company.employees || [];
+  const location = company.address
+    ? `${company.address}${company.city ? `, ${company.city}` : ""}`
+    : "Tacloban City";
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F0F9FF] to-white">
-      {/* Cover Image */}
-      <div className="relative h-60 md:h-80 w-full overflow-hidden bg-gradient-to-r from-[#0284C7]/10 to-[#0EA5E9]/10">
-        {merchant?.cover_image ? (
-          <Image
-            src={merchant.cover_image}
-            alt={`${merchant.name} cover`}
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Store className="w-24 h-24 text-[#0284C7]/20" />
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      {/* Cover Section (gradient – no cover image in company data) */}
+      <div className="relative h-60 md:h-80 w-full bg-gradient-to-r from-[#0284C7]/10 to-[#0EA5E9]/10">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Store className="w-24 h-24 text-[#0284C7]/20" />
+        </div>
       </div>
 
       {/* Logo & Main Info */}
@@ -114,10 +86,10 @@ export default function MerchantProfileTemplate({
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6">
           {/* Logo */}
           <div className="relative w-28 h-28 sm:w-36 sm:h-36 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-white">
-            {merchant?.logo_url ? (
+            {company.logo_url ? (
               <Image
-                src={merchant.logo_url}
-                alt={merchant.name}
+                src={company.logo_url}
+                alt={company.name}
                 fill
                 className="object-cover"
               />
@@ -128,29 +100,38 @@ export default function MerchantProfileTemplate({
             )}
           </div>
 
-          {/* Name, rating, location */}
+          {/* Name, Status, Location */}
           <div className="flex-1 pt-2">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-              {merchant?.name}
+              {company.name}
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-2">
-              <Badge variant="secondary" className="bg-[#E0F7FA] text-[#0284C7] border-0">
+              <Badge
+                variant="secondary"
+                className="bg-[#E0F7FA] text-[#0284C7] border-0"
+              >
                 <CheckCircle className="w-3 h-3 mr-1" /> Verified
               </Badge>
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4 text-[#0284C7]" />
-                <span className="text-sm text-gray-600">{merchant?.location || "Tacloban City"}</span>
+                <span className="text-sm text-gray-600">{location}</span>
               </div>
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-                <span className="text-sm text-gray-600">(128 reviews)</span>
-              </div>
+              {company.is_open !== undefined && (
+                <Badge
+                  variant="outline"
+                  className={
+                    company.is_open
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : "bg-red-50 text-red-700 border-red-200"
+                  }
+                >
+                  {company.is_open ? "Open Now" : "Closed"}
+                </Badge>
+              )}
             </div>
           </div>
 
-          {/* Action buttons */}
+          {/* Action Buttons */}
           <div className="flex items-center gap-2 mt-4 sm:mt-0">
             <Button
               variant={isFollowing ? "default" : "outline"}
@@ -175,23 +156,6 @@ export default function MerchantProfileTemplate({
             </Button>
           </div>
         </div>
-
-        {/* Stats Bar */}
-        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
-          {stats.map((stat, idx) => (
-            <Card key={idx} className="border-[#BAE6FD] shadow-sm">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[#E0F7FA]">
-                  <stat.icon className="h-5 w-5 text-[#0284C7]" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-gray-900">{stat.value}</p>
-                  <p className="text-xs text-gray-500">{stat.label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div> */}
 
         {/* Main Content with Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-10">
@@ -237,150 +201,113 @@ export default function MerchantProfileTemplate({
               {/* Overview Tab */}
               {activeTab === "overview" && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  {/* Left column – details */}
+                  {/* Left column – Contact & Team */}
                   <div className="lg:col-span-1 space-y-6">
-                    {/* About */}
+                    {/* Contact Card */}
                     <Card className="border-[#BAE6FD] shadow-sm">
                       <CardContent className="p-6">
-                        <h3 className="font-semibold text-gray-900 mb-3">About {merchant?.name}</h3>
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {merchant?.description}
-                        </p>
-                        {merchant?.long_description && (
-                          <p className="text-sm text-gray-600 leading-relaxed mt-3">
-                            {merchant.long_description}
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    {/* Contact */}
-                    <Card className="border-[#BAE6FD] shadow-sm">
-                      <CardContent className="p-6">
-                        <h3 className="font-semibold text-gray-900 mb-4">Contact</h3>
+                        <h3 className="font-semibold text-gray-900 mb-4">
+                          Contact Information
+                        </h3>
                         <div className="space-y-3 text-sm">
-                          {merchant?.phone && (
+                          {company.phone && (
                             <div className="flex items-center gap-2">
                               <Phone className="h-4 w-4 text-[#0284C7]" />
-                              <span>{merchant.phone}</span>
+                              <span>{company.phone}</span>
                             </div>
                           )}
-                          {merchant?.email && (
+                          {company.email && (
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4 text-[#0284C7]" />
-                              <span>{merchant.email}</span>
+                              <span>{company.email}</span>
                             </div>
                           )}
-                          {merchant?.address && (
+                          {location && (
                             <div className="flex items-center gap-2">
                               <MapPin className="h-4 w-4 text-[#0284C7]" />
-                              <span>{merchant.address}</span>
-                            </div>
-                          )}
-                          {merchant?.website && (
-                            <div className="flex items-center gap-2">
-                              <Globe className="h-4 w-4 text-[#0284C7]" />
-                              <a
-                                href={merchant.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[#0284C7] hover:underline"
-                              >
-                                {merchant.website.replace("https://", "")}
-                              </a>
+                              <span>{location}</span>
                             </div>
                           )}
                         </div>
                       </CardContent>
                     </Card>
 
-                    {/* Business Hours */}
-                    {merchant?.business_hours && (
+                    {/* Team Members (if any) */}
+                    {teamMembers.length > 0 && (
                       <Card className="border-[#BAE6FD] shadow-sm">
                         <CardContent className="p-6">
                           <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-[#0284C7]" />
-                            Business Hours
+                            <Users className="h-4 w-4 text-[#0284C7]" />
+                            Team Members ({teamMembers.length})
                           </h3>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Mon–Fri</span>
-                              <span>{merchant.business_hours.monday_friday || "9:00 AM – 6:00 PM"}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Saturday</span>
-                              <span>{merchant.business_hours.saturday || "10:00 AM – 4:00 PM"}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-gray-500">Sunday</span>
-                              <span>{merchant.business_hours.sunday || "Closed"}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Certifications */}
-                    {(merchant?.certifications?.length || merchant?.awards?.length) && (
-                      <Card className="border-[#BAE6FD] shadow-sm">
-                        <CardContent className="p-6">
-                          <h3 className="font-semibold text-gray-900 mb-4">Awards & Certs</h3>
-                          {merchant.certifications?.map((cert, i) => (
-                            <Badge key={i} className="mr-2 mb-2 bg-[#E0F7FA] text-[#0284C7] border-0">
-                              <Award className="w-3 h-3 mr-1" /> {cert}
-                            </Badge>
-                          ))}
-                          {merchant.awards?.map((award, i) => (
-                            <Badge key={i} className="mr-2 mb-2 bg-amber-50 text-amber-700 border-0">
-                              <Star className="w-3 h-3 mr-1" /> {award}
-                            </Badge>
-                          ))}
+                          <ul className="space-y-2">
+                            {teamMembers.slice(0, 5).map((emp) => (
+                              <li
+                                key={emp.id}
+                                className="flex items-center justify-between text-sm"
+                              >
+                                <span className="text-gray-700">
+                                  {emp.customer.first_name}{" "}
+                                  {emp.customer.last_name}
+                                  {emp.is_admin && (
+                                    <span className="ml-1 text-xs text-blue-600">
+                                      (Admin)
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="text-gray-400 text-xs">
+                                  {emp.customer.email}
+                                </span>
+                              </li>
+                            ))}
+                            {teamMembers.length > 5 && (
+                              <p className="text-xs text-gray-400">
+                                +{teamMembers.length - 5} more
+                              </p>
+                            )}
+                          </ul>
                         </CardContent>
                       </Card>
                     )}
                   </div>
 
-                  {/* Right column – Featured products & trust badges */}
+                  {/* Right column – Trust badges (static) */}
                   <div className="lg:col-span-2 space-y-8">
-                    {featuredProducts.length > 0 && (
-                      <div>
-                        <h2 className="text-xl font-semibold text-gray-900 mb-4">Featured Products</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {featuredProducts.map((product, idx) => (
-                            <ProductCard key={product.id} product={product} index={idx} regionId={region?.id} />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Trust badges */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-[#E0F7FA]">
                         <Truck className="h-4 w-4 text-[#0284C7]" />
                         <div>
                           <p className="text-xs font-medium">Free Shipping</p>
-                          <p className="text-[10px] text-gray-500">Orders ₱1,000+</p>
+                          <p className="text-[10px] text-gray-500">
+                            Orders ₱1,000+
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-[#E0F7FA]">
                         <Shield className="h-4 w-4 text-[#0284C7]" />
                         <div>
                           <p className="text-xs font-medium">Secure Payment</p>
-                          <p className="text-[10px] text-gray-500">100% protected</p>
+                          <p className="text-[10px] text-gray-500">
+                            100% protected
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-[#E0F7FA]">
                         <Clock className="h-4 w-4 text-[#0284C7]" />
                         <div>
                           <p className="text-xs font-medium">Fast Delivery</p>
-                          <p className="text-[10px] text-gray-500">3-5 business days</p>
+                          <p className="text-[10px] text-gray-500">
+                            3-5 business days
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 p-3 rounded-lg bg-[#E0F7FA]">
                         <Award className="h-4 w-4 text-[#0284C7]" />
                         <div>
-                          <p className="text-xs font-medium">Quality Guarantee</p>
-                          <p className="text-[10px] text-gray-500">Authentic products</p>
+                          <p className="text-xs font-medium">Quality</p>
+                          <p className="text-[10px] text-gray-500">
+                            Authentic products
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -394,15 +321,24 @@ export default function MerchantProfileTemplate({
                   {products.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {products.map((product, idx) => (
-                        <ProductCard key={product.id} product={product} index={idx} regionId={region?.id} />
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          index={idx}
+                          regionId={region?.id}
+                        />
                       ))}
                     </div>
                   ) : (
                     <Card className="border-[#BAE6FD] shadow-sm">
                       <CardContent className="p-12 text-center">
                         <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">No products yet</h3>
-                        <p className="text-sm text-gray-500">Check back soon for new items.</p>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          No products yet
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          Check back soon for new items.
+                        </p>
                       </CardContent>
                     </Card>
                   )}
@@ -414,8 +350,12 @@ export default function MerchantProfileTemplate({
                 <Card className="border-[#BAE6FD] shadow-sm">
                   <CardContent className="p-12 text-center">
                     <Star className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-1">Customer Reviews</h3>
-                    <p className="text-sm text-gray-500">Reviews will be displayed here soon.</p>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      Customer Reviews
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Reviews will be displayed here soon.
+                    </p>
                     <Button className="mt-4 bg-[#0284C7] hover:bg-[#0369A1] rounded-full">
                       Write a Review
                     </Button>

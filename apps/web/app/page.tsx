@@ -10,6 +10,7 @@ import { getDeliveryId } from "@/lib/data/cookies";
 import { OrderRedirectBanner } from "@/components/order-redirect-banner";
 import { RedirectHandler } from "@/components/redirect-handler";
 import { Footer } from "@/components/modern-footer";
+import { listCompanies } from "@/lib/data";
 
 // Force dynamic rendering to avoid prerendering issues
 export const dynamic = 'force-dynamic'
@@ -99,10 +100,10 @@ function HeroWrapper() {
   )
 }
 
-function PartnerListWrapper({ region }: { region: any }) {
+function PartnerListWrapper({ region, companies }: { region: any, companies: any }) {
   return (
     <Suspense fallback={<PartnerListSkeleton />}>
-      <MerchantList region={region} />
+      <MerchantList region={region} companies={companies}/>
     </Suspense>
   )
 }
@@ -120,12 +121,15 @@ async function HomeContent() {
   const region = await getRegion('ph');
   const shouldRedirect = await shouldRedirectToOrder();
   const deliveryId = await getDeliveryId();
+  const companies = await listCompanies();
 
+
+  console.log(companies, 'COMP')
   return (
     <>
       <NavigationWrapper />
       <HeroWrapper />
-      <PartnerListWrapper region={region} />
+      <PartnerListWrapper region={region} companies={companies}/>
       <FooterWrapper />
       
       {shouldRedirect && deliveryId && (

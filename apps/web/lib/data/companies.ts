@@ -44,6 +44,31 @@ export const retrieveCompany = async (companyId: string) => {
   return company
 }
 
+export const listCompanies = async () => {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const next = {
+    ...(await getCacheOptions("companies")),
+  }
+
+  const { companies } = await sdk.client.fetch(
+    `/store/companies`,
+    {
+      query: {
+        fields:
+          "+spending_limit_reset_frequency,*employees.customer,*approval_settings,+handle,+logo_url,+banner_url,+is_open",
+      },
+      method: "GET",
+      headers,
+      next,
+    }
+  ) as any
+
+  return companies
+}
+
 export const createCompany = async (data: StoreCreateCompany) => {
   const headers = {
     ...(await getAuthHeaders()),
