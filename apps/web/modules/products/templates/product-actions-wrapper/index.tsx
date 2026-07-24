@@ -10,7 +10,7 @@ type ProductActionsWrapperProps = {
   quantity?: number
 }
 
-const ProductActionsWrapper = async ({
+const ProductActionsWrapper = ({
   product,
   region,
   company,

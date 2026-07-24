@@ -471,8 +471,6 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
   }
 
   let company = product?.companies?.filter((a: any) => a?.id)[0];
-  console.log(company, "COMPPP")
-  console.log(product, 'prodducts')
   // Variant selection state
   const [selectedVariant, setSelectedVariant] = useState<any>(null)
   const [quantity, setQuantity] = useState(1)
@@ -616,9 +614,7 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
 
                 {/* Product Actions */}
                 <div className="space-y-6">
-                  <Suspense
-                    fallback={<ProductActions product={product} region={region} />}
-                  >
+
                     <ProductActionsWrapper
                       product={product}
                       region={region}
@@ -626,7 +622,6 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                       variantId={selectedVariant?.id}
                       quantity={quantity}
                     />
-                  </Suspense>
 
                   {/* Product Facts */}
                   <ProductFacts product={product} />
@@ -739,7 +734,6 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
         {/* Company Info Section */}
         {company && (
           <div className="mb-10">
-            <Link href={`/${company.handle}`}>
               <Card className="border-2 border-primary/20 shadow-md hover:shadow-xl transition-all duration-300 group overflow-hidden">
                 {company.coverImage && (
                   <div className="relative h-40 md:h-48 bg-gradient-to-r from-primary/20 to-purple-500/20">
@@ -873,7 +867,6 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
                   </div>
                 </CardContent>
               </Card>
-            </Link>
           </div>
         )}
 
@@ -924,9 +917,9 @@ const ProductTemplate: React.FC<ProductTemplateProps> = ({
             </span>
             {product.tags.map((tag: any, index: number) => (
               <Badge key={index} variant="secondary" className="text-xs">
-                <Link href={`/catalog?tag=${tag.value}`} className="hover:text-primary">
+                <a href={`/catalog?tag=${tag.value}`} className="hover:text-primary">
                   #{tag.value}
-                </Link>
+                </a>
               </Badge>
             ))}
           </div>

@@ -16,7 +16,7 @@ export default async function Home(props: {
 
   return (
     <div className="flex flex-col gap-y-2 m-2">
-      <HeroSection />
+      {/* <HeroSection /> */}
       <Suspense fallback={<SkeletonFeaturedProducts />}>
         <FeaturedProducts countryCode={"ph"} />
       </Suspense>

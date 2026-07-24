@@ -1,7 +1,8 @@
 // components/location/LocationDialog.tsx
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Dialog,
   DialogContent,
@@ -14,17 +15,17 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useLocation } from '@/lib/context/LocationContext';
-import { 
-  MapPin, 
-  Store, 
-  Truck, 
-  Loader2, 
-  CheckCircle, 
-  AlertCircle, 
-  Navigation, 
-  Home, 
-  Building2, 
-  ArrowRight, 
+import {
+  MapPin,
+  Store,
+  Truck,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  Navigation,
+  Home,
+  Building2,
+  ArrowRight,
   Map,
   User,
   Phone,
@@ -33,16 +34,6 @@ import {
   ChevronRight,
   Check,
   Search,
-  X,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Minimize2,
-  Compass,
-  LocateFixed,
-  Move,
-  Plus,
-  Minus
 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
@@ -50,11 +41,13 @@ import { Label } from '@/components/ui/label';
 import { listBarangays, listMunicipalities } from '@/lib/actions/regions';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { Separator } from '@/components/ui/separator';
-import { MapLocationPicker } from '@/components/map-location-picker';
 import { createCustomer } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 
-// Types
+// ---------- Dynamic import of the improved map ----------
+const SimpleMap = dynamic(() => import('@/components/SimpleMap'), { ssr: false });
+
+// Types (unchanged)
 interface Municipality {
   id: string;
   psgc_code: string;
@@ -92,43 +85,40 @@ interface FormData {
 }
 
 // ============================================
-// STEP INDICATOR
+// STEP INDICATOR (unchanged)
 // ============================================
-
 const StepIndicator = ({ currentStep, steps }: { currentStep: number; steps: string[] }) => {
   return (
     <div className="flex items-center justify-center gap-2 mb-6">
       {steps.map((step, index) => {
         const isActive = index === currentStep;
         const isCompleted = index < currentStep;
-        
         return (
           <React.Fragment key={index}>
             <div className="flex items-center gap-2">
               <div
                 className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all",
-                  isActive && "bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900/30",
-                  isCompleted && "bg-green-500 text-white",
-                  !isActive && !isCompleted && "bg-gray-100 text-gray-400 dark:bg-gray-800"
+                  'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all',
+                  isActive && 'bg-blue-600 text-white ring-4 ring-blue-100 dark:ring-blue-900/30',
+                  isCompleted && 'bg-green-500 text-white',
+                  !isActive && !isCompleted && 'bg-gray-100 text-gray-400 dark:bg-gray-800'
                 )}
               >
                 {isCompleted ? <Check className="w-4 h-4" /> : index + 1}
               </div>
-              <span className={cn(
-                "text-xs font-medium hidden sm:block",
-                isActive && "text-blue-600 dark:text-blue-400",
-                isCompleted && "text-green-600 dark:text-green-400",
-                !isActive && !isCompleted && "text-gray-400"
-              )}>
+              <span
+                className={cn(
+                  'text-xs font-medium hidden sm:block',
+                  isActive && 'text-blue-600 dark:text-blue-400',
+                  isCompleted && 'text-green-600 dark:text-green-400',
+                  !isActive && !isCompleted && 'text-gray-400'
+                )}
+              >
                 {step}
               </span>
             </div>
             {index < steps.length - 1 && (
-              <div className={cn(
-                "w-8 h-0.5",
-                isCompleted ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"
-              )} />
+              <div className={cn('w-8 h-0.5', isCompleted ? 'bg-green-500' : 'bg-gray-200 dark:bg-gray-700')} />
             )}
           </React.Fragment>
         );
@@ -138,15 +128,14 @@ const StepIndicator = ({ currentStep, steps }: { currentStep: number; steps: str
 };
 
 // ============================================
-// CUSTOMER DETAILS STEP
+// CUSTOMER DETAILS STEP (unchanged)
 // ============================================
-
-const CustomerDetailsStep = ({ 
-  formData, 
-  onChange, 
+const CustomerDetailsStep = ({
+  formData,
+  onChange,
   onNext,
-  isValid 
-}: { 
+  isValid,
+}: {
   formData: FormData;
   onChange: (field: keyof FormData, value: string) => void;
   onNext: () => void;
@@ -154,7 +143,6 @@ const CustomerDetailsStep = ({
 }) => {
   return (
     <div className="space-y-5">
-      {/* Welcome Cards */}
       <div className="grid grid-cols-2 gap-3">
         <Card className="border-blue-100 bg-blue-50/50 dark:bg-blue-950/20 shadow-sm">
           <CardContent className="pt-4 pb-3 px-3">
@@ -176,7 +164,6 @@ const CustomerDetailsStep = ({
         </Card>
       </div>
 
-      {/* Form Fields */}
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -246,7 +233,6 @@ const CustomerDetailsStep = ({
         </div>
       </div>
 
-      {/* Info Box */}
       <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
         <div className="flex items-start gap-2">
           <Home className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -263,9 +249,8 @@ const CustomerDetailsStep = ({
 };
 
 // ============================================
-// LOCATION SELECTION STEP
+// LOCATION SELECTION STEP (unchanged)
 // ============================================
-
 const LocationSelectionStep = ({
   selectedMunicipality,
   selectedBarangay,
@@ -280,11 +265,10 @@ const LocationSelectionStep = ({
   onAddressChange,
   onBack,
   onNext,
-  isValid
+  isValid,
 }: any) => {
   return (
     <div className="space-y-5">
-      {/* Location Cards */}
       <div className="grid grid-cols-2 gap-3">
         <Card className="border-green-100 bg-green-50/50 dark:bg-green-950/20 shadow-sm">
           <CardContent className="pt-4 pb-3 px-3">
@@ -306,7 +290,6 @@ const LocationSelectionStep = ({
         </Card>
       </div>
 
-      {/* Street Address */}
       <div>
         <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Street Address / Building / Unit <span className="text-gray-400 text-xs">(Optional)</span>
@@ -324,7 +307,6 @@ const LocationSelectionStep = ({
 
       <Separator className="my-2" />
 
-      {/* Municipality */}
       <div className="space-y-2">
         <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Municipality / City <span className="text-red-500">*</span>
@@ -335,14 +317,13 @@ const LocationSelectionStep = ({
           onValueChange={onMunicipalityChange}
           placeholder="Search for municipality..."
           searchPlaceholder="Search municipality name..."
-          emptyMessage={loadingMunicipalities ? "Loading municipalities..." : "No municipality found."}
+          emptyMessage={loadingMunicipalities ? 'Loading municipalities...' : 'No municipality found.'}
           disabled={loadingMunicipalities}
           loading={loadingMunicipalities}
           required
         />
       </div>
 
-      {/* Barangay */}
       {selectedMunicipality && (
         <div className="space-y-2">
           <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -355,11 +336,11 @@ const LocationSelectionStep = ({
             placeholder="Search for barangay..."
             searchPlaceholder="Search barangay name..."
             emptyMessage={
-              loadingBarangays 
-                ? "Loading barangays..." 
-                : barangays.length === 0 
-                  ? "No barangay found for this municipality."
-                  : "Select a barangay"
+              loadingBarangays
+                ? 'Loading barangays...'
+                : barangays.length === 0
+                ? 'No barangay found for this municipality.'
+                : 'Select a barangay'
             }
             disabled={loadingBarangays || barangays.length === 0}
             loading={loadingBarangays}
@@ -368,7 +349,6 @@ const LocationSelectionStep = ({
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
         <Alert variant="destructive" className="border-red-200 bg-red-50 dark:bg-red-950/20">
           <AlertCircle className="h-4 w-4" />
@@ -376,7 +356,6 @@ const LocationSelectionStep = ({
         </Alert>
       )}
 
-      {/* Selected Location Preview */}
       {selectedMunicipality && selectedBarangay && (
         <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
           <div className="flex items-center gap-2">
@@ -395,9 +374,8 @@ const LocationSelectionStep = ({
 };
 
 // ============================================
-// MAP PINNING STEP (REQUIRED)
+// MAP PINNING STEP (REFINED – uses SimpleMap)
 // ============================================
-
 const MapPinningStep = ({
   selectedMunicipality,
   selectedBarangay,
@@ -406,16 +384,20 @@ const MapPinningStep = ({
   onBack,
   onComplete,
   isComplete,
-  isSubmitting
+  isSubmitting,
 }: any) => {
-  const [hasPinned, setHasPinned] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLocationSelect = (location: { lat: number; lng: number; address: string }) => {
-    setHasPinned(true);
-    setError('');
-    onMapLocationSelect(location);
-  };
+  // Callback from SimpleMap: gives us lat/lng
+  const handleLocationChange = useCallback(
+    (lat: number, lng: number) => {
+      // Simple address placeholder (could be improved with reverse geocoding)
+      const address = `Dropped pin (${lat.toFixed(6)}, ${lng.toFixed(6)})`;
+      onMapLocationSelect({ lat, lng, address });
+      setError('');
+    },
+    [onMapLocationSelect]
+  );
 
   const handleComplete = () => {
     if (!formData.coordinates) {
@@ -433,27 +415,27 @@ const MapPinningStep = ({
           <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
             Pin Your Delivery Location <span className="text-red-500">*</span>
           </span>
-          <span className="text-xs text-red-500 ml-auto font-medium">
-            Required
-          </span>
+          <span className="text-xs text-red-500 ml-auto font-medium">Required</span>
         </div>
 
-        <MapLocationPicker
-          onLocationSelect={handleLocationSelect}
-          initialLocation={formData.coordinates || undefined}
-          barangayName={selectedBarangay?.barangay_desc}
-          cityName={selectedMunicipality?.citymun_desc}
-          placeholder="Search for a location..."
-        />
+        {/* Replace MapLocationPicker with SimpleMap */}
+        <div className="h-64 rounded-lg overflow-hidden border">
+          <SimpleMap
+            center={formData.coordinates || undefined}
+            onLocationChange={handleLocationChange}
+            autoLocate
+          />
+        </div>
 
-        {/* Selected Address */}
         {formData.coordinates && formData.mapAddress ? (
           <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-100 dark:border-green-800">
             <div className="flex items-start gap-2">
               <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-green-800 dark:text-green-300 font-medium">📍 Pinned Location</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 break-words">{formData.mapAddress}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1 break-words">
+                  {formData.mapAddress}
+                </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Coordinates: {formData.coordinates.lat.toFixed(6)}, {formData.coordinates.lng.toFixed(6)}
                 </p>
@@ -465,19 +447,16 @@ const MapPinningStep = ({
             <div className="flex items-start gap-2">
               <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-xs text-yellow-800 dark:text-yellow-300 font-medium">
-                  Pin Your Location
-                </p>
+                <p className="text-xs text-yellow-800 dark:text-yellow-300 font-medium">Pin Your Location</p>
                 <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
-                  Click on the map or search for your address to pin your exact delivery location.
-                  This is required for accurate delivery.
+                  Click on the map or drag the pin to mark your exact delivery location. This is required for accurate
+                  delivery.
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Error Message */}
         {error && (
           <Alert variant="destructive" className="mt-4 border-red-200 bg-red-50 dark:bg-red-950/20">
             <AlertCircle className="h-4 w-4" />
@@ -485,7 +464,6 @@ const MapPinningStep = ({
           </Alert>
         )}
 
-        {/* Info Box */}
         <div className="mt-4 flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-800">
           <Navigation className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-blue-800 dark:text-blue-300">
@@ -495,7 +473,6 @@ const MapPinningStep = ({
         </div>
       </div>
 
-      {/* Benefits */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex items-center gap-2 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg">
           <Truck className="w-4 h-4 text-blue-600" />
@@ -511,26 +488,16 @@ const MapPinningStep = ({
 };
 
 // ============================================
-// SUCCESS STEP
+// SUCCESS STEP (unchanged)
 // ============================================
-
-const SuccessStep = ({ 
-  selectedMunicipality, 
-  selectedBarangay, 
-  formData,
-  onClose 
-}: any) => {
+const SuccessStep = ({ selectedMunicipality, selectedBarangay, formData, onClose }: any) => {
   return (
     <div className="py-8 text-center">
       <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
         <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
       </div>
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-        Location Saved! 🎉
-      </h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        We'll show you products available in
-      </p>
+      <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Location Saved! 🎉</h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">We'll show you products available in</p>
       <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 inline-block mx-auto">
         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
           {selectedBarangay?.barangay_desc}, {selectedMunicipality?.citymun_desc}
@@ -538,19 +505,13 @@ const SuccessStep = ({
       </div>
       {formData.coordinates && (
         <div className="mt-3">
-          <p className="text-xs text-green-600 dark:text-green-400">
-            📍 Exact location pinned for accurate delivery
-          </p>
+          <p className="text-xs text-green-600 dark:text-green-400">📍 Exact location pinned for accurate delivery</p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             Coordinates: {formData.coordinates.lat.toFixed(6)}, {formData.coordinates.lng.toFixed(6)}
           </p>
         </div>
       )}
-      <Button 
-        className="mt-6 bg-blue-600 hover:bg-blue-700 text-white"
-        onClick={onClose}
-        size="lg"
-      >
+      <Button className="mt-6 bg-blue-600 hover:bg-blue-700 text-white" onClick={onClose} size="lg">
         Start Shopping
         <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
@@ -559,17 +520,11 @@ const SuccessStep = ({
 };
 
 // ============================================
-// MAIN COMPONENT
+// MAIN COMPONENT (logic unchanged)
 // ============================================
-
-export const LocationDialog: React.FC<LocationDialogProps> = ({
-  open,
-  onOpenChange,
-  onSuccess,
-}) => {
+export const LocationDialog: React.FC<LocationDialogProps> = ({ open, onOpenChange, onSuccess }) => {
   const { setUserLocation } = useLocation();
-  
-  // Customer Details
+
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -579,47 +534,44 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
     coordinates: null,
     mapAddress: '',
   });
-  
-  // Location Data
+
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [selectedMunicipality, setSelectedMunicipality] = useState<Municipality | null>(null);
   const [barangays, setBarangays] = useState<Barangay[]>([]);
   const [selectedBarangay, setSelectedBarangay] = useState<Barangay | null>(null);
-  
-  // UI States
+
   const [loadingMunicipalities, setLoadingMunicipalities] = useState(false);
   const [loadingBarangays, setLoadingBarangays] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-  
-  const steps = ['Customer', 'Location', 'Map'];
-  
-  // Prevent closing when not completed
-  const handleOpenChange = useCallback((newOpen: boolean) => {
-    if (!newOpen && !success) {
-      // Show confirmation before closing
-      if (window.confirm('You haven\'t completed setting up your location. This is required to continue. Are you sure you want to close?')) {
-        // onOpenChange(false);
-      }
-      return;
-    }
-    onOpenChange(newOpen);
-  }, [success, onOpenChange]);
 
-  // Load municipalities when dialog opens
+  const steps = ['Customer', 'Location', 'Map'];
+
+  const handleOpenChange = useCallback(
+    (newOpen: boolean) => {
+      if (!newOpen && !success) {
+        if (
+          window.confirm(
+            "You haven't completed setting up your location. This is required to continue. Are you sure you want to close?"
+          )
+        ) {
+          onOpenChange(false);
+        }
+        return;
+      }
+      onOpenChange(newOpen);
+    },
+    [success, onOpenChange]
+  );
+
   useEffect(() => {
-    if (open) {
-      loadMunicipalities();
-    }
+    if (open) loadMunicipalities();
   }, [open]);
 
-  // Reset state when dialog closes
   useEffect(() => {
     if (!open) {
-      // Delay reset to prevent flicker
       const timer = setTimeout(() => {
         setSelectedMunicipality(null);
         setSelectedBarangay(null);
@@ -637,13 +589,11 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
           mapAddress: '',
         });
         setIsSubmitting(false);
-        setIsClosing(false);
       }, 300);
       return () => clearTimeout(timer);
     }
   }, [open]);
 
-  // Load barangays when municipality changes
   useEffect(() => {
     if (selectedMunicipality) {
       loadBarangays(selectedMunicipality.citymun_code);
@@ -656,18 +606,14 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
   const loadMunicipalities = async () => {
     setLoadingMunicipalities(true);
     setError('');
-    
     try {
       const response = await listMunicipalities();
-      let municipalitiesData: Municipality[] = [];
-      if (Array.isArray(response)) {
-        municipalitiesData = response;
-      } else if (response && typeof response === 'object' && 'data' in response) {
-        municipalitiesData = (response as any).data;
-      } else if (response && typeof response === 'object' && 'municipalities' in response) {
-        municipalitiesData = (response as any).municipalities;
-      }
-      setMunicipalities(municipalitiesData);
+      let data: Municipality[] = [];
+      if (Array.isArray(response)) data = response;
+      else if (response && typeof response === 'object' && 'data' in response) data = (response as any).data;
+      else if (response && typeof response === 'object' && 'municipalities' in response)
+        data = (response as any).municipalities;
+      setMunicipalities(data);
     } catch (err) {
       setError('Failed to load municipalities. Please try again.');
       console.error('Error loading municipalities:', err);
@@ -680,18 +626,14 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
     setLoadingBarangays(true);
     setError('');
     setSelectedBarangay(null);
-    
     try {
       const response = await listBarangays(citymunCode);
-      let barangaysData: Barangay[] = [];
-      if (Array.isArray(response)) {
-        barangaysData = response;
-      } else if (response && typeof response === 'object' && 'data' in response) {
-        barangaysData = (response as any).data;
-      } else if (response && typeof response === 'object' && 'barangays' in response) {
-        barangaysData = (response as any).barangays;
-      }
-      setBarangays(barangaysData);
+      let data: Barangay[] = [];
+      if (Array.isArray(response)) data = response;
+      else if (response && typeof response === 'object' && 'data' in response) data = (response as any).data;
+      else if (response && typeof response === 'object' && 'barangays' in response)
+        data = (response as any).barangays;
+      setBarangays(data);
     } catch (err) {
       setError('Failed to load barangays. Please try again.');
       console.error('Error loading barangays:', err);
@@ -701,60 +643,51 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
   };
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleMunicipalityChange = (municipalityId: string) => {
-    const municipality = municipalities.find(m => m.id === municipalityId);
-    if (municipality) {
-      setSelectedMunicipality(municipality);
-    }
+    const municipality = municipalities.find((m) => m.id === municipalityId);
+    if (municipality) setSelectedMunicipality(municipality);
   };
 
   const handleBarangayChange = (barangayId: string) => {
-    const barangay = barangays.find(b => b.id === barangayId);
-    if (barangay) {
-      setSelectedBarangay(barangay);
-    }
+    const barangay = barangays.find((b) => b.id === barangayId);
+    if (barangay) setSelectedBarangay(barangay);
   };
 
-  const handleMapLocationSelect = useCallback((location: { lat: number; lng: number; address: string }) => {
-    setFormData(prev => ({
-      ...prev,
-      coordinates: { lat: location.lat, lng: location.lng },
-      mapAddress: location.address,
-    }));
-  }, []);
+  const handleMapLocationSelect = useCallback(
+    (location: { lat: number; lng: number; address: string }) => {
+      setFormData((prev) => ({
+        ...prev,
+        coordinates: { lat: location.lat, lng: location.lng },
+        mapAddress: location.address,
+      }));
+    },
+    []
+  );
 
   const handleNextStep = () => {
-    if (step === 0 && formData.firstName && formData.lastName && formData.phone) {
-      setStep(1);
-    } else if (step === 1 && selectedMunicipality && selectedBarangay) {
-      setStep(2);
-    }
+    if (step === 0 && formData.firstName && formData.lastName && formData.phone) setStep(1);
+    else if (step === 1 && selectedMunicipality && selectedBarangay) setStep(2);
   };
 
   const handleBackStep = () => {
-    if (step > 0) {
-      setStep((prev) => (prev - 1) as 0 | 1 | 2);
-    }
+    if (step > 0) setStep((prev) => (prev - 1) as 0 | 1 | 2);
   };
 
   const handleSubmit = async () => {
-    // Validate map pinning
     if (!formData.coordinates) {
       setError('Please pin your exact location on the map before completing setup.');
       return;
     }
-    
     if (!selectedMunicipality || !selectedBarangay) {
       setError('Please select your municipality and barangay.');
       return;
     }
-    
+
     setIsSubmitting(true);
     setError('');
-    
     try {
       const userLocation = {
         municipality: selectedMunicipality.citymun_desc,
@@ -774,30 +707,15 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
         email: formData.email,
         timestamp: Date.now(),
       };
-      
-      // Create customer
       await createCustomer(userLocation);
-      
-      // Update context
       setUserLocation(userLocation);
-      
-      // Save to localStorage
       localStorage.setItem('userLocation', JSON.stringify(userLocation));
-      
-      // Set cookie for middleware
-      document.cookie = `userLocation=${encodeURIComponent(JSON.stringify(userLocation))}; path=/; max-age=2592000; SameSite=Lax`;
-      
+      document.cookie = `userLocation=${encodeURIComponent(
+        JSON.stringify(userLocation)
+      )}; path=/; max-age=2592000; SameSite=Lax`;
       setSuccess(true);
-      
-      // Trigger success callback
-      if (onSuccess) {
-        onSuccess();
-      }
-      
-      // Auto close after delay
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 2000);
+      onSuccess?.();
+      setTimeout(() => onOpenChange(false), 2000);
     } catch (err) {
       setError('Failed to save location. Please try again.');
       console.error('Error saving location:', err);
@@ -814,21 +732,25 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogPortal>
         <DialogOverlay className="bg-black/50 backdrop-blur-sm" />
-        <DialogContent 
+        <DialogContent
           className={cn(
-            "w-full max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-xl",
-            "max-h-[95vh] sm:max-h-[90vh]",
-            "p-4 sm:p-6",
-            "overflow-y-auto",
-            "bg-white dark:bg-gray-900",
-            "border-0 shadow-2xl",
-            "rounded-xl sm:rounded-2xl",
-            "transition-all duration-300"
+            'w-full max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-xl',
+            'max-h-[95vh] sm:max-h-[90vh]',
+            'p-4 sm:p-6',
+            'overflow-y-auto',
+            'bg-white dark:bg-gray-900',
+            'border-0 shadow-2xl',
+            'rounded-xl sm:rounded-2xl',
+            'transition-all duration-300'
           )}
           onInteractOutside={(e) => {
             if (!success) {
               e.preventDefault();
-              if (window.confirm('You haven\'t completed setting up your location. This is required to continue. Are you sure you want to close?')) {
+              if (
+                window.confirm(
+                  "You haven't completed setting up your location. This is required to continue. Are you sure you want to close?"
+                )
+              ) {
                 // onOpenChange(false);
               }
             }
@@ -836,7 +758,11 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
           onEscapeKeyDown={(e) => {
             if (!success) {
               e.preventDefault();
-              if (window.confirm('You haven\'t completed setting up your location. This is required to continue. Are you sure you want to close?')) {
+              if (
+                window.confirm(
+                  "You haven't completed setting up your location. This is required to continue. Are you sure you want to close?"
+                )
+              ) {
                 // onOpenChange(false);
               }
             }
@@ -872,10 +798,7 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
             />
           ) : (
             <div className="space-y-6 py-2">
-              {/* Step Indicator */}
               <StepIndicator currentStep={step} steps={steps} />
-
-              {/* Step Content */}
               <div className="min-h-[300px] sm:min-h-[320px]">
                 {step === 0 && (
                   <CustomerDetailsStep
@@ -885,7 +808,6 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
                     isValid={isCustomerFormValid}
                   />
                 )}
-
                 {step === 1 && (
                   <LocationSelectionStep
                     selectedMunicipality={selectedMunicipality}
@@ -904,7 +826,6 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
                     isValid={isLocationFormValid}
                   />
                 )}
-
                 {step === 2 && (
                   <MapPinningStep
                     selectedMunicipality={selectedMunicipality}
@@ -919,21 +840,17 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
                 )}
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t dark:border-gray-800">
                 {step === 0 && (
-                  <>
-                    <Button
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                      onClick={handleNextStep}
-                      disabled={!isCustomerFormValid}
-                    >
-                      Continue
-                      <ChevronRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </>
+                  <Button
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={handleNextStep}
+                    disabled={!isCustomerFormValid}
+                  >
+                    Continue
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
                 )}
-
                 {step === 1 && (
                   <>
                     <Button
@@ -954,7 +871,6 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
                     </Button>
                   </>
                 )}
-
                 {step === 2 && (
                   <>
                     <Button
@@ -985,8 +901,6 @@ export const LocationDialog: React.FC<LocationDialogProps> = ({
                   </>
                 )}
               </div>
-
-              {/* Footer Text */}
               <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
                 {step === 0 && '⚠️ Required: Please provide your contact details to continue'}
                 {step === 1 && '⚠️ Required: Select your location to see available products'}

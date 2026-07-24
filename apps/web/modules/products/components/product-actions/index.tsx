@@ -1,6 +1,4 @@
 // modules/products/components/product-actions.tsx
-"use client"
-
 import { HttpTypes } from "@medusajs/types"
 import ProductPrice from "../product-price"
 import ProductVariantsTable from "../product-variants-table"

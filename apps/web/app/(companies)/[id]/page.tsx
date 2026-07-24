@@ -1,3 +1,4 @@
+import { FooterModern } from "@/components/footer-modern";
 import { retrieveCompany } from "@/lib/actions";
 import { getRegion } from "@/lib/actions/regions";
 import { getProductsById,  } from "@/lib/data/products";
@@ -23,6 +24,7 @@ export default async function CompanyPage({ params }: { params: { id: string; co
       region={region}
       countryCode={params.countryCode}
     />
+    <FooterModern/>
     </>
   )
 }
