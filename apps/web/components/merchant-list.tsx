@@ -56,7 +56,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 // ---------- Simplified PartnerCard ----------
 function PartnerCard({ company, index }: { company: Company; index: number }) {
   const location = company.address || company.city || "Tacloban City";
-
+  console.log(company, 'cOMP')
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -131,8 +131,9 @@ function PartnerCard({ company, index }: { company: Company; index: number }) {
           asChild
           size="sm"
           className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-full mt-2"
+          disabled={!company?.is_open}
         >
-          <Link href={`/${company.handle}`}>Visit Store</Link>
+        {company?.is_open ?   <Link href={`/${company.handle}`}>Visit Store</Link>  : <Link href="#" className="opacity-50">Store Close</Link> }
         </Button>
       </div>
     </motion.div>

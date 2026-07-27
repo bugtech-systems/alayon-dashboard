@@ -3,12 +3,12 @@ import packageJson from "../package.json";
 const currentYear = new Date().getFullYear();
 
 export const APP_CONFIG = {
-  name: "Alayon Admin",
+  name: "Alayon Store",
   version: packageJson.version,
-  copyright: `© ${currentYear}, Alayon Admin.`,
+  copyright: `© ${currentYear}, Alayon Store.`,
   meta: {
-    title: "Alayon Admin - Modern Marketplace",
+    title: "Alayon Store - Modern Marketplace",
     description:
-      "Alayon Admin is a modern, open-source marketplace platform.",
+      "Alayon Store is a modern, multi tenant marketplace platform.",
   },
 };
