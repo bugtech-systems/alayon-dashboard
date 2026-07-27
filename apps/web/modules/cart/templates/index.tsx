@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ShoppingBag, ArrowRight, Lock } from "lucide-react"
-import { getCheckoutStep } from "@/lib/medusa/util/get-checkout-step"
+import { getCheckoutStep } from "@/lib/util/get-checkout-step"
 
 const CartTemplate = ({
   cart,

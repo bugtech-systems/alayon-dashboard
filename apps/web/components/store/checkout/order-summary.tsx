@@ -2,9 +2,9 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { retrieveCompany } from "@/lib/medusa/data/companies";
+import { retrieveCompany } from "@/lib/data/companies";
 import Image from "next/image";
-import { convertToLocale } from "@/lib/medusa/util/money";
+import { convertToLocale } from "@/lib/util/money";
 import { 
   ShoppingBag, 
   Store, 

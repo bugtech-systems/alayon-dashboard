@@ -1,8 +1,8 @@
 "use client";
 
 import { DeliveryDTO } from "@/lib/types";
-import { lottieMap } from "@/lib/medusa/util/constants";
-import { getNumericStatus } from "@/lib/medusa/util/get-numeric-status";
+import { lottieMap } from "@/lib/util/constants";
+import { getNumericStatus } from "@/lib/util/get-numeric-status";
 import {
   CheckCircleSolid,
   CircleDottedLine,

@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { ShoppingBag } from 'lucide-react'
-import { formatPrice, getDefaultVariant, getLowestPrice } from '@/lib/medusa/utils'
+import { formatPrice, getDefaultVariant, getLowestPrice } from '@/lib/utils'
 import { useCart } from '@/lib/context/cart-context'
 import { Button } from '@/components/ui/button'
 

@@ -1,9 +1,9 @@
 "use client"
 
 import { useCart } from "@/lib/context/cart-context"
-import { checkSpendingLimit } from "@/lib/medusa/util/check-spending-limit"
-import { getCheckoutStep } from "@/lib/medusa/util/get-checkout-step"
-import { convertToLocale } from "@/lib/medusa/util/money"
+import { checkSpendingLimit } from "@/lib/util/check-spending-limit"
+import { getCheckoutStep } from "@/lib/util/get-checkout-step"
+import { convertToLocale } from "@/lib/util/money"
 import AppliedPromotions from "@/modules/carts/components/applied-promotions"
 import ApprovalStatusBanner from "@/modules/carts/components/approval-status-banner"
 import ItemsTemplate from "@/modules/carts/templates/items"

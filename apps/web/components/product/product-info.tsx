@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { Check, Minus, Plus, ShoppingBag, Truck, Shield, Heart, Share2 } from 'lucide-react'
-import { formatPrice, getLowestPrice, calculateDiscountPercentage } from '@/lib/medusa/utils'
+import { formatPrice, getLowestPrice, calculateDiscountPercentage } from '@/lib/utils'
 import { useCart } from '@/lib/context/cart-context'
 import { Button } from '@/components/ui/button'
 
