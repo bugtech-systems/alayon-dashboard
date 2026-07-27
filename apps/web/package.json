@@ -4,10 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000 --turbopack",
+    "dev": "next dev -p 8000 --turbopack",
     "build": "next build",
     "build:ignore-errors": "next build || true",
-    "start": "next start",
+    "start": "next start -p 8000",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit"
