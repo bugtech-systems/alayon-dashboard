@@ -12,7 +12,7 @@ import type {
 } from './types'
 import { getAuthHeaders, getCacheOptions } from "./data/cookies"
 import { HttpTypes } from "@medusajs/types"
-import { getRegion } from '../actions/regions'
+import { getRegion } from './actions/regions'
 
 
 // Cache configuration for React Server Components

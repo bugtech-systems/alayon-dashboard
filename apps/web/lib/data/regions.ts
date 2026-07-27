@@ -1,7 +1,7 @@
 "use server"
 
-import { sdk } from "../medusa/config"
-import medusaError from "../medusa/util/medusa-error"
+import { sdk } from "../config"
+import medusaError from "../util/medusa-error"
 import { HttpTypes } from "@medusajs/types"
 import { getCacheOptions } from "./cookies"
 import { cache } from "react"
@@ -10,7 +10,6 @@ export const listRegions = cache(async () => {
   try {
     const { regions } = await sdk.store.region.list(
       {},
-      { next: { tags: ["regions"] } }
     )
     return regions || []
   } catch (error) {

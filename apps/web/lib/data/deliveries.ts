@@ -1,4 +1,4 @@
-import { sdk } from "../medusa/config";
+import { sdk } from "../config";
 import { DeliveryDTO } from "../types";
 import { getAuthHeaders, getCacheHeaders } from "./cookies";
 

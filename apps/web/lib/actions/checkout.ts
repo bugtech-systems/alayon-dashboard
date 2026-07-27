@@ -2,11 +2,11 @@
 
 import { UpsertAddressDTO } from "@medusajs/types";
 import { revalidateTag } from "next/cache";
-import { sdk } from "../medusa/config";
-import { retrieveCart } from "../medusa/data/cart";
-import { getAuthHeaders, getCacheOptions, removeCartId } from "../medusa/data/cookies";
+import { sdk } from "../config";
+import { retrieveCart } from "../data/cart";
+import { getAuthHeaders, getCacheOptions, removeCartId } from "../data/cookies";
 import { DeliveryDTO } from "../types";
-import medusaError from "../medusa/util/medusa-error";
+import medusaError from "../util/medusa-error";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 

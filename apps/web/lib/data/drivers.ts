@@ -1,7 +1,7 @@
-import { sdk } from "../medusa/config";
+import { sdk } from "../config";
 
 import { DriverDTO } from "@/lib/types";
-import { getAuthHeaders, getCacheHeaders } from "../medusa/data/cookies";
+import { getAuthHeaders, getCacheHeaders } from "../data/cookies";
 
 export async function retrieveDriver(driverId: string): Promise<DriverDTO> {
   const {

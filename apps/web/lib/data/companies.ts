@@ -1,6 +1,6 @@
 "use server"
 
-import { sdk } from "@/lib/medusa/config"
+import { sdk } from "@/lib/config"
 import {
   getAuthHeaders,
   getCacheOptions,

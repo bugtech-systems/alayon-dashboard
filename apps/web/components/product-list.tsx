@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getProducts } from '@/lib/medusa/client';
+import { getProducts } from '@/lib/client';
 import { ProductPrice, CompactProductPrice } from "@/components/product-price";
 import { ProductCard } from "./product-card";
 

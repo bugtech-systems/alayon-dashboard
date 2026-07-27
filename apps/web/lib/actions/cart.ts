@@ -1,7 +1,7 @@
 "use server"
 
-import { sdk } from "@/lib/medusa/config"
-import medusaError from "@/lib/medusa/util/medusa-error"
+import { sdk } from "@/lib/config"
+import medusaError from "@/lib/util/medusa-error"
 import { StoreApprovalResponse } from "@/types/approval"
 import { B2BCart } from "@/types/global"
 import { HttpTypes, StoreCart } from "@medusajs/types"
@@ -13,11 +13,11 @@ import {
   getCacheTag,
   getCartId,
   setCartId,
-} from "@/lib/medusa/data/cookies"
+} from "@/lib/data/cookies"
 import { retrieveCustomer } from "./customer"
 import { getRegion } from "./regions"
 import { getCachedId } from "../data/cookies"
-import { updateCart } from "../medusa/data/cart"
+import { updateCart } from "../data/cart"
 
 export async function retrieveCart(id?: string) {
   const cartId = id || (await getCartId())

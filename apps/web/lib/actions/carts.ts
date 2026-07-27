@@ -4,7 +4,7 @@ import { retrieveUser } from "@/lib/data";
 import { CartDTO, HttpTypes } from "@medusajs/types";
 import { revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
-import { sdk } from "../medusa/config";
+import { sdk } from "../config";
 import { getAuthHeaders, getCacheTag } from "../data/cookies";
 
 export async function createCart(

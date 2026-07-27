@@ -4,8 +4,8 @@ import { CreateDriverDTO, CreateRestaurantAdminDTO } from "@/lib/types";
 import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createSession, destroySession } from "../../lib/data/sessions";
-import { sdk } from "../medusa/config";
-import { getAuthHeaders, getCacheHeaders, getCacheTag, removeAuthToken } from "../medusa/data/cookies";
+import { sdk } from "../config";
+import { getAuthHeaders, getCacheHeaders, getCacheTag, removeAuthToken } from "../data/cookies";
 import { track } from "@vercel/analytics";
 import { n8nFetcher } from "@/hooks/useN8nQuery";
 

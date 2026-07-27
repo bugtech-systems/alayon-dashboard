@@ -1,4 +1,4 @@
-import { sdk } from "../medusa/config";
+import { sdk } from "../config";
 import { getAuthHeaders, getCacheHeaders, getCartId } from "./cookies";
 
 export async function retrieveCart(id?: string) {

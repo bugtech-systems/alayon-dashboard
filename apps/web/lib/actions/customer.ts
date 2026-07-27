@@ -1,7 +1,7 @@
 "use server"
 
-import { sdk } from "@/lib/medusa/config"
-import medusaError from "@/lib/medusa/util/medusa-error"
+import { sdk } from "@/lib/config"
+import medusaError from "@/lib/util/medusa-error"
 import { B2BCustomer } from "@/types/global"
 import { HttpTypes } from "@medusajs/types"
 import { track } from "@vercel/analytics/server"
@@ -15,7 +15,7 @@ import {
   removeAuthToken,
   removeCartId,
   setAuthToken,
-} from "@/lib/medusa/data/cookies"
+} from "@/lib/data/cookies"
 import { createSession } from "../data/sessions"
 import { getCachedId } from "../data/cookies"
 import { assignCart } from "../data/cart"

@@ -1,6 +1,6 @@
 // hooks/useN8nQuery.ts
 
-import { getAuthHeaders } from "@/lib/medusa/data/cookies"
+import { getAuthHeaders } from "@/lib/data/cookies"
 import { useQuery } from "@tanstack/react-query"
 
 const BASE_URL =

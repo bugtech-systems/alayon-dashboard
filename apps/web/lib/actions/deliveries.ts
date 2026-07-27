@@ -3,7 +3,7 @@
 import { DeliveryDTO, DeliveryStatus } from "@/lib/types";
 import { revalidateTag } from "next/cache";
 import { getAuthHeaders, getCacheTag } from "../data/cookies";
-import { sdk } from "../medusa/config";
+import { sdk } from "../config";
 
 const BACKEND_URL =
   process.env.BACKEND_URL ||

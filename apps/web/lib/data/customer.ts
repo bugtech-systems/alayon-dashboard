@@ -1,7 +1,7 @@
 "use server"
 
 import { sdk } from "@/lib/config"
-import medusaError from "@/lib/medusa/util/medusa-error"
+import medusaError from "@/lib/util/medusa-error"
 import { B2BCustomer } from "@/types/global"
 import { HttpTypes } from "@medusajs/types"
 import { track } from "@vercel/analytics/server"

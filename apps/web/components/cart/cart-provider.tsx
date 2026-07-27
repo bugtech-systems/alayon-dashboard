@@ -15,7 +15,7 @@ import type {
   StoreAddCartLineItem,
   StoreUpdateCartLineItem 
 } from '@medusajs/types'
-import { setCartId } from '@/lib/medusa/data/cookies'
+import { setCartId } from '@/lib/data/cookies'
 
 // Types for Medusa cart
 type MedusaCart = StoreCart

@@ -17,7 +17,7 @@ import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/product-card";
-import { getProducts } from "@/lib/medusa/client";
+import { getProducts } from "@/lib/client";
 import { listCategories } from "@/lib/data";
 import { Card, CardContent } from "./ui/card";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "./ui/pagination";
